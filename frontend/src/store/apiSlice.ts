@@ -86,6 +86,9 @@ export const apiSlice = createApi({
     sendEmail: builder.mutation({
       query: (payload) => ({ url: '/email/send', method: 'POST', body: payload }),
     }),
+    getDefaultIps: builder.query<{ ips: string }, void>({
+      query: () => '/email/default-ips',
+    }),
 
     // ─── Screens ──────────────────────────────────────────────────────────────
     getScreens: builder.query<any[], void>({
@@ -209,6 +212,7 @@ export const {
   // Campaigns / Email
   useGetCampaignsQuery,
   useGetCampaignByIdQuery,
+  useGetDefaultIpsQuery,
   useSendEmailMutation,
   // Screens
   useGetScreensQuery,

@@ -3,6 +3,7 @@ const Log = require("../models/Log");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const crypto = require("crypto");
+const pool = require("../config/mysql");
 
 const sendEmail = async (req, res) => {
   const {
@@ -145,15 +146,27 @@ const sendEmail = async (req, res) => {
   }
 };
 
+const getDefaultIps = async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT assignedip as ip FROM svml.mumara");
+    const ips = rows.map((r) => r.ip).join("\n");
+    res.json({ ips });
+  } catch (error) {
+    console.error("Error fetching default IPs from MySQL", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching default IPs", error: error.message });
+  }
+};
+
 const getCampaigns = async (req, res) => {
   try {
-    const campaigns = await Log.aggregate([
-      { $match: { template_id: { $ne: "Manual" } } },
-      { $group: { _id: "$template_id", lastId: { $last: "$_id" } } },
-      { $sort: { _id: 1 } },
-    ]);
-    res.json(campaigns.map((c) => ({ id: c.lastId, name: c._id })));
+    const [rows] = await pool.query(
+      "SELECT MAX(sno) as sno, tempname as name FROM svml.svml_sendgrid WHERE status = '1' GROUP BY tempname ORDER BY tempname ASC",
+    );
+    res.json(rows.map((r) => ({ id: r.sno, name: r.name })));
   } catch (error) {
+    console.error("Error fetching campaigns from MySQL", error);
     res
       .status(500)
       .json({ message: "Error fetching campaigns", error: error.message });
@@ -162,10 +175,70 @@ const getCampaigns = async (req, res) => {
 
 const getCampaignDetails = async (req, res) => {
   try {
-    const log = await Log.findById(req.params.id);
-    if (!log) return res.status(404).json({ message: "Campaign not found" });
-    res.json(log);
+    const [rows] = await pool.query(
+      "SELECT * FROM svml.svml_sendgrid WHERE sno = ?",
+      [req.params.id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
+
+    const c = rows[0];
+
+    // Map 100% of legacy fields to the expected frontend structure
+    const mappedData = {
+      // Main Headers & Content
+      accs: c.mutidomains || "",
+      headers: c.headers
+        ? Buffer.from(c.headers, "base64").toString("utf8")
+        : "",
+      from_email: c.ip || "",
+      subject: c.subject || "",
+      from_name: c.from_val || "",
+      emails: c.emails || "",
+      msg_type: c.type || "html",
+      message_html: c.msg || "",
+      message_plain: c.textm || "",
+      search_replace: c.reason
+        ? Buffer.from(c.reason, "base64").toString("utf8")
+        : "",
+
+      // Settings Grid
+      data_file: c.data || "",
+      total_send: String(c.limits || ""),
+      limit_to_send: c.limit_to_send || "",
+      sleep_time: c.sleep_time || "",
+      offer_id: c.offer || "",
+      template_name: c.tempname || "",
+      domain: c.domain || "",
+      wait_time: String(c.wait || "2"),
+      message_id: c.bcc || "",
+      inb_pattern: c.inbpatt || "1",
+      restart_choice: c.res_choice || "YES",
+      script_choice: c.head || "", // 'head' column maps to 'mail_ch' input
+      relay_percent: c.relay_per || "",
+      inbox_percent: c.oid || "",
+      times_to_send: String(c.times || "1"),
+      mail_after: c.pwd || "", // 'pwd' column maps to 'mail_per' input
+      reply_to: c.reply_to || "0",
+      xmailer: c.xmailer || "0",
+      interval_time: String(c.interval_time || ""),
+
+      // Charsets / Encodings
+      charset: c.charen || "UTF-8",
+      encoding: c.contend || "8bit",
+      charset_alt: c.charen_alt || "UTF-8",
+      encoding_alt: c.contend_alt || "8bit",
+
+      // Modes
+      mode: c.mode || "test",
+      sen_t: c.sen_t || "manual",
+    };
+
+    res.json(mappedData);
   } catch (error) {
+    console.error("Error fetching campaign details from MySQL", error);
     res.status(500).json({
       message: "Error fetching campaign details",
       error: error.message,
@@ -173,4 +246,9 @@ const getCampaignDetails = async (req, res) => {
   }
 };
 
-module.exports = { sendEmail, getCampaigns, getCampaignDetails };
+module.exports = {
+  sendEmail,
+  getCampaigns,
+  getCampaignDetails,
+  getDefaultIps,
+};
