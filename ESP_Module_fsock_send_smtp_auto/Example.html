@@ -1,0 +1,143 @@
+<pre>
+                                                                                            VARIABLES
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+{{SubjectLine}}          ----> Subject replaced             
+{{FromEmail}}            ----> From email replaced          
+{{FromName}}             ----> From name replaced           
+{{Fromdomain}}           ----> From domain replaced                   
+{{Domain}}               ----> Domain replaced              
+{{HtmlContent}}          ----> HTML Content replaced              
+{{PlainContent}}         ----> PLAIN Content replaced             
+{{HtmlContent_base64}}   ----> Covert HTML to base64 replaced        
+{{PlainContent_base64}}  ----> Covert PLAIN to base64 replaced        
+{{HtmlContent_uue}}      ----> Covert HTML to UUENCODE replaced        
+{{PlainContent_uue}}     ----> Covert PLAIN to UUENCODE replaced        
+{{HtmlContent_qp}}       ----> Covert HTML to quoted-printable replaced        
+{{PlainContent_qp}}      ----> Covert PLAIN to quoted-printable  replaced        
+{{boundary}}             ----> Replace Boundary with actual value
+{{ToEmail}}              ----> Replace To Email
+{{MessageId}}            ----> Replaced with Message id
+{{ToName}}               ----> Replaced With To email name
+{{ToDomain}}             ----> Replaced With To email Domain
+((_track_))              ----> Email will Converted into md5 HASH and replaced by this.
+
+                                                                         FUNCTIONS   (NOTE : X is argumnets in functions)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+[[ascii2hex(X)]]           ----> Convert Ascii to Hex
+[[RFC_Date_EST()]]         ----> Genearate EST date into RFC
+[[RFC_Date_UTC()]]         ----> Genearate UTC date into RFC
+[[RFC_Date_EDT()]]         ----> Genearate EDT date into RFC
+[[RFC_Date_IST()]]         ----> Genearate IST date into RFC
+[[num(X)]]                 ----> Genearate Random numbers  (0123456789)
+[[smallchar(X)]]           ----> Genearate Random Small Charater Alphabet (abcdefghijklmnopqrstuvwxyz)
+[[bigchar(X)]]             ----> Genearate Random Big Charater Alphabet (ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+[[mixsmallbigchar(X)]]     ----> Genearate mixed Random Big,Small Charater Alphabet (abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ)
+[[mixsmallalphanum(X)]]    ----> Genearate mixed Random numbers,Small Charater Alphabet (0123456789abcdefghijklmnopqrstuvwxyz)
+[[mixbigalphanum(X)]]      ----> Genearate mixed Random numbers,Big Charater Alphabet (0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+[[mixall(X)]]              ----> Genearate mixed Random numbers,small,Big Charater Alphabet (0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ)
+[[hexdigit(X)]]            ----> Generate HEX digit 
+
+                                                                       Content-Transfer-Encoding
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1: 7bit
+2: x-uuencode   ---> only for limited ISP: Ex: Comcast
+3: quoted-printable
+4: base64
+5: 8bit
+6: binary
+
+EXAMPLE:
+Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: x-uuencode
+Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: base64
+Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: binary
+                                                                       Charset
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1: UTF-8
+2: us-ascii
+3: windows-1251
+4: iso-8859-1
+
+EXAMPLE:
+charset=UTF-8
+charset=iso-8859-1
+charset=us-ascii
+charset= windows-1251
+                                                                       Content-Type
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1: text/html
+2: multipart/alternative
+
+EXAMPLE:
+Content-Type: text/html;
+Content-Type: multipart/alternative;  boundary="--[[smallchar(X)]];
+
+
+
+                                                                                      EXAMPLE : 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                               
+
+Example 1 : 
+
+Received: by [[smallchar(3)]][[num(1)]].{{FromDomain}} id [[mixsmallalphanum(12)]] for <{{ToEmail}}>; [[RFC_Date_IST()]] (envelope-from )
+Date: [[RFC_Date_IST()]]
+From: {{FromName}} <{{FromEmail}}>
+To: "{{ToName}}" <{{ToEmail}}>
+Message-ID: {{MessageId}}
+X-Sender: ((_track_))
+Subject: {{SubjectLine}}
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="--=_Part_[[num(7)]]_[[num(10)]].[[num(13)]]"
+X-MC-Metadata: {"metadataId":"[[mixsmallalphanum(8)]]-[[mixsmallalphanum(4)]]-[[mixsmallalphanum(4)]]-[[mixsmallalphanum(4)]]-[[mixsmallalphanum(12)]]","stage":"prod","vendor":"powermta","recipients":"{{ToEmail}}"}
+==--==
+--{{boundary}}
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+
+{{PlainContent_qp}}
+
+--{{boundary}}
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+{{HtmlContent_qp}}
+
+--{{boundary}}--
+
+
+MESSAGE ID EXAMPLE : <[[mixall(15)]]@91fulibao.com>
+
+Example 2 :
+
+Content-Type: multipart/mixed; boundary="===============2819095487923153962=="
+MIME-Version: 1.0
+Subject: {{SubjectLine}}
+From: {{FromName}} <{{FromEmail}}>
+To: {{ToEmail}}
+Reply-To: {{FromEmail}}
+x-campaignid: [[mixsmallalphanum(24)]]
+formatted_cid: [[mixsmallalphanum(24)]]_F_T_EM_AB_1_P_0_TIME_2025-07-26 08:55:41.239002_L_0
+X-SMTPAPI: {"unique_args": {"cid": "[[mixsmallalphanum(24)]]", "user_id": "[[mixsmallalphanum(24)]]", "app_key": "[[mixbigalphanum(24)]]", "formatted_cid": "[[mixsmallalphanum(24)]]_F_T_EM_AB_1_P_0_TIME_2025-07-26 08:55:41.239002_L_0", "to_email": "{{ToEmail}}"}}
+X-MC-Metadata: {"cid": "[[mixsmallalphanum(24)]]", "user_id": "[[mixsmallalphanum(24)]]", "app_key": "[[mixbigalphanum(24)]]", "formatted_cid": "[[mixsmallalphanum(24)]]_F_T_EM_AB_1_P_0_TIME_2025-07-26 08:55:41.239002_L_0", "to_email": "{{ToEmail}}"}
+X-MSYS-API: {"campaign_id": "[[mixsmallalphanum(24)]]", "metadata": {"cid": "[[mixsmallalphanum(24)]]", "user_id": "[[mixsmallalphanum(24)]]", "app_key": "[[mixbigalphanum(24)]]", "from": "{{FromEmail}}", "subject": "U.S. Polo Assn. For Every Plan\ud83e\udd29", "formatted_cid": "[[mixsmallalphanum(24)]]_F_T_EM_AB_1_P_0_TIME_2025-07-26 08:55:41.239002_L_0", "to_email": "{{ToEmail}}"}}
+Message-ID: {{MessageId}}
+Date: [[RFC_Date_UTC()]]
+Feedback-ID: [[mixall(37)]].[[mixall(21)]]_[[mixall(10)]]:[[mixall(65)]].[[mixall(4)]]:1.ap-south-1.[[mixall(32)]]+[[mixall(8)]]/k=:AmazonSES
+==--==
+--===============2819095487923153962==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+{{HtmlContent_base64}}
+--===============2819095487923153962==--
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+</pre>

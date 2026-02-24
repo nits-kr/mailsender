@@ -1,0 +1,32 @@
+all_tar/DB_back/svml.sql
+# ESP SMTP runtime output
+ESP_Module_fsock_send_smtp/out/
+!ESP_Module_fsock_send_smtp/out/.gitkeep
+ESP_Module_fsock/out/
+!ESP_Module_fsock/out/.gitkeep
+interface_new/out/
+!interface_new/out/.gitkeep
+
+# Webhook handler runtime data
+ESP_Module_fsock/webhook_handler/data/
+ESP_Module_fsock_send_smtp/webhook_handler/data/ESP_Module_fsock_send_smtp/out/*
+ESP_Module_fsock_send_smtp_auto/out/*
+ESP_Module_fsock/webhook_handler/data/*
+ESP_Module_fsock_send_smtp/webhook_handler/data/*
+advance_imap/*.txt
+Offer_portal/redirect/out.txt
+all_html_*.tar.gz
+
+# Temporary files
+Data_Download/data_upload_out.txt
+Data_Download/files.txt
+all_tar/DB_schema_back/suppression_v2.sql
+all_tar/DB_schema_back/svml.sql
+Data_Download/uploads/warmupid20.txt
+screenout/*
+server_setup/configs/*
+server_setup/out.txt
+server_setup/sql_files/*
+server_setup/sending_ip_setup/out.txt
+node_modules
+node_modules

@@ -1,0 +1,319 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 130vh; /* Ensures it fills the viewport height */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transform: scale(0.75); /* Scales the content to 75% */
+    transform-origin: top left; /* Keeps scaling aligned to the top left */
+    width: 133%; /* Adjusted for scaling compensation */
+    overflow: hidden; /* Prevents scrollbars from appearing */
+}
+
+.container {
+    display: flex; /* Flexbox container */
+    flex-direction: row; /* Ensure children are side by side */
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+}
+
+.form-wrapper {
+    background: #ffffff;
+    padding: 0px 20px 0px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    height: 100%; /* Ensure the form-wrapper takes full available height */
+}
+
+.heading-main {
+    font-size: 2rem;
+    color: #007bff;
+    text-align: center;
+}
+
+h1 {
+    font-size: 1.5rem;
+    color: #333333;
+    text-align: center;
+}
+
+label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555555;
+    margin-bottom: 5px;
+}
+
+input, select {
+    width: 95%;
+    padding: 10px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 10px;
+}
+
+/* Modify textarea to grow and fill available space */
+textarea {
+    width: 95%;
+    padding: 10px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 10px;
+    resize: none; /* Optional: prevents manual resizing */
+    height: 65%; /* Ensures it covers remaining space */
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Styles for the hidden popup */
+.popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+}
+
+.popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+.close-btn {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: auto; /* Added width auto */
+}
+
+.left-div, .right-div {
+    flex: 1; /* Equal width for both columns */
+    padding: 0px 20px;
+    box-sizing: border-box;
+    background-color: #f9f9f9;
+}
+
+.left-div {
+    border: 1px solid #007bff;
+    overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+.right-div {
+    border: 1px solid #000;
+    overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+#emailDetailsTable {
+    max-height: 250px; /* Adjust height as needed */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid #ddd; /* Optional border for the container */
+    display: block;
+}
+
+#detailsTable {
+    width: 100%; /* Full width */
+    border-collapse: collapse; /* Remove gaps between table cells */
+}
+
+#detailsTable thead {
+    position: sticky; /* Keep the header fixed */
+    top: 0;
+    background-color: #007bff; /* Header background color */
+    color: #fff; /* Header text color */
+    z-index: 1;
+}
+
+#detailsTable th,
+#detailsTable td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd; /* Add borders to cells */
+}
+
+#detailsTable tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* Alternate row color */
+}
+
+#detailsTable tbody tr:hover {
+    background-color: #f1f1f1; /* Highlight row on hover */
+}
+
+/* Style for the action buttons */
+.action-btn {
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    padding: 5px;
+    margin-right: 5px;
+    transition: background-color 0.3s ease;
+    width: 17px;
+}
+
+/* Edit button icon color */
+.edit-btn i {
+    color: #007bff; /* Blue color for edit */
+}
+
+/* Delete button icon color */
+.delete-btn i {
+    color: #e74c3c; /* Red color for delete */
+}
+
+/* Hover effect for action buttons */
+.action-btn:hover {
+    background-color: #f0f0f0; /* Light grey background on hover */
+    border-radius: 3px; /* Slight rounding */
+}
+
+/* Optional: Add a small effect when hovering over icons */
+.action-btn i:hover {
+    transform: scale(1.2); /* Slight zoom effect */
+}
+
+/* Optional: Add some spacing between table columns */
+#detailsTable td {
+    padding: 10px;
+}
+
+/* ------------- */
+#rightDiv {
+    padding: 30px;
+    background-color: #f2f2f2;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+#fileList {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e1e1e1;
+}
+
+#fileListHeading {
+    font-size: 28px;
+    color: #444;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#fileTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+#fileTable th, #fileTable td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #f2f2f2;
+    font-size: 16px;
+    color: #444;
+    transition: all 0.3s ease;
+}
+
+#fileTable th {
+    background-color: #007bff;
+    color: white;
+    text-transform: uppercase;
+}
+
+#fileTable tbody tr {
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+
+#fileTable tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+#fileTable tbody tr:hover {
+    background-color: #f1f1f1;
+    transform: scale(1.02);
+}
+
+#fileTable tbody tr:last-child {
+    border-bottom: none;
+}
+
+#file1, #file2, #file3, #file4, #file5, #file6 {
+    color: #555;
+}
+
+#date1, #date2, #date3, #date4, #date5, #date6 {
+    color: #888;
+}
+
+#fileRow1:hover {
+    background-color: #e1f7e1;
+}
+
+#fileRow2:hover {
+    background-color: #e6f7ff;
+}
+
+#fileRow3:hover {
+    background-color: #fff7e6;
+}
+
+#fileRow4:hover {
+    background-color: #e6f7e6;
+}
+
+#fileRow5:hover {
+    background-color: #f2e6ff;
+}
+
+#fileRow6:hover {
+    background-color: #f9f9f9;
+}
+
+#autolog {
+    cursor: pointer;
+    width: 100%;
+}

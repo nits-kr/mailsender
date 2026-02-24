@@ -1,0 +1,160 @@
+const { serverSetupSchema } = require("../utils/validators");
+const { NodeSSH } = require("node-ssh");
+const pool = require("../config/mysql");
+const ssh = new NodeSSH();
+
+const setupServer = async (req, res) => {
+  try {
+    serverSetupSchema.parse(req.body);
+  } catch (error) {
+    return res
+      .status(400)
+      .json({ message: "Validation failed", errors: error.errors });
+  }
+
+  const { ip, pass, dev_name, ips_text, actions, type, mode } = req.body;
+  const isUbuntu = type === "ubuntu";
+  const isSendingIp = type === "sending_ip";
+
+  try {
+    if (isSendingIp && mode === "remove") {
+      await ssh.connect({ host: ip, username: "root", password: pass });
+      const cleanCmd =
+        "cd /var/www/html/; rm -rf *; echo '\nALL INTERFACE REMOVED SUCESSFULLY'; ";
+      const result = await ssh.execCommand(cleanCmd);
+      return res.json({
+        message: "Sending IP removal tasks completed",
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+    }
+
+    await ssh.connect({
+      host: ip,
+      username: "root",
+      password: pass,
+    });
+
+    let fullCommand = "";
+
+    if (actions.install_http) {
+      if (isUbuntu || isSendingIp) {
+        fullCommand +=
+          "sudo apt-get remove apache2 -y; sudo apt-get install apache2 wget unzip perl alien -y; service apache2 restart; ";
+      } else {
+        fullCommand +=
+          "yum -y -q install httpd php php-mysql; service httpd restart; ";
+      }
+    }
+
+    if (actions.install_php && (isUbuntu || isSendingIp)) {
+      fullCommand +=
+        "sudo apt-get purge php7.* -y; sudo apt update -y; cd /opt/; sudo apt install git dpkg-dev -y; ";
+      fullCommand +=
+        "git clone https://github.com/Karan06/php56-localrepo.git; cd /opt/php56-localrepo; dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz; ";
+      fullCommand +=
+        "echo 'deb [trusted=yes] file:/opt/php56-localrepo ./' | sudo tee /etc/apt/sources.list.d/php56-localrepo.list; sudo apt update -y; ";
+      fullCommand +=
+        "sudo apt install php5.6 php5.6-mcrypt php5.6-cli php5.6-gd php5.6-curl php5.6-mysql php5.6-ldap php5.6-zip php5.6-fileinfo php5.6-xml php5.6-mbstring -y; service apache2 restart; ";
+
+      if (isSendingIp) {
+        fullCommand +=
+          "sed -i 's/post_max_size = 8M/post_max_size = 200M/g' /etc/php/5.6/apache2/php.ini; sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 200M/g' /etc/php/5.6/apache2/php.ini; ";
+      }
+    }
+
+    if (actions.install_pmta && !isSendingIp) {
+      if (isUbuntu) {
+        fullCommand +=
+          "wget -q http://" +
+          req.headers.host +
+          "/all_tar/pmta_setup_ubuntu.tar.gz; tar -zxf pmta_setup_ubuntu.tar.gz; sh setup_pmta_ubuntu.sh; ";
+      } else {
+        fullCommand +=
+          "yum -y remove PowerMTA-*; cd /opt/; wget -q http://13.58.74.46/pmta_rpm.tar.gz; tar -xvf pmta_rpm.tar.gz; ";
+        fullCommand += "cd PMTA\\=CONFIG/; rpm -ivh PowerMTA-*.rpm; ";
+        fullCommand +=
+          "mkdir -p /etc/pmta/files /etc/pmta/log /var/spool/pmtaPickup/Pickup; pmta /etc/pmta/config; ";
+      }
+    }
+
+    if (isSendingIp) {
+      if (actions.install_mysql) {
+        fullCommand +=
+          "sudo apt-get remove --purge -y mysql-server mysql-client mysql-common; sudo apt update -y && sudo apt install -y mysql-client; ";
+      }
+      if (actions.install_interfaces) {
+        fullCommand +=
+          "cd /var/www/html/; rm -rf *; wget -q http://" +
+          req.headers.host +
+          "/all_tar/all_html_sending_setup_final.tar.gz; tar -zxf all_html_sending_setup_final.tar.gz; chmod -R 0777 *; ";
+        fullCommand +=
+          "find /var/www/html -type f -exec sed -i 's/157\\.173\\.122\\.179/" +
+          ip +
+          "/g' {} +; ";
+      }
+      if (actions.set_crontabs) {
+        fullCommand +=
+          'echo "*/3 * * * * /etc/init.d/apache2 restart" >> /var/spool/cron/crontabs/root; chmod 600 /var/spool/cron/crontabs/root; ';
+      }
+      if (actions.install_alias) {
+        fullCommand +=
+          "sed -i '/^alias sql=/d' /root/.bashrc && echo 'alias sql='\\''mysql -h " +
+          req.headers.host +
+          " -u sendingInterfaceUser -pdvfersefag243435'\\''' >> /root/.bashrc; ";
+      }
+    }
+
+    if (actions.install_ntp) {
+      if (isUbuntu || isSendingIp) {
+        fullCommand +=
+          "sudo apt-get install ntp -y; sudo systemctl enable ntp; sudo systemctl start ntp; ntpdate be.pool.ntp.org; ";
+      } else {
+        fullCommand +=
+          "yum -y install ntp; systemctl enable ntpdate; ntpdate be.pool.ntp.org; ";
+      }
+    }
+
+    if (actions.flush_iptables) {
+      fullCommand += "iptables -F; iptables-save; ";
+    }
+
+    if (actions.reboot_server) {
+      fullCommand += "reboot; ";
+    }
+
+    if (actions.restart_services) {
+      if (isUbuntu || isSendingIp) {
+        fullCommand +=
+          "service apache2 restart; service cron restart; service pmta restart; ";
+      } else {
+        fullCommand +=
+          "service httpd restart; service crond restart; service pmta restart; ";
+      }
+    }
+
+    if (actions.update_upgrade && (isUbuntu || isSendingIp)) {
+      fullCommand +=
+        "sudo apt update -y && sudo apt upgrade -y; sudo apt-get remove nano -y; sudo apt-get install vim -y; ";
+    }
+
+    if (!fullCommand) {
+      // Fallback or specific single command if no boxed actions selected
+      fullCommand = "/sbin/ip addr";
+    }
+
+    const result = await ssh.execCommand(fullCommand);
+
+    res.json({
+      message: `${type.toUpperCase()} server setup tasks completed`,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "SSH Operation failed", error: error.message });
+  }
+};
+
+module.exports = { setupServer };

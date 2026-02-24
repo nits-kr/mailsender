@@ -1,0 +1,283 @@
+import React from "react";
+import { NavLink } from "react-router-dom";
+import {
+  Mail,
+  Settings,
+  LogIn,
+  Monitor,
+  Database,
+  Tag,
+  ShieldCheck,
+  Server,
+  LogOut,
+  ChevronRight,
+} from "lucide-react";
+import { useGetServersManagementQuery } from "../store/apiSlice";
+
+const Navbar = () => {
+  const { data: servers = [] } = useGetServersManagementQuery();
+  const userInfo = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("userInfo") || "null");
+    } catch {
+      return null;
+    }
+  })();
+
+  // Flatten all IPs from all servers for the submenus
+  const allIps = servers.flatMap((s) => {
+    const serverIp = { name: s.ip, path: s.ip };
+    const additionalIps = (s.ips || []).map((ipObj: any) => ({
+      name: ipObj.ip,
+      path: ipObj.ip,
+    }));
+    return [serverIp, ...additionalIps];
+  });
+
+  const navItems = [
+    { name: "SMTP", path: "/smtp", icon: Mail, isAdmin: true },
+    {
+      name: "TOOLS",
+      path: "#",
+      icon: Settings,
+      dropdown: [{ name: "Data File List", path: "/data-count" }],
+    },
+    {
+      name: "LOGIN",
+      path: "#",
+      icon: LogIn,
+      dropdown: [{ name: "CREATE CREDENTIALS", path: "/credentials" }],
+    },
+    { name: "SCREEN", path: "/screen", icon: Monitor },
+    {
+      name: "INTERFACE",
+      path: "#",
+      icon: Mail,
+      dropdown: [
+        { type: "header", name: "MAIN SERVER" },
+        { name: "NEW INTERFACE", path: "/interface" },
+        { name: "SMTP TESTER", path: "/smtp-tester" },
+        { name: "FSOCK MANUAL INTERFACE", path: "/fsock-manual" },
+        { name: "NEW INTERFACE AUTO", path: "/interface-new" },
+        { name: "FSOCK SEND SMTP", path: "/fsock-send-smtp" },
+        { name: "FSOCK SEND SMTP AUTO", path: "/fsock-send-smtp-auto" },
+        { type: "divider" },
+        { type: "header", name: "SENDING IP" },
+        {
+          name: "NEW INTERFACE",
+          submenu: allIps.map((ip) => ({
+            name: ip.name,
+            path: `http://${ip.path}/interface/header.php`,
+            external: true,
+          })),
+        },
+        {
+          name: "SMTP TESTER",
+          submenu: allIps.map((ip) => ({
+            name: ip.name,
+            path: `http://${ip.path}/smtp_tester/`,
+            external: true,
+          })),
+        },
+        {
+          name: "FSOCK MANUAL INTERFACE",
+          submenu: allIps.map((ip) => ({
+            name: ip.name,
+            path: `http://${ip.path}/ESP_Module_fsock/`,
+            external: true,
+          })),
+        },
+        {
+          name: "NEW INTERFACE AUTO",
+          submenu: allIps.map((ip) => ({
+            name: ip.name,
+            path: `http://${ip.path}/interface_new/header.php`,
+            external: true,
+          })),
+        },
+        {
+          name: "FSOCK SEND SMTP",
+          submenu: allIps.map((ip) => ({
+            name: ip.name,
+            path: `http://${ip.path}/ESP_Module_fsock_send_smtp/`,
+            external: true,
+          })),
+        },
+        {
+          name: "FSOCK SEND SMTP AUTO",
+          submenu: allIps.map((ip) => ({
+            name: ip.name,
+            path: `http://${ip.path}/ESP_Module_fsock_send_smtp_auto/`,
+            external: true,
+          })),
+        },
+      ],
+    },
+    {
+      name: "TESTIDS PORTAL",
+      path: "#",
+      icon: Settings,
+      dropdown: [
+        { name: "Testids Management", path: "/testids-man" },
+        { name: "Testids Screen", path: "/testids-screen" },
+        { name: "Testids Mailbox", path: "/testids-mailbox" },
+      ],
+      isAdmin: true,
+    },
+    {
+      name: "DATA",
+      path: "#",
+      icon: Database,
+      dropdown: [
+        { name: "DATA DOWNLOAD PORTAL", path: "/data-download" },
+        { name: "DATA UPLOAD PORTAL", path: "/data-upload" },
+        { name: "DATA SPLIT PORTAL", path: "/data-split" },
+        { name: "DATA MERGE PORTAL", path: "/data-merge" },
+        { name: "BOUNCE FETCH", path: "/bounce-fetch" },
+        { name: "COMPLAIN FETCH", path: "/complain-fetch" },
+        { name: "BOUNCE UPDATE", path: "/bounce-update" },
+        { name: "COMPLAIN UPDATE", path: "/complain-update" },
+        { name: "Fetch Opener & Clicker Data", path: "/fetch-opener-clicker" },
+        { name: "DELETE DATAFILE FROM DB", path: "/delete-datafile" },
+      ],
+      isAdmin: true,
+    },
+    {
+      name: "OFFER",
+      path: "#",
+      icon: Tag,
+      dropdown: [
+        { name: "ADD OFFER", path: "/offers" },
+        { name: "ALL OFFER", path: "/all-offers" },
+        { name: "ALL LINKS PORTAL", path: "/all-links" },
+        { name: "IMAGE TRANSFER", path: "/image-portal" },
+      ],
+    },
+    {
+      name: "SUPPRESSION",
+      path: "#",
+      icon: ShieldCheck,
+      dropdown: [
+        { name: "SUPPRESSION", path: "/suppression" },
+        { name: "COMPLAINER SUPPRESSION", path: "/complainer-suppression" },
+      ],
+      isAdmin: true,
+    },
+    {
+      name: "Server Setup",
+      path: "#",
+      icon: Server,
+      dropdown: [
+        { name: "Server Setup Centos", path: "/server-setup" },
+        { name: "Server Setup Ubuntu", path: "/server-setup-ubuntu" },
+        { name: "Sending IP Setup", path: "/sending-ip-setup" },
+      ],
+      isAdmin: true,
+    },
+  ];
+
+  return (
+    <nav className="legacy-navbar navbar-icon-top">
+      <div className="flex items-center gap-2 mr-6">
+        <div className="bg-white p-1 rounded">
+          <span className="text-red-600 font-bold text-xl leading-none">M</span>
+          <span className="text-red-600 font-bold text-xl leading-none block -mt-2">
+            MJ
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 flex-1">
+        {navItems.map((item) => (
+          <div
+            key={item.name}
+            className={`dropdown ${item.dropdown ? "has-dropdown" : ""}`}
+          >
+            <NavLink
+              to={item.path}
+              className={({ isActive }) =>
+                `nav-link ${isActive && item.path !== "#" ? "active" : ""}`
+              }
+              onClick={(e) => item.path === "#" && e.preventDefault()}
+            >
+              <item.icon size={16} />
+              <span className="mt-1 whitespace-nowrap">{item.name}</span>
+            </NavLink>
+
+            {item.dropdown && (
+              <div className="dropdown-menu">
+                {item.dropdown.map((sub: any, idx) => {
+                  if (sub.type === "header")
+                    return (
+                      <div key={idx} className="dropdown-header">
+                        {sub.name}
+                      </div>
+                    );
+                  if (sub.type === "divider")
+                    return <div key={idx} className="dropdown-divider"></div>;
+                  if (sub.submenu) {
+                    return (
+                      <div key={idx} className="dropdown-submenu">
+                        <div className="dropdown-item">
+                          {sub.name} <ChevronRight size={12} />
+                        </div>
+                        <div className="dropdown-menu">
+                          {sub.submenu.length > 0 ? (
+                            sub.submenu.map((ipItem: any, i: number) => (
+                              <a
+                                key={i}
+                                href={ipItem.path}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="dropdown-item"
+                              >
+                                {ipItem.name}
+                              </a>
+                            ))
+                          ) : (
+                            <div className="dropdown-item text-gray-400 italic">
+                              No IPs found
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <NavLink
+                      key={idx}
+                      to={sub.path || "#"}
+                      className="dropdown-item"
+                    >
+                      {sub.name}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {userInfo && (
+        <div className="flex items-center gap-4 ml-4">
+          <span className="text-dark font-bold text-lg uppercase hidden sm:block">
+            {userInfo.name || userInfo.email}
+          </span>
+          <button
+            onClick={() => {
+              localStorage.removeItem("userInfo");
+              window.location.href = "/login?action=logout";
+            }}
+            className="bg-red-600 hover:bg-red-700 text-dark text-10px font-bold px-3 py-1-5 rounded border border-light flex items-center gap-1 transition-colors"
+          >
+            <LogOut size={12} />
+            Logout
+          </button>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+export default Navbar;

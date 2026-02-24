@@ -1,0 +1,8 @@
+logs/*
+process_folder/*
+raw_uploaded_files/*
+vendor_suppression_uploaded_files/*
+!vendor_suppression_uploaded_files/.gitkeep
+!raw_uploaded_files/.gitkeep
+!process_folder/.gitkeep
+!logs/.gitkeep

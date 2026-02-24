@@ -1,0 +1,44 @@
+{
+  "name": "email-service-platform-ankit-anand",
+  "version": "1.0.0",
+  "description": "A comprehensive PHP-based Email Service Platform with admin dashboard, bounce processing, complaint handling, and advanced IMAP integration for email management.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "npx nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karan06/email-service-platform-ankit-anand.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Karan06/email-service-platform-ankit-anand/issues"
+  },
+  "homepage": "https://github.com/Karan06/email-service-platform-ankit-anand#readme",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.67.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.3",
+    "imap": "^0.8.19",
+    "ioredis": "^5.9.2",
+    "jsonwebtoken": "^9.0.3",
+    "mailparser": "^3.9.3",
+    "mongoose": "^9.1.6",
+    "multer": "^2.0.2",
+    "mysql2": "^3.16.3",
+    "node-imap": "^0.9.6",
+    "node-ssh": "^13.2.1",
+    "nodemailer": "^8.0.0",
+    "winston": "^3.19.0",
+    "zod": "^4.3.6"
+  }
+}

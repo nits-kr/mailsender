@@ -1,0 +1,38 @@
+@charset "utf-8";
+/* CSS Document */
+body { font-family:Verdana, Geneva, sans-serif;
+font-size:12px;
+color:#333;
+float:none;
+
+
+
+}
+
+h1 {
+	font-size:18px;
+	font-family:Verdana, Geneva, sans-serif;
+	padding:0px;
+	
+	
+}
+
+
+
+
+/* Laptop/Tablet (1024px) */
+@media only screen and (min-width: 481px) and (max-width: 1024px) and (orientation: landscape) {
+}
+
+/* Tablet Portrait (768px) */
+@media only screen and (min-width: 321px) and (max-width: 1024px) and (orientation: portrait) {
+}
+
+/* Phone Landscape (480px) */
+@media only screen and (min-width: 321px) and (max-width: 480px) and (orientation: landscape) {
+}
+
+/* Phone Portrait (320px) */
+@media only screen and (max-width: 320px) {
+}
+

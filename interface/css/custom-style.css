@@ -1,0 +1,136 @@
+.report-head{
+   text-align: center;
+}
+.report-head h5{
+    margin-top: 1;
+    margin-bottom:0;
+}
+.reports-row-div{
+  text-align:center;
+  padding-left:10px;
+  padding-bottom:27px;
+}
+.div-details1{
+    margin: 7px;
+    text-align: center;
+    padding: 8px 0;
+    background-color:#1dc499;
+    color:#fff;
+}
+.div-details2{
+    margin: 7px;
+    text-align: center;
+    padding: 8px 0;
+    background-color:#31708f;
+    color:#fff;
+}
+.div-details3{
+    margin: 7px;
+    text-align: center;
+    padding: 8px 0;
+    background-color:#428bca;
+    color:#fff;
+}
+.div-details4{
+    margin: 7px;
+    text-align: center;
+    padding: 8px 0;
+    background-color:#e33244;
+    color:#fff;
+}
+.div-details-tim {
+    font-weight: bold;
+}
+.div-details-tim-num {
+    font-weight: bold;
+}
+
+/*left-table*/
+
+.table-start-div-content {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 2px solid #ddd;
+}
+.table-start-div-content th {
+  background: #31708f;
+  color: #ffffff;
+  border: 2px solid #fff;
+  padding: 4px;
+  text-align: center;
+}
+ .table-start-div-content td {
+ 	background: #fff;
+    border: 2px solid #ddd;
+    padding: 4px;
+    text-align: center;
+}
+.table-start-div{
+  overflow:auto;
+}
+/*table-right*/
+
+.right-table-start-div-content {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 2px solid #ddd;
+}
+.right-table-start-div-content th {
+  background: #1dc499;
+  color: #ffffff;
+  border: 2px solid #fff;
+  padding: 4px;
+  text-align: center;
+}
+ .right-table-start-div-content td {
+ 	background: #fff;
+    border: 2px solid #ddd;
+    padding: 4px;
+    text-align: center;
+}
+.right-table-start-div{
+  overflow:auto;  
+  
+}
+.copyright-div{
+	padding:20px 0;
+	text-align: center
+}
+.asp-new-link-create{
+ padding:0 20px;
+}
+/*ASP-form end*/
+.table-sparkpost{
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+   border:1px solid #ddd;
+    text-align: center;
+}
+.table-sparkpost th{
+  background: #f9fafc;  
+  border:1px solid #ddd;
+  padding: 8px;
+  text-align: center !important;
+}
+.table-sparkpost td{
+    border: 2px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+thead{
+  text-align: center;
+}
+tr:nth-child(even){background-color: #f2f2f2}
+/*ASP Sparkpost end*/
+
+
+
+@media (min-width: 480px) {
+  .asp-new-link-create{
+ padding:0 180px !important;
+}
+  
+    }
