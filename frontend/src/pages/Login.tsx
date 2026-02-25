@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLoginUserMutation } from "../store/apiSlice";
+import "./Login.css";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -39,78 +40,115 @@ const Login = () => {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 font-sans"
-      style={{ backgroundColor: "#232d31" }}
-    >
-      <div
-        className="w-full max-w-[420px] p-12 rounded-lg shadow-2xl border border-light"
-        style={{ backgroundColor: "#fff9d7", borderRadius: "1rem" }}
-      >
-        <div className="mb-12 text-center select-none">
-          <div className="relative inline-block scale-125 mb-4">
-            <span className="text-red-700 font-bold text-7xl leading-none flex flex-col items-center">
-              <span className="tracking-tight">M</span>
-              <span
-                style={{ transform: "rotate(180deg)", marginTop: "-2.5rem" }}
-                className="tracking-tight"
-              >
-                M
-              </span>
-            </span>
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-2 py-1 mt-2"
-              style={{ backgroundColor: "#fff9d7" }}
-            >
-              <span
-                className="text-red-700 font-bold text-10px tracking-widest"
-                style={{ letterSpacing: "0.2em" }}
-              >
-                MJ TECH
-              </span>
-            </div>
-          </div>
+    <div className="login-page-container">
+      {/* Mesh Gradient Background Elements */}
+      <div className="login-bg-grid" />
+      <div className="login-shape-1" />
+      <div className="login-shape-2" />
+
+      <div className="login-card-wrapper">
+        {/* Logo Section */}
+        <div className="login-logo-section">
+          {/* <div className="login-logo-box d-none">
+            <span className="login-logo-text">MJ</span>
+          </div> */}
+          {/* <h1 className="login-title-h1 d-none">
+            Enterprise <span>Mailing</span>
+          </h1> */}
+          <p className="login-subtitle">MJ TECH • Authentication Portal</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-4">
-          <div className="mb-6 group">
-            <label className="text-9px font-bold text-gray-500 uppercase tracking-widest ml-1 block mb-1">
-              Email ID
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent border-b border-blue-500 py-2 text-sm text-gray-800 focus:outline-none transition-all font-semibold"
-              required
-            />
+        {/* Login Card */}
+        <div className="login-card">
+          <div className="login-welcome">
+            <h2>Welcome back</h2>
+            {/* <p>Please enter your credentials to continue</p> */}
           </div>
 
-          <div className="mb-6 group">
-            <label className="text-9px font-bold text-gray-500 uppercase tracking-widest ml-1 block mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-transparent border-b border-blue-500 py-2 text-sm text-gray-800 focus:outline-none transition-all font-semibold"
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <div className="form-label-row">
+                <label className="form-label">Email Address</label>
+              </div>
+              <div className="input-wrapper">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="login-input"
+                  required
+                />
+              </div>
+            </div>
 
-          <div className="flex items-center justify-between pt-4">
-            <p className="text-red-600 font-bold text-11px">{loginMsg}</p>
+            <div className="form-group">
+              <div className="form-label-row">
+                <label className="form-label">Password</label>
+                <button type="button" className="forgot-link">
+                  Forgot password?
+                </button>
+              </div>
+              <div className="input-wrapper">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="login-input"
+                  required
+                />
+              </div>
+            </div>
+
+            {loginMsg && (
+              <div
+                className={`login-message ${
+                  loginMsg.includes("Success") ? "success" : "error"
+                }`}
+              >
+                {loginMsg}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
-              className="bg-transparent border border-cyan-400 text-cyan-600 font-bold px-6 py-2 rounded-lg text-xs uppercase tracking-wider shadow-md hover:bg-cyan-400 hover:text-white transition-all disabled:opacity-50"
-              style={{ borderWidth: "2px" }}
+              className="login-submit-btn"
             >
-              {isLoading ? "Wait..." : "Login"}
+              {isLoading ? (
+                <>
+                  <div className="spinner" />
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  Login to Account
+                  <svg
+                    className="btn-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </>
+              )}
             </button>
+          </form>
+
+          <div className="login-footer">
+            <p>
+              Securely encrypted & managed by <span>MJ TECH Cloud</span>
+            </p>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   useGetCampaignByIdQuery,
   useGetDefaultIpsQuery,
   useSendEmailMutation,
+  useGetCampaignLogsQuery,
 } from "../store/apiSlice";
 
 const Interface = () => {
@@ -60,6 +61,16 @@ const Interface = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+
+  // Polling for logs when a campaign is active
+  const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
+    activeCampaignId || "",
+    {
+      skip: !activeCampaignId,
+      pollingInterval: 2000,
+    },
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -149,6 +160,9 @@ const Interface = () => {
       mode: campaignDetail.mode || "test",
       sen_t: campaignDetail.sen_t || "manual",
     }));
+
+    // Start tracking logs for this campaign
+    setActiveCampaignId(selectedCampaignId);
   };
 
   const [sendEmailMutation] = useSendEmailMutation();
@@ -173,7 +187,7 @@ const Interface = () => {
       };
 
       const result = await sendEmailMutation(payload).unwrap();
-      alert("Success: " + (result.message || "Email queued"));
+      setActiveCampaignId(result.campaign_id);
       setStatus("Last sent: " + new Date().toLocaleTimeString());
     } catch (error: any) {
       alert("Error: " + (error?.data?.message || "Send failed"));
@@ -741,6 +755,30 @@ const Interface = () => {
               </button>
             </div>
           </div>
+
+          {campaignLogs.length > 0 && (
+            <div
+              className="console-section"
+              style={{ marginTop: "30px", maxWidth: "650px" }}
+            >
+              <div className="section-header-legacy">
+                CONSOLE LOGS (REAL-TIME)
+              </div>
+              <div className="console-window">
+                {campaignLogs.map((log: any, idx: number) => (
+                  <div
+                    key={log._id || idx}
+                    className={`console-line ${log.type}`}
+                  >
+                    <span className="timestamp">
+                      [{new Date(log.created_at).toLocaleTimeString()}]
+                    </span>
+                    <pre className="log-text">{log.log_text}</pre>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -44,6 +44,8 @@ const emailWorker = async (job) => {
       port: 25,
       secure: false,
       tls: { rejectUnauthorized: false },
+      debug: true,
+      logger: true,
     };
 
     const ipRecord = await IP.findOne({ ip: mailing_ip.split("|")[0] });
@@ -56,10 +58,20 @@ const emailWorker = async (job) => {
           ? { user: ipRecord.user, pass: ipRecord.pass }
           : null,
         tls: { rejectUnauthorized: false },
+        debug: true,
+        logger: true,
       };
     }
 
     const transporter = nodemailer.createTransport(smtpConfig);
+
+    // Capture SMTP Debug Logs
+    const smtpTranscript = [];
+    transporter.on("log", (log) => {
+      if (log.type === "protocol") {
+        smtpTranscript.push(log.message);
+      }
+    });
 
     const encodeHeader = (text, type) => {
       if (type === "reset" || !type) return text;
@@ -101,16 +113,19 @@ const emailWorker = async (job) => {
       mailOptions.text = body_plain;
     }
 
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
 
-    // Update Campaign Stats
+    // Update Campaign Stats & Log SMTP Transcript
     if (campaign_id) {
       await Campaign.findByIdAndUpdate(campaign_id, {
         $inc: { success_count: 1 },
       });
+
+      // Log the transcript
+      const transcriptText = smtpTranscript.join("\n");
       await CampaignLog.create({
         campaign_id,
-        log_text: `Successfully sent to ${email}`,
+        log_text: `[${email}] SENT SUCCESS\n${transcriptText}\nResponse: ${info.response}`,
         type: "success",
       });
     }
@@ -124,7 +139,7 @@ const emailWorker = async (job) => {
       });
       await CampaignLog.create({
         campaign_id,
-        log_text: `Error sending to ${email}: ${error.message}`,
+        log_text: `[${email}] SEND ERROR: ${error.message}`,
         type: "error",
       });
     }

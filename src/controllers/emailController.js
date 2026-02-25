@@ -239,9 +239,24 @@ const getCampaignDetails = async (req, res) => {
   }
 };
 
+const getCampaignLogs = async (req, res) => {
+  try {
+    const logs = await CampaignLog.find({ campaign_id: req.params.campaignId })
+      .sort({ created_at: -1 })
+      .limit(100);
+    res.json(logs);
+  } catch (error) {
+    console.error("Error fetching campaign logs", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching logs", error: error.message });
+  }
+};
+
 module.exports = {
   sendEmail,
   getCampaigns,
   getCampaignDetails,
   getDefaultIps,
+  getCampaignLogs,
 };

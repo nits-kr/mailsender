@@ -89,6 +89,10 @@ export const apiSlice = createApi({
     getDefaultIps: builder.query<{ ips: string }, void>({
       query: () => '/email/default-ips',
     }),
+    getCampaignLogs: builder.query<any[], string>({
+      query: (campaignId) => `/email/logs/${campaignId}`,
+      providesTags: (result, error, id) => [{ type: 'Campaign', id }],
+    }),
 
     // ─── Screens ──────────────────────────────────────────────────────────────
     getScreens: builder.query<any[], void>({
@@ -217,6 +221,7 @@ export const {
   useGetCampaignByIdQuery,
   useGetDefaultIpsQuery,
   useSendEmailMutation,
+  useGetCampaignLogsQuery,
   // Screens
   useGetScreensQuery,
   useGetScreenLogsQuery,
