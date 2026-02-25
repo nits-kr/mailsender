@@ -158,4 +158,24 @@ const setupServer = async (req, res) => {
   }
 };
 
-module.exports = { setupServer };
+const fs = require("fs");
+const path = require("path");
+
+const getSqlFiles = async (req, res) => {
+  try {
+    const sqlFilesPath = path.join(__dirname, "../../server_setup/sql_files");
+    if (!fs.existsSync(sqlFilesPath)) {
+      return res.json([]);
+    }
+    const files = fs
+      .readdirSync(sqlFilesPath)
+      .filter((file) => file.endsWith(".sql"));
+    res.json(files);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching SQL files", error: error.message });
+  }
+};
+
+module.exports = { setupServer, getSqlFiles };

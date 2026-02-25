@@ -9,7 +9,11 @@ import {
   Server,
   User,
 } from "lucide-react";
-import { useRunServerSetupMutation } from "../store/apiSlice";
+import {
+  useRunServerSetupMutation,
+  useGetUsersQuery,
+  useGetSqlFilesQuery,
+} from "../store/apiSlice";
 
 const ServerSetupUbuntu = () => {
   const [config, setConfig] = useState({
@@ -40,6 +44,8 @@ const ServerSetupUbuntu = () => {
 
   const [runServerSetup, { isLoading: executing }] =
     useRunServerSetupMutation();
+  const { data: users } = useGetUsersQuery();
+  const { data: sqlFiles } = useGetSqlFilesQuery();
   const [output, setOutput] = useState<string | null>(null);
 
   const handleActionChange = (action: string) => {
@@ -480,10 +486,20 @@ const ServerSetupUbuntu = () => {
               style={{ justifyContent: "space-between" }}
             >
               ASSIGNED TO :
-              <select className="legacy-select" style={{ width: "150px" }}>
-                <option>Select Any</option>
-                <option>ANKIT</option>
-                <option>KARAN</option>
+              <select
+                className="legacy-select"
+                style={{ width: "150px" }}
+                value={config.assigned_to}
+                onChange={(e) =>
+                  setConfig({ ...config, assigned_to: e.target.value })
+                }
+              >
+                <option value="">Select Any</option>
+                {users?.map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div
@@ -491,8 +507,20 @@ const ServerSetupUbuntu = () => {
               style={{ justifyContent: "space-between", marginTop: "15px" }}
             >
               SELECT SQL FILE :
-              <select className="legacy-select" style={{ width: "150px" }}>
-                <option>143.29.155.115_sql.sql</option>
+              <select
+                className="legacy-select"
+                style={{ width: "150px" }}
+                value={config.sql_file}
+                onChange={(e) =>
+                  setConfig({ ...config, sql_file: e.target.value })
+                }
+              >
+                <option value="">Select Any</option>
+                {sqlFiles?.map((file) => (
+                  <option key={file} value={file}>
+                    {file}
+                  </option>
+                ))}
               </select>
             </div>
 

@@ -182,6 +182,9 @@ export const apiSlice = createApi({
     runServerSetup: builder.mutation({
       query: (config) => ({ url: '/server-setup/setup', method: 'POST', body: config }),
     }),
+    getSqlFiles: builder.query<string[], void>({
+      query: () => '/server-setup/sql-files',
+    }),
 
     // ─── Servers Management (Navbar) ──────────────────────────────────────────
     getServersManagement: builder.query<any[], void>({
@@ -239,6 +242,7 @@ export const {
   useFetchComplainMutation,
   // Server Setup
   useRunServerSetupMutation,
+  useGetSqlFilesQuery,
   // Servers Management
   useGetServersManagementQuery,
 } = apiSlice;
