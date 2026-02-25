@@ -5,7 +5,7 @@ const path = require("path");
 const connectDB = require("./config/db");
 
 dotenv.config();
-require("./queues/emailWorker"); // Start background worker
+// require("./queues/emailWorker"); // Start background worker
 
 // Connect to database
 connectDB();
@@ -37,7 +37,14 @@ const logger = require("./utils/logger");
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-app.use("/all_tar", express.static(path.join(__dirname, "../all_tar")));
+app.use(
+  "/all_tar",
+  (req, res, next) => {
+    console.log(`[DOWNLOAD] Request for: ${req.url}`);
+    next();
+  },
+  express.static(path.join(__dirname, "../all_tar")),
+);
 
 // Routes
 app.use("/api/users", userRoutes);

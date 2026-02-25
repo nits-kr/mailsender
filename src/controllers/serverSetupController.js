@@ -15,6 +15,11 @@ const setupServer = async (req, res) => {
   const { ip, pass, dev_name, ips_text, actions, type, mode } = req.body;
   const isUbuntu = type === "ubuntu";
   const isSendingIp = type === "sending_ip";
+  const centralIp = process.env.PUBLIC_API_URL || req.headers.host;
+
+  console.log(
+    `[SETUP] IP: ${ip}, Type: ${type}, CentralIP: ${centralIp}, isSendingIp: ${isSendingIp}`,
+  );
 
   try {
     if (isSendingIp && mode === "remove") {
@@ -39,8 +44,9 @@ const setupServer = async (req, res) => {
 
     if (actions.install_http) {
       if (isUbuntu || isSendingIp) {
+        // For MERN, we skip Apache for sending IPs and install Node.js
         fullCommand +=
-          "sudo apt-get remove apache2 -y; sudo apt-get install apache2 wget unzip perl alien -y; service apache2 restart; ";
+          "export DEBIAN_FRONTEND=noninteractive; curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -; sudo apt-get install -y nodejs; sudo npm install -g pm2; ";
       } else {
         fullCommand +=
           "yum -y -q install httpd php php-mysql; service httpd restart; ";
@@ -48,27 +54,28 @@ const setupServer = async (req, res) => {
     }
 
     if (actions.install_php && (isUbuntu || isSendingIp)) {
-      fullCommand +=
-        "sudo apt-get purge php7.* -y; sudo apt update -y; cd /opt/; sudo apt install git dpkg-dev -y; ";
-      fullCommand +=
-        "git clone https://github.com/Karan06/php56-localrepo.git; cd /opt/php56-localrepo; dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz; ";
-      fullCommand +=
-        "echo 'deb [trusted=yes] file:/opt/php56-localrepo ./' | sudo tee /etc/apt/sources.list.d/php56-localrepo.list; sudo apt update -y; ";
-      fullCommand +=
-        "sudo apt install php5.6 php5.6-mcrypt php5.6-cli php5.6-gd php5.6-curl php5.6-mysql php5.6-ldap php5.6-zip php5.6-fileinfo php5.6-xml php5.6-mbstring -y; service apache2 restart; ";
-
       if (isSendingIp) {
+        // In MERN mode, "Install PHP" for sending IPs is a no-op as we use Node.js
         fullCommand +=
-          "sed -i 's/post_max_size = 8M/post_max_size = 200M/g' /etc/php/5.6/apache2/php.ini; sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 200M/g' /etc/php/5.6/apache2/php.ini; ";
+          "echo 'Node.js already installed as replacement for PHP'; ";
+      } else {
+        fullCommand +=
+          "export DEBIAN_FRONTEND=noninteractive; sudo apt-get purge php7.* -y; sudo apt update -y; cd /opt/; sudo apt install git dpkg-dev -y; ";
+        fullCommand +=
+          "git clone https://github.com/Karan06/php56-localrepo.git; cd /opt/php56-localrepo; dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz; ";
+        fullCommand +=
+          "echo 'deb [trusted=yes] file:/opt/php56-localrepo ./' | sudo tee /etc/apt/sources.list.d/php56-localrepo.list; sudo apt update -y; ";
+        fullCommand +=
+          "sudo apt install php5.6 php5.6-mcrypt php5.6-cli php5.6-gd php5.6-curl php5.6-mysql php5.6-ldap php5.6-zip php5.6-fileinfo php5.6-imap php5.6-xml php5.6-mbstring -y; service apache2 restart; ";
       }
     }
 
     if (actions.install_pmta && !isSendingIp) {
       if (isUbuntu) {
         fullCommand +=
-          "wget -q http://" +
-          req.headers.host +
-          "/all_tar/pmta_setup_ubuntu.tar.gz; tar -zxf pmta_setup_ubuntu.tar.gz; sh setup_pmta_ubuntu.sh; ";
+          'curl -s -H "bypass-tunnel-reminder: true" -H "User-Agent: Mozilla/5.0" http://' +
+          centralIp +
+          "/all_tar/pmta_setup_ubuntu.tar.gz -o pmta_setup_ubuntu.tar.gz; tar -zxf pmta_setup_ubuntu.tar.gz; sh setup_pmta_ubuntu.sh; ";
       } else {
         fullCommand +=
           "yum -y remove PowerMTA-*; cd /opt/; wget -q http://13.58.74.46/pmta_rpm.tar.gz; tar -xvf pmta_rpm.tar.gz; ";
@@ -81,17 +88,15 @@ const setupServer = async (req, res) => {
     if (isSendingIp) {
       if (actions.install_interfaces) {
         fullCommand +=
-          "cd /var/www/html/; rm -rf *; wget -q http://" +
-          req.headers.host +
-          "/all_tar/all_html_sending_setup_final.tar.gz; tar -zxf all_html_sending_setup_final.tar.gz; chmod -R 0777 *; ";
+          'mkdir -p /opt/mailer-agent; cd /opt/mailer-agent; curl -s -H "bypass-tunnel-reminder: true" -H "User-Agent: Mozilla/5.0" http://' +
+          centralIp +
+          "/all_tar/node_mailer_agent.tar.gz -o node_mailer_agent.tar.gz; tar -zxf node_mailer_agent.tar.gz --strip-components=1; npm install; ";
         fullCommand +=
-          "find /var/www/html -type f -exec sed -i 's/157\\.173\\.122\\.179/" +
-          ip +
-          "/g' {} +; ";
+          "pm2 start mailerAgent.js --name mailer-agent; pm2 save; ";
       }
       if (actions.set_crontabs) {
         fullCommand +=
-          'echo "*/3 * * * * /etc/init.d/apache2 restart" >> /var/spool/cron/crontabs/root; chmod 600 /var/spool/cron/crontabs/root; ';
+          'echo "01 * * * * rm -rf /tmp/*" >> /var/spool/cron/crontabs/root; chmod 600 /var/spool/cron/crontabs/root; ';
       }
       // No MySQL needed for sending IP servers in MongoDB mode
     }
@@ -99,7 +104,7 @@ const setupServer = async (req, res) => {
     if (actions.install_ntp) {
       if (isUbuntu || isSendingIp) {
         fullCommand +=
-          "sudo apt-get install ntp -y; sudo systemctl enable ntp; sudo systemctl start ntp; ntpdate be.pool.ntp.org; ";
+          "export DEBIAN_FRONTEND=noninteractive; sudo apt-get install ntp ntpdate -y; sudo systemctl stop ntp; sudo ntpdate be.pool.ntp.org; sudo systemctl enable ntp; sudo systemctl start ntp; ";
       } else {
         fullCommand +=
           "yum -y install ntp; systemctl enable ntpdate; ntpdate be.pool.ntp.org; ";
@@ -126,13 +131,15 @@ const setupServer = async (req, res) => {
 
     if (actions.update_upgrade && (isUbuntu || isSendingIp)) {
       fullCommand +=
-        "sudo apt update -y && sudo apt upgrade -y; sudo apt-get remove nano -y; sudo apt-get install vim -y; ";
+        'export DEBIAN_FRONTEND=noninteractive; sudo apt update -y && sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade; sudo apt-get remove nano -y; sudo apt-get install vim -y; ';
     }
 
     if (!fullCommand) {
       // Fallback or specific single command if no boxed actions selected
       fullCommand = "/sbin/ip addr";
     }
+
+    console.log(`[SSH_CMD] Executing on ${ip}: ${fullCommand}`);
 
     const result = await ssh.execCommand(fullCommand);
 

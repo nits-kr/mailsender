@@ -46,7 +46,7 @@ const serverSetupSchema = z.object({
   sql_file: z.string().optional(),
   type: z.string().optional(),
   mode: z.enum(["install", "remove"]).optional(),
-  actions: z.record(z.boolean()).optional(),
+  actions: z.object({}).catchall(z.any()).optional(),
 });
 
 module.exports = {
