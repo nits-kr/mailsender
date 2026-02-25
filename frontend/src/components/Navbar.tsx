@@ -178,14 +178,13 @@ const Navbar = () => {
 
   return (
     <nav className="legacy-navbar navbar-icon-top">
-      <div className="flex items-center gap-2 mr-6">
-        <div className="bg-white p-1 rounded">
-          <span className="text-red-600 font-bold text-xl leading-none">M</span>
-          <span className="text-red-600 font-bold text-xl leading-none block -mt-2">
-            MJ
-          </span>
+      <NavLink to="/" className="navbar-brand">
+        <div className="brand-icon">MJ</div>
+        <div className="brand-text-wrapper">
+          <span className="brand-title">MAILING</span>
+          <span className="brand-subtitle">MJ TECH PORTAL</span>
         </div>
-      </div>
+      </NavLink>
 
       <div className="flex items-center gap-1 flex-1">
         {navItems.map((item) => (

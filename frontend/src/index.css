@@ -480,6 +480,58 @@ body {
   }
 }
 
+/* Modern Branding Styles */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  margin-right: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.navbar-brand:hover {
+  transform: scale(1.02);
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+  letter-spacing: -1px;
+}
+
+.brand-text-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.brand-subtitle {
+  font-size: 9px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+
 /* Core Legacy Definitions */
 .legacy-navbar {
   background-color: var(--nav-bg);
