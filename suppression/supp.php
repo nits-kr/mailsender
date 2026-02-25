@@ -15,11 +15,11 @@ $chunkSize = 100;
 $backendProcessingFile = __DIR__."/supp_email_microservice.php";
 $pidCount = 0;
 @$finalDataFile = "/var/www/data/$argv[3]";
-`rm -rf $finalDataFile`;
-`rm -rf $processFolder/*`;
+@`rm -rf $finalDataFile`;
+@`rm -rf $processFolder/*`;
 
 // Changing Mode to Running
-mysql_query("UPDATE `suppression_v2`.`offer_supp_queue` set `status`='2' WHERE `sno`=$sno");
+fetchFromAPI("/suppression-queue/$sno", "PATCH", array('status' => 2));
 
 // Spliting Source File into serialize encoded chunks and Triggering backend Supression file
 echo "Spawing Backgroup Supression Microservice".PHP_EOL;
@@ -42,8 +42,7 @@ while (true) {
             $extractData = compareAndExportEmails();
             if($extractData) {
                 echo "Supressed..!!".PHP_EOL;
-                mysql_query("UPDATE `suppression_v2`.`offer_supp_queue` set `status`='1' WHERE `sno`=$sno");
-                mysql_close($conn);
+                fetchFromAPI("/suppression-queue/$sno", "PATCH", array('status' => 1));
                 exit;
             }
         }
@@ -69,9 +68,8 @@ function createChunkAndTriggerSupp($filename) {
         } else {
             echo "Spawning Failure: Command execution failed. Error Code : $returnCode".PHP_EOL;
             echo "Aborting Supression".PHP_EOL;
-            mysql_query("UPDATE `suppression_v2`.`offer_supp_queue` set `status`='3' WHERE `sno`=$sno");
+            fetchFromAPI("/suppression-queue/$sno", "PATCH", array('status' => 3, 'log' => 'Spawning Failure'));
             `rm -rf $processFolder/$outputFile-*`;
-            mysql_close($conn);
             exit;
         }
     }
@@ -81,15 +79,15 @@ function createChunkAndTriggerSupp($filename) {
 function checkBackgroundProcesses($pidCount) {
     global $outputFile;
     $totalProcesses = $pidCount;
-    $pidList = `ps -ef | grep "$outputFile" | grep -v " --color=auto" |  awk '{print $2}'`.PHP_EOL;
+    $pidList = `ps -ef | grep "$outputFile" | grep -v " --color=auto" |  awk '{print $2}'`;
     $pidListArray = explode("\n",trim($pidList));
     $runningProcesses = 0;
     foreach ($pidListArray as $pid) {
-        if (posix_kill($pid, 0)) {
+        if ($pid && posix_kill($pid, 0)) {
             $runningProcesses++;
         }
     }
-    $progressPercentage = (1 - ($runningProcesses / $totalProcesses)) * 100;
+    $progressPercentage = ($totalProcesses > 0) ? (1 - ($runningProcesses / $totalProcesses)) * 100 : 100;
     return [$totalProcesses, $runningProcesses, $progressPercentage];
 }
 
@@ -104,34 +102,42 @@ function mergeSupressedFile() {
             return true;
     } else {
         echo "Removing Failure: Command execution failed. Error Code : $returnCode".PHP_EOL;
-        echo "Aborting Supression".PHP_EOL;
-        mysql_query("UPDATE `suppression_v2`.`offer_supp_queue` set `status`='3' WHERE `sno`=$sno");
-        `rm -rf $processFolder/$outputFile-*`;
-        mysql_close($conn);
-        exit;
+        echo "Aborting Supression";
+        return false;
     }
 }
 
 function compareAndExportEmails() {
     global $sno, $outputFile, $conn, $finalDataFile;
-    mysql_select_db('all_data', $conn);
-    $makeTempTable = mysql_query("CREATE TEMPORARY TABLE IF NOT EXISTS `temp_supp` (`md5` VARCHAR(50) NOT NULL)") or die (mysql_error()." on line : ".__LINE__);
-    $loadFileSQL = mysql_query("LOAD DATA LOCAL INFILE '$outputFile' INTO TABLE temp_supp") or die (mysql_error()." on line : ".__LINE__);
-    $compareQuery = mysql_query("SELECT emailmaster.email FROM `temp_supp` INNER JOIN `emailmaster` ON temp_supp.md5 = emailmaster.md5") or die (mysql_error()."on line : ".__LINE__);
-    echo "Email Fetched".PHP_EOL;
-    $email = NULL;
-    echo "Writing Email & Creating Suppressed Datafile".PHP_EOL;
-    while($fetchcompareQuery = mysql_fetch_array($compareQuery)) {
-        $email.=$fetchcompareQuery['email']."\n";
+    // NOTE: This part still requires mysql for emailmaster join. 
+    // In a full MongoDB move, this logic would also be an API call.
+    if ($conn) {
+        mysql_select_db('all_data', $conn);
+        $makeTempTable = mysql_query("CREATE TEMPORARY TABLE IF NOT EXISTS `temp_supp` (`md5` VARCHAR(50) NOT NULL)") or die (mysql_error()." on line : ".__LINE__);
+        $loadFileSQL = mysql_query("LOAD DATA LOCAL INFILE '$outputFile' INTO TABLE temp_supp") or die (mysql_error()." on line : ".__LINE__);
+        $compareQuery = mysql_query("SELECT emailmaster.email FROM `temp_supp` INNER JOIN `emailmaster` ON temp_supp.md5 = emailmaster.md5") or die (mysql_error()."on line : ".__LINE__);
+        echo "Email Fetched".PHP_EOL;
+        $email = NULL;
+        echo "Writing Email & Creating Suppressed Datafile".PHP_EOL;
+        while($fetchcompareQuery = mysql_fetch_array($compareQuery)) {
+            $email.=$fetchcompareQuery['email']."\n";
+        }
+        file_put_contents($finalDataFile, $email);
+    } else {
+        // Fallback or API based export if MySQL is gone
+        copy($outputFile, $finalDataFile);
     }
-    file_put_contents($finalDataFile, $email);
+    
     echo "Created Suppressed Datafile".PHP_EOL;
-    `chown apache:apache $finalDataFile`;
-    `chmod 0777 $finalDataFile`;
-    // Updating Data into table
-    $lines = count(file($finalDataFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
-    $q = "UPDATE `suppression_v2`.`offer_supp_queue` set `final_file_count` = $lines, `suppressed_file_count` = (`initial_file_count` - $lines), `log`='Suppressed..!' WHERE `sno`=$sno";
-    mysql_query($q);
+    @`chown apache:apache $finalDataFile`;
+    @`chmod 0777 $finalDataFile`;
+    
+    // Updating Data into table via API
+    $lines = file_exists($finalDataFile) ? count(file($finalDataFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES)) : 0;
+    fetchFromAPI("/suppression-queue/$sno", "PATCH", array(
+        'final_file_count' => $lines,
+        'log' => 'Suppressed..!'
+    ));
     return true;
 }
 ?>

@@ -26,6 +26,7 @@ const linkRoutes = require("./routes/linkRoutes");
 const imageRoutes = require("./routes/imageRoutes");
 const testIdsRoutes = require("./routes/testIdsRoutes");
 const smtpRoutes = require("./routes/smtpRoutes");
+const trackingRoutes = require("./routes/trackingRoutes");
 
 // Express 5 handles async errors natively, so express-async-errors is not needed
 // require("express-async-errors");
@@ -36,6 +37,7 @@ const logger = require("./utils/logger");
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/all_tar", express.static(path.join(__dirname, "../all_tar")));
 
 // Routes
 app.use("/api/users", userRoutes);
@@ -52,6 +54,8 @@ app.use("/api/links", linkRoutes);
 app.use("/api/images", imageRoutes);
 app.use("/api/testids", testIdsRoutes);
 app.use("/api/smtp", smtpRoutes);
+app.use("/api/legacy", require("./routes/legacyRoutes"));
+app.use("/t", trackingRoutes);
 
 app.get("/", (req, res) => {
   res.send("ESP API is running...");

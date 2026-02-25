@@ -1,112 +1,90 @@
 const fs = require("fs");
 const path = require("path");
-const { exec } = require("child_process");
-const mongoose = require("mongoose");
+const crypto = require("crypto");
 const OfferSuppQueue = require("../models/OfferSuppQueue");
-const pool = require("../config/mysql");
-require("dotenv").config();
+const EmailMaster = require("../models/EmailMaster");
+const ComplainerSuppression = require("../models/ComplainerSuppression");
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("Worker connected to MongoDB"))
-  .catch((err) => console.error("Worker MongoDB connection error:", err));
+/**
+ * Suppression Worker Logic
+ * Ported from supp.php
+ */
 
-const processQueue = async () => {
-  const item = await OfferSuppQueue.findOne({ status: 0 }).sort({
-    createdAt: 1,
-  });
-  if (!item) return;
-
-  console.log(`Processing queue item: ${item._id}`);
-  item.status = 2; // Running
-  await item.save();
-
-  const logDir = path.join(__dirname, "../../suppression/logs");
-  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  const logFile = path.join(logDir, `${item._id}.log`);
-  const logStream = fs.createWriteStream(logFile, { flags: "a" });
-
-  const writeLog = (msg) => {
-    const timestamp = new Date().toISOString();
-    logStream.write(`[${timestamp}] ${msg}\n`);
-    console.log(msg);
-  };
-
+const processSuppression = async (queueId) => {
   try {
-    const sourceFilePath = `/var/www/data/${item.filename}`;
-    const vendorSuppPath = path.join(
-      __dirname,
-      "../../suppression/vendor_suppression_uploaded_files",
-      item.vendor_supp_filename,
+    const queueItem = await OfferSuppQueue.findById(queueId);
+    if (!queueItem) return;
+
+    // 1. Update status to Running
+    await OfferSuppQueue.findByIdAndUpdate(queueId, {
+      status: 2,
+      log: "Processing...",
+    });
+
+    const sourcePath = path.join("/var/www/data", queueItem.filename);
+    const vendorPath = path.join(
+      "/var/www/html/suppression/vendor_suppression_uploaded_files",
+      queueItem.vendor_supp_filename,
     );
-    const outputFilePath = `/var/www/data/${item.new_filename}`;
-
-    writeLog(
-      `Starting suppression for ${item.filename} against ${item.vendor_supp_filename}`,
+    const outputPath = path.join(
+      "/var/www/data",
+      queueItem.new_filename || `suppressed_${queueItem.filename}`,
     );
 
-    // Simplified suppression logic using grep -v -f
-    // -v: inverted match (keep lines NOT in vendor file)
-    // -f: use patterns from file
-    // Caution: grep -v -f is slow for very large files, but consistent with legacy
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`Source file missing: ${sourcePath}`);
+    }
 
-    // Legacy extracted second column (email/md5) from CSV for source
-    // item.filename is assumed to be in /var/www/data/ and already processed or need processing
+    // 2. Load Suppression Data (MD5s or Emails)
+    // For large files, we should use streams or a specialized search.
+    // For feature parity with PHP which used temp tables:
+    const suppressionSet = new Set();
+    if (fs.existsSync(vendorPath)) {
+      const vendorData = fs
+        .readFileSync(vendorPath, "utf8")
+        .split(/\r?\n/)
+        .filter((line) => line.trim());
+      vendorData.forEach((item) =>
+        suppressionSet.add(item.trim().toLowerCase()),
+      );
+    }
 
-    // To match legacy supp.php exactly, we might need to use its exact shell commands
-    // For now, let's use a robust shell command for modernization
+    // 3. Process Source File
+    const sourceData = fs
+      .readFileSync(sourcePath, "utf8")
+      .split(/\r?\n/)
+      .filter((line) => line.trim());
+    const initialCount = sourceData.length;
 
-    const cmd = `grep -v -F -f "${vendorSuppPath}" "${sourceFilePath}" > "${outputFilePath}"`;
+    // We filter based on MD5 or Email
+    const resultEmails = [];
+    for (const line of sourceData) {
+      const email = line.trim().toLowerCase();
+      const md5 = crypto.createHash("md5").update(email).digest("hex");
 
-    writeLog(`Executing: ${cmd}`);
-
-    exec(cmd, async (error, stdout, stderr) => {
-      if (error) {
-        writeLog(`Error: ${error.message}`);
-        item.status = 3; // Error
-        item.log = error.message;
-        await item.save();
-        logStream.end();
-        return;
+      if (!suppressionSet.has(email) && !suppressionSet.has(md5)) {
+        resultEmails.push(email);
       }
+    }
 
-      writeLog(`Suppression completed. Output saved to ${item.new_filename}`);
+    // 4. Save Final File
+    fs.writeFileSync(outputPath, resultEmails.join("\n"));
 
-      // Update counts
-      try {
-        const initialCount = parseInt(
-          fs.readFileSync(sourceFilePath, "utf8").split("\n").length,
-        );
-        const finalCount = parseInt(
-          fs.readFileSync(outputFilePath, "utf8").split("\n").length,
-        );
-
-        item.initial_file_count = initialCount;
-        item.final_file_count = finalCount;
-        item.suppressed_file_count = initialCount - finalCount;
-        item.status = 1; // Completed
-        item.date_completed = new Date();
-        item.log = "Suppressed Successfully";
-        await item.save();
-        writeLog("Task finished successfully.");
-      } catch (countErr) {
-        writeLog(`Warning: Failed to count lines: ${countErr.message}`);
-        item.status = 1;
-        await item.save();
-      }
-
-      logStream.end();
+    // 5. Update status to Complete
+    await OfferSuppQueue.findByIdAndUpdate(queueId, {
+      status: 1,
+      final_file_count: resultEmails.length,
+      suppressed_file_count: initialCount - resultEmails.length,
+      log: "Completed Successfully",
+      date_completed: new Date(),
     });
   } catch (error) {
-    writeLog(`Fatal Error: ${error.message}`);
-    item.status = 3;
-    item.log = error.message;
-    await item.save();
-    logStream.end();
+    console.error("Suppression Worker Error:", error.message);
+    await OfferSuppQueue.findByIdAndUpdate(queueId, {
+      status: 3,
+      log: `Error: ${error.message}`,
+    });
   }
 };
 
-// Polling interval
-setInterval(processQueue, 5000);
-console.log("Suppression worker running...");
+module.exports = { processSuppression };

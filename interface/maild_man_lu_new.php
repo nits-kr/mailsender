@@ -10,28 +10,27 @@ $date=date("Y-m-d H:i:s");
 $iid=$argv[1];
 $err = NULL;
 
+$arr = fetchFromAPI("/campaign/$iid");
+if (!$arr) {
+    die("Error: Campaign $iid not found in MongoDB.");
+}
 
-$arr=mysql_fetch_array(mysql_query("select * from svml_sendgrid where sno='$iid'"));
 $emails = base64_decode($argv[2]);
 $element = str_replace("\n","','",$emails);
-//$sql = mysql_query("select emails from bounce_processor.bounce_id where emails in ('".$element."')");
-//while($get_bounce = mysql_fetch_array($sql))
-//{
-//      $emails = str_replace("$get_bounce[0]","",$emails);
-//}
-$ip_pair=trim($arr['ip']);
+
+$ip_pair=trim($arr['ip'] ?? "");
 $mode = 'test';
-$sub =  str_replace("''","'",$arr['subject']);
-$ofrom =  str_replace("''","'",$arr['from_val']);
-$msg =  str_replace("''","'",$arr['msg']);
-$limit = $arr['limits'];
-$offer = $arr['offer'];
-$userid = $arr['username'];
-$domain = $arr['domain'];
-$type = $arr['type'];
-$data = $arr['data'];
-$head= $arr['head'];
-$fbl = $arr['fbl'];
+$sub =  str_replace("''","'",$arr['name'] ?? "");
+$ofrom =  str_replace("''","'",$arr['from_email'] ?? "");
+$msg =  str_replace("''","'",$arr['message_html'] ?? "");
+$limit = $arr['total_send'] ?? 0;
+$offer = $arr['offer_id'] ?? "";
+$userid = $arr['username'] ?? "";
+$domain = $arr['domain'] ?? "";
+$type = $arr['msg_type'] ?? "";
+$data = $arr['data_file'] ?? "";
+$head= $arr['head'] ?? "";
+$fbl = $arr['fbl'] ?? 0;
 $ip=$argv[3];
 $ip_domain_array = explode("|",$ip);
 $smtpip = trim($ip_domain_array[0]);
@@ -39,12 +38,15 @@ $smtpip = trim($ip_domain_array[0]);
 if($return_path == null) {
    @$return_path = $argv[4];     
 }
-$qq=mysql_fetch_array(mysql_query("select hostname,user,pass,port,tls from mumara where assignedip='$smtpip'"));
-$server = $qq['hostname'];
-$usr= $qq['user'];
-$pass= $qq['pass'];
-$port = $qq['port'];
-$tls= $qq['tls'];
+$qq = fetchFromAPI("/ip/$smtpip");
+if (!$qq) {
+    echo "Warning: SMTP credentials for $smtpip not found in MongoDB.\n";
+}
+$server = $qq['hostname'] ?? "";
+$usr= $qq['user'] ?? "";
+$pass= $qq['pass'] ?? "";
+$port = $qq['port'] ?? 25;
+$tls= $qq['tls'] ?? "No";
 $configurationSet = trim($arr['remarks']);
 // $msid =$arr['bcc'];
 $textm =str_replace("''","'",$arr['textm']);

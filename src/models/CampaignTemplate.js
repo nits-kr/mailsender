@@ -1,0 +1,45 @@
+const mongoose = require("mongoose");
+
+const campaignTemplateSchema = mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    accs: { type: String },
+    headers: { type: String },
+    from_email: { type: String },
+    subject: { type: String },
+    from_name: { type: String },
+    emails: { type: String },
+    msg_type: { type: String, default: "html" },
+    message_html: { type: String },
+    message_plain: { type: String },
+    search_replace: { type: String },
+    data_file: { type: String },
+    total_send: { type: String },
+    limit_to_send: { type: String },
+    sleep_time: { type: String },
+    offer_id: { type: String },
+    domain: { type: String },
+    wait_time: { type: String, default: "2" },
+    message_id: { type: String },
+    inb_pattern: { type: String, default: "1" },
+    restart_choice: { type: String, default: "YES" },
+    script_choice: { type: String },
+    relay_percent: { type: String },
+    inbox_percent: { type: String },
+    times_to_send: { type: String, default: "1" },
+    mail_after: { type: String },
+    reply_to: { type: String, default: "0" },
+    xmailer: { type: String, default: "0" },
+    interval_time: { type: String },
+    charset: { type: String, default: "UTF-8" },
+    encoding: { type: String, default: "8bit" },
+    charset_alt: { type: String, default: "UTF-8" },
+    encoding_alt: { type: String, default: "8bit" },
+    mode: { type: String, default: "test" },
+    sen_t: { type: String, default: "manual" },
+    mysql_sno: { type: Number, unique: true }, // To avoid duplicate migration
+  },
+  { timestamps: true },
+);
+
+module.exports = mongoose.model("CampaignTemplate", campaignTemplateSchema);

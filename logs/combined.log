@@ -1103,3 +1103,30 @@
 {"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-17T17:40:15.285Z"}
 {"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T13:15:15.265Z"}
 {"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T18:15:50.288Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:05:17.918Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:06:07.891Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:08:00.361Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:08:08.166Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:11:02.563Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:11:15.650Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:15:10.598Z"}
+{"level":"error","message":"Not Found - /api/email/default-ips - /api/email/default-ips - GET - ::1","timestamp":"2026-02-24T20:15:23.171Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:19:30.350Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:28:15.620Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:31:30.182Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:34:45.910Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:34:58.702Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:37:24.853Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-24T20:44:09.871Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T02:08:15.806Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T02:14:06.845Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T02:18:08.435Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T02:18:10.328Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T02:19:32.061Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T02:28:15.512Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T03:04:09.394Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T03:04:12.549Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T03:04:14.781Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T03:04:17.030Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T03:05:25.116Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-25T03:13:24.018Z"}

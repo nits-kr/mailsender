@@ -93,6 +93,10 @@ const queueSuppression = async (req, res) => {
       log: "Queued Successfully",
     });
 
+    // Start processing in background (No await)
+    const { processSuppression } = require("../workers/suppressionWorker");
+    processSuppression(queueItem._id);
+
     res.status(201).json(queueItem);
   } catch (error) {
     res
@@ -229,12 +233,10 @@ const getComplainersGrouped = async (req, res) => {
     ]);
     res.json(groupedData);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching grouped complainers",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching grouped complainers",
+      error: error.message,
+    });
   }
 };
 

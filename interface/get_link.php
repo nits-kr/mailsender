@@ -65,20 +65,18 @@ $datafile="/var/www/data/$data";
  `data` like '$df[0]%' ";
 */
       
-$a=mysql_fetch_array(mysql_query("select in_link from svml_sendgrid where status='1' and 
- `subject`like BINARY '$sub' and 
- `ip` like BINARY  '$ip_pair' and 
- `from_val`like BINARY  '$ofrom' and 
- `msg`like BINARY  '$msg' and 
- `domain`like BINARY  '$domain' and 
- `remarks`like BINARY  '$remarks' and 
- `bcc` like BINARY  '$msid' and 
- `offer` like '$check[0]%' and 
- `data` like '$df[0]%' "));
+// Search for Campaign Link via API
+$searchParams = array(
+    'subject' => $sub,
+    'ip' => $ip_pair,
+    'domain' => $domain,
+    'offer' => $offer
+);
 
+$res = fetchFromAPI("/campaign-link-search", "POST", $searchParams);
 
-if(!empty($a['0'])) {
-echo $a['0'];
+if(!empty($res['in_link'])) {
+    echo $res['in_link'];
 }
 
 else {

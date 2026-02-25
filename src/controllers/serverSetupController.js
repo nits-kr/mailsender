@@ -79,10 +79,6 @@ const setupServer = async (req, res) => {
     }
 
     if (isSendingIp) {
-      if (actions.install_mysql) {
-        fullCommand +=
-          "sudo apt-get remove --purge -y mysql-server mysql-client mysql-common; sudo apt update -y && sudo apt install -y mysql-client; ";
-      }
       if (actions.install_interfaces) {
         fullCommand +=
           "cd /var/www/html/; rm -rf *; wget -q http://" +
@@ -97,12 +93,7 @@ const setupServer = async (req, res) => {
         fullCommand +=
           'echo "*/3 * * * * /etc/init.d/apache2 restart" >> /var/spool/cron/crontabs/root; chmod 600 /var/spool/cron/crontabs/root; ';
       }
-      if (actions.install_alias) {
-        fullCommand +=
-          "sed -i '/^alias sql=/d' /root/.bashrc && echo 'alias sql='\\''mysql -h " +
-          req.headers.host +
-          " -u sendingInterfaceUser -pdvfersefag243435'\\''' >> /root/.bashrc; ";
-      }
+      // No MySQL needed for sending IP servers in MongoDB mode
     }
 
     if (actions.install_ntp) {

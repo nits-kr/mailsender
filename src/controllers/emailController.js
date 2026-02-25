@@ -4,6 +4,8 @@ const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const crypto = require("crypto");
 const pool = require("../config/mysql");
+const CampaignTemplate = require("../models/CampaignTemplate");
+const IP = require("../models/IP");
 
 const sendEmail = async (req, res) => {
   const {
@@ -148,88 +150,79 @@ const sendEmail = async (req, res) => {
 
 const getDefaultIps = async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT assignedip as ip FROM svml.mumara");
+    const rows = await IP.find({ status: "active" });
     const ips = rows.map((r) => r.ip).join("\n");
     res.json({ ips });
   } catch (error) {
-    console.error("Error fetching default IPs from MySQL", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching default IPs", error: error.message });
+    console.error("Error fetching default IPs from MongoDB", error);
+    res.status(500).json({
+      message: "Error fetching default IPs",
+      error: error.message || "Unknown error",
+    });
   }
 };
 
 const getCampaigns = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT MAX(sno) as sno, tempname as name FROM svml.svml_sendgrid WHERE status = '1' GROUP BY tempname ORDER BY tempname ASC",
-    );
-    res.json(rows.map((r) => ({ id: r.sno, name: r.name })));
+    const rows = await CampaignTemplate.find({}).sort({ name: 1 });
+    res.json(rows.map((r) => ({ id: r._id, name: r.name })));
   } catch (error) {
-    console.error("Error fetching campaigns from MySQL", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching campaigns", error: error.message });
+    console.error("Error fetching campaigns from MongoDB", error);
+    res.status(500).json({
+      message: "Error fetching campaigns",
+      error: error.message || "Unknown error",
+    });
   }
 };
 
 const getCampaignDetails = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM svml.svml_sendgrid WHERE sno = ?",
-      [req.params.id],
-    );
+    const c = await CampaignTemplate.findById(req.params.id);
 
-    if (rows.length === 0) {
+    if (!c) {
       return res.status(404).json({ message: "Campaign not found" });
     }
 
-    const c = rows[0];
-
-    // Map 100% of legacy fields to the expected frontend structure
+    // Map fields to the expected frontend structure
     const mappedData = {
       // Main Headers & Content
-      accs: c.mutidomains || "",
-      headers: c.headers
-        ? Buffer.from(c.headers, "base64").toString("utf8")
-        : "",
-      from_email: c.ip || "",
+      accs: c.accs || "",
+      headers: c.headers || "",
+      from_email: c.from_email || "",
       subject: c.subject || "",
-      from_name: c.from_val || "",
+      from_name: c.from_name || "",
       emails: c.emails || "",
-      msg_type: c.type || "html",
-      message_html: c.msg || "",
-      message_plain: c.textm || "",
-      search_replace: c.reason
-        ? Buffer.from(c.reason, "base64").toString("utf8")
-        : "",
+      msg_type: c.msg_type || "html",
+      message_html: c.message_html || "",
+      message_plain: c.message_plain || "",
+      search_replace: c.search_replace || "",
 
       // Settings Grid
-      data_file: c.data || "",
-      total_send: String(c.limits || ""),
+      data_file: c.data_file || "",
+      total_send: String(c.total_send || ""),
       limit_to_send: c.limit_to_send || "",
       sleep_time: c.sleep_time || "",
-      offer_id: c.offer || "",
-      template_name: c.tempname || "",
+      offer_id: c.offer_id || "",
+      template_name: c.name || "",
       domain: c.domain || "",
-      wait_time: String(c.wait || "2"),
-      message_id: c.bcc || "",
-      inb_pattern: c.inbpatt || "1",
-      restart_choice: c.res_choice || "YES",
-      script_choice: c.head || "", // 'head' column maps to 'mail_ch' input
-      relay_percent: c.relay_per || "",
-      inbox_percent: c.oid || "",
-      times_to_send: String(c.times || "1"),
-      mail_after: c.pwd || "", // 'pwd' column maps to 'mail_per' input
+      wait_time: String(c.wait_time || "2"),
+      message_id: c.message_id || "",
+      inb_pattern: c.inb_pattern || "1",
+      restart_choice: c.restart_choice || "YES",
+      script_choice: c.script_choice || "",
+      relay_percent: c.relay_percent || "",
+      inbox_percent: c.inbox_percent || "",
+      times_to_send: String(c.times_to_send || "1"),
+      mail_after: c.mail_after || "",
       reply_to: c.reply_to || "0",
       xmailer: c.xmailer || "0",
       interval_time: String(c.interval_time || ""),
 
       // Charsets / Encodings
-      charset: c.charen || "UTF-8",
-      encoding: c.contend || "8bit",
-      charset_alt: c.charen_alt || "UTF-8",
-      encoding_alt: c.contend_alt || "8bit",
+      charset: c.charset || "UTF-8",
+      encoding: c.encoding || "8bit",
+      charset_alt: c.charset_alt || "UTF-8",
+      encoding_alt: c.encoding_alt || "8bit",
 
       // Modes
       mode: c.mode || "test",
@@ -238,7 +231,7 @@ const getCampaignDetails = async (req, res) => {
 
     res.json(mappedData);
   } catch (error) {
-    console.error("Error fetching campaign details from MySQL", error);
+    console.error("Error fetching campaign details from MongoDB", error);
     res.status(500).json({
       message: "Error fetching campaign details",
       error: error.message,
