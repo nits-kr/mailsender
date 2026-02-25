@@ -184,12 +184,16 @@ const SendingIpSetup = () => {
                     background-color: #000;
                     color: #fff;
                     font-family: "Courier New", monospace;
-                    font-size: 12px;
+                    font-size: 11px;
                     padding: 10px;
                     height: 380px;
                     overflow-y: auto;
+                    overflow-x: hidden;
+                    white-space: pre-wrap;
+                    word-break: break-all;
                     border: 1px solid #333;
                     margin-top: 10px;
+                    max-width: 100%;
                 }
 
                 .btn-legacy {

@@ -17,9 +17,18 @@ const setupServer = async (req, res) => {
   const isSendingIp = type === "sending_ip";
   const centralIp = process.env.PUBLIC_API_URL || req.headers.host;
 
+  // Determine the base protocol/URL for downloads
+  let downloadUrlBase = `http://${centralIp}`;
+  if (centralIp.includes("ngrok")) {
+    downloadUrlBase = `https://${centralIp}`;
+  }
+
   console.log(
     `[SETUP] IP: ${ip}, Type: ${type}, CentralIP: ${centralIp}, isSendingIp: ${isSendingIp}`,
   );
+
+  const downloadHeaders =
+    '-H "bypass-tunnel-reminder: true" -H "ngrok-skip-browser-warning: true" -H "User-Agent: Mozilla/5.0"';
 
   try {
     if (isSendingIp && mode === "remove") {
@@ -72,10 +81,7 @@ const setupServer = async (req, res) => {
 
     if (actions.install_pmta && !isSendingIp) {
       if (isUbuntu) {
-        fullCommand +=
-          'curl -s -H "bypass-tunnel-reminder: true" -H "User-Agent: Mozilla/5.0" http://' +
-          centralIp +
-          "/all_tar/pmta_setup_ubuntu.tar.gz -o pmta_setup_ubuntu.tar.gz; tar -zxf pmta_setup_ubuntu.tar.gz; sh setup_pmta_ubuntu.sh; ";
+        fullCommand += `curl -s ${downloadHeaders} ${downloadUrlBase}/all_tar/pmta_setup_ubuntu.tar.gz -o pmta_setup_ubuntu.tar.gz; tar -zxf pmta_setup_ubuntu.tar.gz; sh setup_pmta_ubuntu.sh; `;
       } else {
         fullCommand +=
           "yum -y remove PowerMTA-*; cd /opt/; wget -q http://13.58.74.46/pmta_rpm.tar.gz; tar -xvf pmta_rpm.tar.gz; ";
@@ -87,10 +93,7 @@ const setupServer = async (req, res) => {
 
     if (isSendingIp) {
       if (actions.install_interfaces) {
-        fullCommand +=
-          'mkdir -p /opt/mailer-agent; cd /opt/mailer-agent; curl -s -H "bypass-tunnel-reminder: true" -H "User-Agent: Mozilla/5.0" http://' +
-          centralIp +
-          "/all_tar/node_mailer_agent.tar.gz -o node_mailer_agent.tar.gz; tar -zxf node_mailer_agent.tar.gz --strip-components=1; npm install; ";
+        fullCommand += `mkdir -p /opt/mailer-agent; cd /opt/mailer-agent; curl -s ${downloadHeaders} ${downloadUrlBase}/all_tar/node_mailer_agent.tar.gz -o node_mailer_agent.tar.gz; tar -zxf node_mailer_agent.tar.gz; npm install; `;
         fullCommand +=
           "pm2 start mailerAgent.js --name mailer-agent; pm2 save; ";
       }

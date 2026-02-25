@@ -174,12 +174,16 @@ const ServerSetupUbuntu = () => {
                     background-color: #000;
                     color: #fff;
                     font-family: "Courier New", monospace;
-                    font-size: 12px;
+                    font-size: 11px;
                     padding: 15px;
                     height: 300px;
                     overflow-y: auto;
+                    overflow-x: hidden;
+                    white-space: pre-wrap;
+                    word-break: break-all;
                     margin-top: 10px;
                     border: 2px solid #333;
+                    max-width: 100%;
                 }
 
                 .submit-btn {
