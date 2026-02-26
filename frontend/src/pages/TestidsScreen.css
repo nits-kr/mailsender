@@ -1,0 +1,155 @@
+.imap-screen-container {
+    margin: 15px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.mainbox {
+    padding: 10px;
+    margin: 30px auto;
+    text-align: center;
+    box-shadow: 3px 4px 23px -4px rgba(0, 0, 0, 0.48);
+    background: white;
+    max-width: 1400px;
+    /* min-height: 800px; */
+    border: 1px solid #ddd;
+}
+.mainbox h1 {
+    color: #4D4D4D;
+    font-size: 28px;
+    font-weight: bold;
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    font-style: italic;
+    text-shadow: 4px 3px 3px #b0b0b0;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.blinking {
+    animation: opacity 0.5s ease-in-out infinite;
+}
+@keyframes opacity {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0; }
+}
+.refresh-icon {
+    text-align: right;
+    margin-right: 15px;
+    cursor: pointer;
+    font-size: 24px;
+    color: black;
+}
+.mainbox hr {
+    border: 1px solid #f1f1f1;
+    margin-bottom: 25px;
+}
+.btn-create {
+    background: #42d838;
+    border-radius: 4px;
+    width: 250px;
+    text-align: center;
+    margin: 5px;
+    padding: 5px;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    display: block;
+}
+.create-form {
+    width: 96%;
+    height: 100px;
+    margin: 25px auto;
+    padding: 25px;
+    box-shadow: 6px 3px 80px 9px rgb(102 102 102 / 37%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+.create-form select {
+    width: 350px;
+    font-weight: bold;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.btn {
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    margin: 5px;
+}
+.btn-info { background-color: #2196F3; }
+.btn-info:hover { background-color: #0b7dda; }
+.btn-warning { background-color: #ff9800; }
+.btn-danger { background-color: #f44336; }
+
+.imap-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+.imap-table thead th {
+    background-color: #60D6FF;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    font-weight: bold;
+    font-size: 15px;
+}
+.imap-table tbody td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    font-weight: bold;
+    font-size: 14px;
+}
+.imap-table tbody tr:nth-of-type(odd) {
+    background-color: rgba(0,0,0,.05);
+}
+.log-area {
+    margin-top: 20px;
+    background: black;
+    color: #10ff00;
+    padding: 20px;
+    min-height: 300px;
+    text-align: left;
+    border-radius: 4px;
+    border: 2px solid #10ff00;
+    overflow-y: auto;
+}
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #10ff00;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+.go-back {
+    background: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: none;
+    color: black;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+}
+/* Utility classes for remaining inline styles */
+.text-center { text-align: center; }
+.font-red { color: red; }
+.fs-16 { font-size: 16px; }
+.margin-lr-10 { margin: 0 10px; }
+.flex-center-gap-20 { display: flex; align-items: center; gap: 20px; }
+.btn-start { font-size: 25px; font-weight: 600; padding: 10px 20px; }
+.status-active { color: limegreen; }
+.status-inactive { color: red; }
+.no-screens-td { padding: 20px; font-style: italic; font-weight: normal; color: grey; }
+.log-title { margin: 0; color: #10ff00; font-size: 28px; }
+.log-pre { margin: 0; font-size: 20px; white-space: pre-wrap; text-align: left; }

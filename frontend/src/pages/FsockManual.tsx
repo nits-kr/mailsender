@@ -5,6 +5,7 @@ import {
   useSearchLegacyLinkMutation,
   useGetLegacyCampaignQuery,
 } from "../store/apiSlice";
+import "./FsockManual.css";
 
 const FsockManual = () => {
   const [searchParams] = useSearchParams();
@@ -131,157 +132,6 @@ const FsockManual = () => {
 
   return (
     <div className="fsock-container-parity">
-      <style>{`
-        .fsock-container-parity {
-          background-color: white;
-          color: black;
-          font-family: "Trebuchet MS", verdana;
-          padding: 10px;
-        }
-        .fsock-fieldset {
-          border: 2px dotted #000000;
-          padding: 0;
-          margin: 0;
-        }
-        .fsock-main-table {
-          width: 100%;
-          border-collapse: collapse;
-          border: 2px solid black;
-        }
-        .fsock-header-row td {
-          border-bottom: 2px solid black;
-        }
-        .fsock-blue-header {
-          background-color: #000033;
-          color: #fff;
-          padding: 15px;
-          width: 30%;
-        }
-        .fsock-blue-header h2 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: bold;
-        }
-        .fsock-top-center {
-          border: 1px dotted #999;
-          text-align: center;
-          padding: 10px;
-          font-size: 13px;
-        }
-        .fsock-top-center input {
-          border: 1px dotted #999;
-          width: 450px;
-          margin-top: 5px;
-        }
-        .fsock-left-col {
-          border-right: 2px solid black;
-          vertical-align: top;
-          padding: 15px;
-          text-align: center;
-        }
-        .fsock-ip-textarea {
-          width: 100%;
-          height: 310px;
-          font-family: monospace;
-          font-size: 12px;
-          padding: 5px;
-        }
-        .fsock-right-col {
-          vertical-align: top;
-          padding: 20px;
-        }
-        .fsock-content-table {
-          font-size: 12px;
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .fsock-content-table td {
-          padding-bottom: 10px;
-        }
-        .fsock-label {
-          width: 150px;
-          font-weight: bold;
-          text-align: left;
-          padding-right: 20px;
-        }
-        .fsock-input-group {
-          text-align: center;
-        }
-        .fsock-textarea-standard {
-          width: 445px;
-          height: 110px;
-          font-family: monospace;
-          font-size: 12px;
-        }
-        .fsock-input-standard {
-          width: 445px;
-          padding: 2px;
-        }
-        .fsock-body-html {
-          width: 445px;
-          height: 300px;
-          font-family: monospace;
-          font-size: 12px;
-        }
-        .fsock-body-plain {
-          width: 445px;
-          height: 71px;
-          font-family: monospace;
-          font-size: 12px;
-        }
-        .fsock-mini-table {
-          width: 100%;
-          margin-top: 10px;
-        }
-        .fsock-mini-input {
-          width: 100%;
-          font-size: 11px;
-        }
-        .fsock-loading-bar {
-          background-color: #0479C0;
-          color: white;
-          font-family: tahoma;
-          font-weight: bold;
-          font-size: 10px;
-          width: 148px;
-          height: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 10px auto;
-        }
-        .fsock-send-btn {
-          background-color: #f0f0f0;
-          border: 1px solid #999;
-          padding: 2px 10px;
-          cursor: pointer;
-        }
-        .fsock-space-sending {
-          background-color: #269abc;
-          border-radius: 4px;
-          width: 50%;
-          margin: 20px auto;
-          color: white;
-        }
-        .fsock-space-summary {
-          padding: 5px;
-          cursor: pointer;
-          font-weight: bold;
-          text-align: center;
-          list-style: none;
-        }
-        .fsock-space-body {
-          padding: 10px;
-        }
-        .fsock-result-area {
-          text-align: left;
-          font-family: monospace;
-          font-size: 12px;
-          margin-top: 20px;
-          word-break: break-all;
-        }
-      `}</style>
-
       <fieldset className="fsock-fieldset">
         <table className="fsock-main-table">
           <tbody>
@@ -291,11 +141,7 @@ const FsockManual = () => {
               </td>
               <td className="fsock-top-center">
                 From Email Address
-                <img
-                  src="/help.png"
-                  style={{ height: "25px", float: "right" }}
-                  alt="help"
-                />
+                <img src="/help.png" className="fsock-help-icon" alt="help" />
                 <br />
                 <input
                   type="text"
@@ -313,9 +159,7 @@ const FsockManual = () => {
                   value={formData.mailing_ip}
                   onChange={handleInputChange}
                 />
-                <div style={{ marginTop: "20px", fontWeight: "bold" }}>
-                  RESULT:
-                </div>
+                <div className="mt-20-fw-b">RESULT:</div>
                 <div
                   className="fsock-result-area"
                   dangerouslySetInnerHTML={{ __html: logOutput }}
@@ -346,7 +190,7 @@ const FsockManual = () => {
                           value={formData.sub}
                           onChange={handleInputChange}
                         />
-                        <div style={{ marginTop: "5px" }}>
+                        <div className="mt-5">
                           <input
                             type="radio"
                             name="sencode"
@@ -384,7 +228,7 @@ const FsockManual = () => {
                           value={formData.from}
                           onChange={handleInputChange}
                         />
-                        <div style={{ marginTop: "5px" }}>
+                        <div className="mt-5">
                           <input
                             type="radio"
                             name="fmencode"
@@ -457,12 +301,7 @@ const FsockManual = () => {
                       </td>
                     </tr>
                     <tr>
-                      <td
-                        className="fsock-label"
-                        style={{ verticalAlign: "top" }}
-                      >
-                        Body
-                      </td>
+                      <td className="fsock-label va-top">Body</td>
                       <td className="fsock-input-group">
                         <textarea
                           name="message_html"
@@ -586,10 +425,9 @@ const FsockManual = () => {
                         {isLoading && (
                           <div className="fsock-loading-bar">Sending ...</div>
                         )}
-                        <div style={{ marginTop: "10px" }}>
+                        <div className="mt-10">
                           <button
-                            className="fsock-send-btn"
-                            style={{ padding: "4px 20px" }}
+                            className="fsock-send-btn p-4-20"
                             onClick={() => handleAction("send")}
                             disabled={isLoading}
                           >
@@ -597,8 +435,7 @@ const FsockManual = () => {
                           </button>
                           &nbsp;&nbsp;
                           <button
-                            className="fsock-send-btn"
-                            style={{ padding: "4px 20px" }}
+                            className="fsock-send-btn p-4-20"
                             onClick={() => handleAction("get_link")}
                             disabled={isLoading}
                           >
@@ -622,13 +459,13 @@ const FsockManual = () => {
                             <input
                               type="number"
                               name="interval"
-                              style={{ width: "100%" }}
+                              className="w-100"
                               placeholder="Interval Time"
                               value={formData.interval}
                               onChange={handleInputChange}
                             />
                           </td>
-                          <td style={{ textAlign: "right" }}>
+                          <td className="tr-pr-5">
                             <button
                               className="fsock-send-btn"
                               onClick={displayStart}
@@ -637,14 +474,9 @@ const FsockManual = () => {
                               Start
                             </button>
                           </td>
-                          <td style={{ textAlign: "left" }}>
+                          <td className="tl">
                             <button
-                              className="fsock-send-btn"
-                              style={{
-                                backgroundColor: "#d9534f",
-                                color: "white",
-                                borderColor: "#d43f3a",
-                              }}
+                              className="fsock-send-btn btn-stop"
                               onClick={displayStop}
                             >
                               Stop

@@ -254,6 +254,14 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Legacy"],
     }),
+
+    // ─── IMAP Mailbox ──────────────────────────────────────────────────────────
+    getMailboxEmails: builder.query<string[], void>({
+      query: () => "/mailbox/emails",
+    }),
+    getMailboxData: builder.query<any[], string>({
+      query: (email) => `/mailbox/data/${email}`,
+    }),
   }),
 });
 
@@ -322,4 +330,7 @@ export const {
   useStopImapScreenMutation,
   useDeleteImapScreenMutation,
   useCreateImapScreenMutation,
+  // IMAP Mailbox
+  useGetMailboxEmailsQuery,
+  useGetMailboxDataQuery,
 } = apiSlice;

@@ -5,6 +5,7 @@ import {
   useDeleteSmtpDetailsMutation,
   useGetUsersQuery,
 } from "../store/apiSlice";
+import "./SmtpDetails.css";
 
 const SmtpDetails = () => {
   const { data: smtpData = [], isFetching, refetch } = useGetSmtpDetailsQuery();
@@ -49,7 +50,6 @@ const SmtpDetails = () => {
       setServerName("");
       setIpData("");
       refetch();
-      // Optional: alert success like the legacy script might
     } catch (error: any) {
       alert(
         "Failed to insert SMTP details: " +
@@ -70,134 +70,14 @@ const SmtpDetails = () => {
   };
 
   return (
-    <div style={{ padding: "0" }}>
-      <style>{`
-        .smtp-mainbox {
-          padding: 10px;
-          width: 95%;
-          margin: 30px auto;
-          background-color: white;
-          color: black;
-          font-family: Arial, "Trebuchet MS", verdana;
-          border: 1px solid #ddd;
-          -webkit-box-shadow: 2px 4px 7px 1px rgba(0,0,0,0.48);
-          -moz-box-shadow: 2px 4px 7px 1px rgba(0,0,0,0.48);
-          box-shadow: 2px 4px 7px 1px rgba(0,0,0,0.48);
-        }
-
-        .smtp-title {
-          text-align: center;
-          font-size: 24px;
-          margin: 10px 0;
-          font-weight: bold;
-        }
-
-        .smtp-hr {
-          border: 1px solid #f1f1f1;
-          margin-bottom: 25px;
-          width: 100%;
-        }
-
-        .smtp-form-table {
-          margin: 0 auto;
-          border: 0;
-        }
-
-        .smtp-form-table td {
-          padding: 5px;
-        }
-
-        .smtp-input {
-          box-sizing: border-box;
-          width: 400px;
-          font-size: 18px;
-          height: 34px;
-          padding: 3px 7px;
-          border: 1px solid #aaa;
-          border-radius: 4px;
-        }
-        
-        .smtp-select {
-          width: 28%;
-          min-width: 400px;
-          font-size: 18px;
-          height: 34px;
-          padding: 3px 7px;
-          border: 1px solid #aaa;
-          border-radius: 4px;
-        }
-
-        .smtp-textarea {
-          font-family: monospace;
-          padding: 5px;
-          border: 1px solid #aaa;
-        }
-
-        .smtp-btn {
-          border: none;
-          border-radius: 12px;
-          color: white;
-          padding: 5px 14px;
-          font-size: 17px;
-          cursor: pointer;
-          text-decoration: none;
-        }
-
-        .smtp-btn-info {
-          background-color: #2196F3;
-        }
-        .smtp-btn-info:hover {
-          background-color: #0b7dda;
-        }
-
-        .smtp-btn-danger {
-          background-color: #f44336;
-        }
-        .smtp-btn-danger:hover {
-          background-color: #da190b;
-        }
-
-        .smtp-data-table {
-          width: 100%;
-          border-collapse: collapse;
-          border: 1px solid #ddd;
-        }
-
-        .smtp-data-table th, .smtp-data-table td {
-          border: 1px solid #dee2e6;
-        }
-
-        .smtp-data-table thead th {
-          vertical-align: bottom;
-          text-align: center;
-          background-color: #60D6FF;
-          font-weight: bold;
-          font-size: large;
-          padding: 8px;
-        }
-
-        .smtp-data-table tbody td {
-          text-align: center;
-          font-weight: bold;
-          font-size: large;
-          padding: 8px;
-        }
-
-        .smtp-data-table tbody tr:nth-of-type(odd) {
-          background-color: rgba(0,0,0,.05);
-        }
-        .smtp-data-table tbody tr:nth-of-type(even) {
-          background-color: transparent;
-        }
-      `}</style>
-
+    <div className="p-0">
       <div className="smtp-mainbox">
-        <div className="smtp-title">
+        <div className="smtp-title-container">
           <h3>SMTP DETAILS</h3>
         </div>
         <hr className="smtp-hr" />
 
-        <div style={{ textAlign: "center" }}>
+        <div className="text-center">
           <form onSubmit={handleInsert}>
             <table className="smtp-form-table">
               <tbody>
@@ -275,7 +155,7 @@ const SmtpDetails = () => {
         <br />
         <hr className="smtp-hr" />
 
-        <div style={{ margin: "10px", paddingBottom: "20px" }}>
+        <div className="margin-10 pb-20">
           <table className="smtp-data-table">
             <thead>
               <tr>
@@ -317,14 +197,7 @@ const SmtpDetails = () => {
               ))}
               {smtpData.length === 0 && !isFetching && (
                 <tr>
-                  <td
-                    colSpan={isAdmin ? 10 : 9}
-                    style={{
-                      textAlign: "center",
-                      fontStyle: "italic",
-                      fontWeight: "normal",
-                    }}
-                  >
+                  <td colSpan={isAdmin ? 10 : 9} className="no-data-td">
                     No data found
                   </td>
                 </tr>

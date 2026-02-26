@@ -60,6 +60,7 @@ app.use("/api/screens", screenRoutes);
 app.use("/api/links", linkRoutes);
 app.use("/api/images", imageRoutes);
 app.use("/api/testids", testIdsRoutes);
+app.use("/api/mailbox", require("./routes/mailboxRoutes"));
 app.use("/api/imap-screens", require("./routes/imapScreenRoutes"));
 app.use("/api/smtp", smtpRoutes);
 app.use("/api/legacy", require("./routes/legacyRoutes"));

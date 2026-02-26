@@ -29,6 +29,7 @@ import DataAnalytics from "./pages/DataAnalytics";
 import DataDelete from "./pages/DataDelete";
 import Screen from "./pages/Screen";
 import TestidsScreen from "./pages/TestidsScreen";
+import TestidsMailbox from "./pages/TestidsMailbox";
 import TestIdsManagement from "./pages/TestIdsManagement";
 import SmtpTester from "./pages/SmtpTester";
 import SmtpDetails from "./pages/SmtpDetails";
@@ -235,6 +236,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TestidsScreen />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/testids-mailbox"
+                element={
+                  <ProtectedRoute>
+                    <TestidsMailbox />
                   </ProtectedRoute>
                 }
               />
