@@ -1,15 +1,5 @@
 import React, { useState } from "react";
-import {
-  Upload,
-  Play,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Trash2,
-  FileText,
-  Search,
-  Loader2,
-} from "lucide-react";
+import "./Suppression.css";
 import {
   useGetOffersQuery,
   useGetSuppressionMappingsQuery,
@@ -25,10 +15,13 @@ import {
 const Suppression = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadOffer, setUploadOffer] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [scheduleOffer, setScheduleOffer] = useState("");
   const [datafileName, setDatafileName] = useState("");
   const [newDatafileName, setNewDatafileName] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [queueMessage, setQueueMessage] = useState("");
+  const [searchMappings, setSearchMappings] = useState("");
+  const [searchQueue, setSearchQueue] = useState("");
   const [logModal, setLogModal] = useState<{
     open: boolean;
     content: string;
@@ -39,14 +32,12 @@ const Suppression = () => {
     id: "",
   });
   const [logQueryId, setLogQueryId] = useState<string | null>(null);
-  const [searchMappings, setSearchMappings] = useState("");
-  const [searchQueue, setSearchQueue] = useState("");
 
   // RTK Query hooks
   const { data: offers = [] } = useGetOffersQuery();
-  const { data: mappings = [], isLoading: mappingsLoading } =
+  const { data: mappings = [], refetch: refetchMappings } =
     useGetSuppressionMappingsQuery();
-  const { data: queue = [], isLoading: queueLoading } =
+  const { data: queue = [], refetch: refetchQueue } =
     useGetSuppressionQueueQuery(undefined, {
       pollingInterval: 10000,
     });
@@ -62,49 +53,69 @@ const Suppression = () => {
   const [deleteQueue] = useDeleteSuppressionQueueMutation();
 
   const handleUpload = async () => {
-    if (!selectedFile || !uploadOffer) {
-      alert("Please select a file and an offer.");
+    if (!uploadOffer) {
+      alert("Choose Offer...!");
+      return;
+    }
+    if (!selectedFile) {
+      alert("Upload Needed..!");
       return;
     }
 
     const formData = new FormData();
     formData.append("file", selectedFile);
 
+    setStatusMessage("Processing..!");
     try {
       const uploadData = await uploadSuppression(formData).unwrap();
       await createMapping({
         offer_id: uploadOffer,
         filename: uploadData.filename,
       }).unwrap();
-      alert("Upload and mapping successful!");
+      setStatusMessage("Saved Successfully!");
       setSelectedFile(null);
-      setUploadProgress(0);
+      refetchMappings();
+      setTimeout(() => setStatusMessage(""), 5000);
     } catch (error: any) {
-      alert("Upload failed: " + (error?.data?.message || "Unknown error"));
+      setStatusMessage("Error uploading file.");
     }
   };
 
   const handleSchedule = async () => {
-    if (!scheduleOffer || !datafileName) {
-      alert("Please fill all schedule fields.");
+    if (!scheduleOffer) {
+      alert("Choose Offer...!");
       return;
     }
+    if (!datafileName) {
+      alert("Data File Name Required..!");
+      return;
+    }
+    if (!newDatafileName) {
+      alert("New Data File Name Required..!");
+      return;
+    }
+
+    setQueueMessage("Processing..!");
     try {
       await createQueue({
         offer_id: scheduleOffer,
         filename: datafileName,
         new_filename: newDatafileName,
       }).unwrap();
-      alert("Scheduled successfully!");
+      setQueueMessage("Scheduled Successfully!");
+      refetchQueue();
+      setTimeout(() => setQueueMessage(""), 5000);
     } catch {
-      alert("Scheduling failed.");
+      setQueueMessage("Scheduling failed.");
     }
   };
 
-  const handleDeleteMapping = async (id: string) => {
-    if (window.confirm("Sure to Delete Mapping?")) {
+  const handleDeleteMapping = async (id: string, offerId: string) => {
+    if (window.confirm("Heads Up.. Sure to Delete ..?")) {
       try {
         await deleteMapping(id).unwrap();
+        alert("Mapping deleted successfully.");
+        refetchMappings();
       } catch {
         alert("Delete failed.");
       }
@@ -112,9 +123,11 @@ const Suppression = () => {
   };
 
   const handleDeleteQueue = async (id: string) => {
-    if (window.confirm("Sure to Delete from Queue?")) {
+    if (window.confirm("Heads Up.. Sure to Delete ..?")) {
       try {
         await deleteQueue(id).unwrap();
+        alert("Queue item deleted successfully.");
+        refetchQueue();
       } catch {
         alert("Delete failed.");
       }
@@ -126,292 +139,284 @@ const Suppression = () => {
     setLogModal({ open: true, content: "Loading logs...", id });
   };
 
-  // Update modal content when log data arrives
   React.useEffect(() => {
     if (logData && logModal.open) {
-      setLogModal((prev) => ({
-        ...prev,
-        content:
-          typeof logData === "string" ? logData : JSON.stringify(logData),
-      }));
+      const logLines = (
+        typeof logData === "string" ? logData : JSON.stringify(logData)
+      ).split("\n");
+      const reversedLog = logLines.reverse().join("\n");
+      setLogModal((prev) => ({ ...prev, content: reversedLog }));
     }
   }, [logData, logModal.open]);
 
-  const filteredMappings = mappings.filter((m: any) =>
-    Object.values(m).some((v) =>
-      String(v).toLowerCase().includes(searchMappings.toLowerCase()),
-    ),
+  const filteredMappings = mappings.filter(
+    (m: any) =>
+      (m.Affiliate || "")
+        .toLowerCase()
+        .includes(searchMappings.toLowerCase()) ||
+      (m.offer_name || m.offer_id?.name || "")
+        .toLowerCase()
+        .includes(searchMappings.toLowerCase()) ||
+      (m.filename || "").toLowerCase().includes(searchMappings.toLowerCase()),
   );
-  const filteredQueue = queue.filter((q: any) =>
-    Object.values(q).some((v) =>
-      String(v).toLowerCase().includes(searchQueue.toLowerCase()),
-    ),
+
+  const filteredQueue = queue.filter(
+    (q: any) =>
+      (q.Affiliate || "").toLowerCase().includes(searchQueue.toLowerCase()) ||
+      (q.offer_name || q.offer_id?.name || "")
+        .toLowerCase()
+        .includes(searchQueue.toLowerCase()) ||
+      (q.new_filename || "").toLowerCase().includes(searchQueue.toLowerCase()),
   );
+
+  const getStatusDisplay = (status: number) => {
+    switch (status) {
+      case 0:
+        return <span className="supp-status-queued">Queued</span>;
+      case 1:
+        return <span className="supp-status-completed">Completed</span>;
+      case 2:
+        return <span className="supp-status-running">Running</span>;
+      case 3:
+        return <span className="supp-status-error">Error</span>;
+      default:
+        return <span>Unknown</span>;
+    }
+  };
 
   return (
-    <div className="dashboard-container">
-      <h1 className="text-xl font-bold text-white uppercase mb-6 tracking-wider">
-        Suppression Manager
-      </h1>
-
-      {/* Upload Section */}
-      <div className="dash-card mb-6">
-        <h3 className="section-title">Upload Suppression List</h3>
-        <div className="flex gap-4 flex-wrap mt-4 items-end">
-          <div className="form-group">
-            <label>Offer</label>
+    <div className="supp-container">
+      {/* Row 1: Upload and Schedule */}
+      <div className="supp-row1">
+        {/* Upload Section */}
+        <div className="supp-section">
+          <h2>
+            <u>UPLOAD SUPPRESSION SECTION</u>
+          </h2>
+          <div className="supp-form-group">
+            <b>Choose Offer :</b>{" "}
             <select
               value={uploadOffer}
               onChange={(e) => setUploadOffer(e.target.value)}
             >
-              <option value="">-- Select Offer --</option>
+              <option value="">Select Any</option>
               {offers.map((o: any) => (
                 <option key={o._id} value={o._id}>
-                  {o.name}
+                  {o.id} | {o.affiliate} | {o.name}
                 </option>
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label>File</label>
-            <input
-              type="file"
-              accept=".txt,.csv"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-            />
-          </div>
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="btn-primary flex items-center gap-2"
+          <div
+            className="supp-form-group"
+            style={{ display: "flex", alignItems: "center" }}
           >
-            {uploading ? (
-              <Loader2 className="animate-spin" size={14} />
-            ) : (
-              <Upload size={14} />
-            )}
-            {uploading ? `Uploading ${uploadProgress}%` : "Upload"}
+            <b>Vendor Suppression File :</b>{" "}
+            <label className="supp-upload-btn" style={{ marginLeft: "10px" }}>
+              Upload File
+              <input
+                type="file"
+                style={{ display: "none" }}
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+            </label>
+            <span style={{ marginLeft: "10px" }}>
+              {selectedFile ? `${selectedFile.name} (100%)` : ""}
+            </span>
+          </div>
+          <button className="supp-save-btn" onClick={handleUpload}>
+            Save Data
           </button>
+          <div style={{ textAlign: "center", marginTop: "5px" }}>
+            <span style={{ color: "black", fontWeight: "bold" }}>
+              {statusMessage}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Schedule Section */}
-      <div className="dash-card mb-6">
-        <h3 className="section-title">Schedule Suppression</h3>
-        <div className="flex gap-4 flex-wrap mt-4 items-end">
-          <div className="form-group">
-            <label>Offer</label>
+        {/* Schedule Section */}
+        <div className="supp-section">
+          <h2>
+            <u>SUPPRESSION SCHEDULER</u>
+          </h2>
+          <div className="supp-form-group">
+            <b>Choose Offer :</b>{" "}
             <select
               value={scheduleOffer}
               onChange={(e) => setScheduleOffer(e.target.value)}
             >
-              <option value="">-- Select Offer --</option>
-              {offers.map((o: any) => (
-                <option key={o._id} value={o._id}>
-                  {o.name}
+              <option value="">Select Any</option>
+              {mappings.map((m: any) => (
+                <option
+                  key={m.offer_id?._id || m._id}
+                  value={m.offer_id?._id || m.offer_id}
+                >
+                  {m.offer_id?.id || "N/A"} | {m.offer_id?.affiliate || "N/A"} |{" "}
+                  {m.offer_id?.name || "N/A"}
                 </option>
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label>Data File Name</label>
+          <div style={{ textAlign: "center", marginBottom: "10px" }}>
             <input
+              type="text"
+              className="supp-data-input"
+              placeholder="DATAFILE NAME"
               value={datafileName}
               onChange={(e) => setDatafileName(e.target.value)}
-              placeholder="e.g. list.txt"
             />
-          </div>
-          <div className="form-group">
-            <label>New File Name</label>
             <input
+              type="text"
+              className="supp-data-input"
+              placeholder="NEW DATAFILE NAME"
+              style={{ marginLeft: "10px" }}
               value={newDatafileName}
               onChange={(e) => setNewDatafileName(e.target.value)}
-              placeholder="e.g. cleaned.txt"
             />
           </div>
-          <button
-            onClick={handleSchedule}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Play size={14} /> Schedule
+          <button className="supp-schedule-btn" onClick={handleSchedule}>
+            Schedule
           </button>
+          <div style={{ textAlign: "center", marginTop: "5px" }}>
+            <span style={{ color: "black", fontWeight: "bold" }}>
+              {queueMessage}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Mappings Table */}
-      <div className="dash-card mb-6">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="section-title">Suppression Mappings</h3>
-          <div className="flex items-center gap-2">
-            <Search size={14} className="text-gray-400" />
+      {/* Row 2: Mappings and Queue */}
+      <div className="supp-row2">
+        {/* Mappings Table */}
+        <div className="supp-section" style={{ flex: 1 }}>
+          <h2>
+            <u>OFFER WISE SUPPRESSION DETAILS</u>
             <input
-              className="bg-gray-800 text-white text-xs px-2 py-1 rounded outline-none"
-              placeholder="Search..."
+              type="text"
+              className="supp-search-input"
+              placeholder="Search.."
               value={searchMappings}
               onChange={(e) => setSearchMappings(e.target.value)}
             />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="legacy-table">
-            <thead>
-              <tr>
-                <th>Offer</th>
-                <th>File</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mappingsLoading ? (
+          </h2>
+          <div className="supp-table-container">
+            <table className="supp-table">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="text-center py-4 text-gray-500">
-                    Loading...
-                  </td>
+                  <th>Affiliate</th>
+                  <th>Offer Name</th>
+                  <th>Supp File Name</th>
+                  <th>Uploaded At</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                filteredMappings.map((m: any) => (
+              </thead>
+              <tbody>
+                {filteredMappings.map((m: any) => (
                   <tr key={m._id}>
-                    <td>{m.offer_id}</td>
+                    <td>{m.offer_id?.affiliate || m.affiliate}</td>
+                    <td>{m.offer_id?.name || m.offer_name}</td>
                     <td>{m.filename}</td>
-                    <td>{new Date(m.created_at).toLocaleDateString()}</td>
                     <td>
-                      <span className="text-green-400 font-bold uppercase text-xs">
-                        <CheckCircle size={10} className="inline mr-1" />
-                        Active
-                      </span>
+                      {new Date(m.upload_at || m.created_at).toLocaleString()}
                     </td>
-                    <td className="flex gap-2 justify-center">
+                    <td style={{ textAlign: "center" }}>
                       <button
-                        onClick={() => showLog(m._id)}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="supp-delete-btn"
+                        onClick={() =>
+                          handleDeleteMapping(
+                            m._id,
+                            m.offer_id?._id || m.offer_id,
+                          )
+                        }
                       >
-                        <FileText size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMapping(m._id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 size={14} />
+                        Delete
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {/* Queue Table */}
-      <div className="dash-card">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="section-title">
-            Suppression Queue{" "}
-            <span className="text-xs text-gray-500 ml-2">
-              (auto-refreshes every 10s)
-            </span>
-          </h3>
-          <div className="flex items-center gap-2">
-            <Search size={14} className="text-gray-400" />
+        {/* Queue Table */}
+        <div className="supp-section" style={{ flex: 1.5 }}>
+          <h2>
+            <u>SUPPRESSION QUEUE</u>
             <input
-              className="bg-gray-800 text-white text-xs px-2 py-1 rounded outline-none"
-              placeholder="Search..."
+              type="text"
+              className="supp-search-input"
+              placeholder="Search.."
               value={searchQueue}
               onChange={(e) => setSearchQueue(e.target.value)}
             />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="legacy-table">
-            <thead>
-              <tr>
-                <th>Offer</th>
-                <th>Data File</th>
-                <th>New File</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queueLoading ? (
+          </h2>
+          <div className="supp-table-container">
+            <table className="supp-table">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="text-center py-4 text-gray-500">
-                    Loading...
-                  </td>
+                  <th>Affiliate</th>
+                  <th>Offer Name</th>
+                  <th>New Supp DataFile</th>
+                  <th>Status</th>
+                  <th>O.C.</th>
+                  <th>F.C.</th>
+                  <th>S.C.</th>
+                  <th>Date Queued</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                filteredQueue.map((q: any) => (
+              </thead>
+              <tbody>
+                {filteredQueue.map((q: any) => (
                   <tr key={q._id}>
-                    <td>{q.offer_id}</td>
-                    <td>{q.filename}</td>
+                    <td>{q.offer_id?.affiliate || q.affiliate}</td>
+                    <td>{q.offer_id?.name || q.offer_name}</td>
                     <td>{q.new_filename}</td>
+                    <td>{getStatusDisplay(q.status)}</td>
+                    <td>{q.initial_file_count || 0}</td>
+                    <td>{q.final_file_count || 0}</td>
+                    <td>{q.suppressed_file_count || 0}</td>
                     <td>
-                      {q.status === "pending" && (
-                        <span className="text-yellow-400 flex items-center gap-1 text-xs">
-                          <Clock size={10} />
-                          Pending
-                        </span>
-                      )}
-                      {q.status === "done" && (
-                        <span className="text-green-400 flex items-center gap-1 text-xs">
-                          <CheckCircle size={10} />
-                          Done
-                        </span>
-                      )}
-                      {q.status === "failed" && (
-                        <span className="text-red-400 flex items-center gap-1 text-xs">
-                          <XCircle size={10} />
-                          Failed
-                        </span>
-                      )}
-                      {!q.status && (
-                        <span className="text-gray-400 text-xs">—</span>
-                      )}
+                      {new Date(q.createdAt || q.date_queued).toLocaleString()}
                     </td>
-                    <td className="flex gap-2 justify-center">
-                      <button
-                        onClick={() => showLog(q._id)}
-                        className="text-blue-400 hover:text-blue-300"
-                      >
-                        <FileText size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteQueue(q._id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <td style={{ textAlign: "center" }}>
+                      {q.status === 0 ? (
+                        <button
+                          className="supp-delete-btn"
+                          onClick={() => handleDeleteQueue(q._id)}
+                        >
+                          Delete
+                        </button>
+                      ) : (
+                        <button
+                          className="supp-log-btn"
+                          onClick={() => showLog(q._id)}
+                        >
+                          Log
+                        </button>
+                      )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* Log Modal */}
       {logModal.open && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1a1d21] border border-gray-700 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                <FileText size={14} /> Suppression Log
-              </h3>
-              <button
-                onClick={() =>
-                  setLogModal({ open: false, content: "", id: "" })
-                }
-                className="text-gray-400 hover:text-white text-xl leading-none"
-              >
-                &times;
-              </button>
+        <div className="supp-modal">
+          <div className="supp-modal-content">
+            <span
+              className="supp-modal-close"
+              onClick={() => setLogModal({ ...logModal, open: false })}
+            >
+              &times;
+            </span>
+            <div className="supp-log-content">
+              <pre>{logModal.content}</pre>
             </div>
-            <pre className="p-4 text-green-400 text-xs font-mono overflow-auto flex-1 whitespace-pre-wrap">
-              {logModal.content}
-            </pre>
           </div>
         </div>
       )}

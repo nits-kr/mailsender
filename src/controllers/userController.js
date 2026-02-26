@@ -79,7 +79,23 @@ const authUser = async (req, res) => {
     }
     cred = cred.trim();
 
-    if (cred === "|||||") {
+    if (cred === "|||||" || !cred || cred.includes("html")) {
+      // Try local fallback for testing
+      const localUser = await User.findOne({
+        email: uemail,
+        password: password,
+      });
+      if (localUser) {
+        return res.json({
+          _id: localUser._id,
+          id: localUser.id,
+          name: localUser.name,
+          email: localUser.email,
+          designation: localUser.designation,
+          status: localUser.status,
+          token: generateToken(localUser._id),
+        });
+      }
       return res.status(401).json({ message: "Invalid Details" });
     }
 

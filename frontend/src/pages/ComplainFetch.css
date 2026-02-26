@@ -1,0 +1,262 @@
+/* Exact styles from legacy complain_processor/styles.css */
+
+.imap-fetch-body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Removed scaling for better React responsiveness unless strictly needed */
+    background-color: #f9f9f9;
+}
+
+.complain-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100vh;
+}
+
+.left-div, .right-div {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #f9f9f9;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.left-div {
+    border: 1px solid #007bff;
+}
+
+.right-div {
+    border: 1px solid #000;
+}
+
+.heading-main {
+    font-size: 2rem;
+    color: #007bff;
+    text-align: center;
+    padding: 10px 0;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.form-wrapper {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    height: calc(100% - 100px); /* Adjust based on title/button height */
+}
+
+h1 {
+    font-size: 1.5rem;
+    color: #333333;
+    text-align: center;
+}
+
+.legacy-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555555;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+.legacy-input, .legacy-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.legacy-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    resize: none;
+    height: 65%;
+    box-sizing: border-box;
+}
+
+.legacy-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.legacy-button:hover {
+    background-color: #0056b3;
+}
+
+.btn-add-complainer {
+    width: auto;
+    display: block;
+    margin: 10px auto;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+/* Modal styles */
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+.close-btn {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+/* Table styles */
+#emailDetailsTable {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    display: block;
+    margin-top: 20px;
+}
+
+#detailsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#detailsTable thead {
+    position: sticky;
+    top: 0;
+    background-color: #007bff;
+    color: #fff;
+    z-index: 1;
+}
+
+#detailsTable th, #detailsTable td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+#detailsTable tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+#detailsTable tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.action-btn {
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    padding: 5px;
+    margin-right: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.edit-btn i { color: #007bff; }
+.delete-btn i { color: #e74c3c; }
+
+/* Right div specifics */
+#fileList {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e1e1e1;
+}
+
+#fileListHeading {
+    font-size: 28px;
+    color: #444;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#fileTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+#fileTable th {
+    background-color: #007bff;
+    color: white;
+    text-transform: uppercase;
+    padding: 15px;
+    text-align: left;
+}
+
+#fileTable td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #f2f2f2;
+    font-size: 16px;
+    color: #444;
+}
+
+#fileTable tbody tr:hover {
+    background-color: #f1f1f1;
+    transform: scale(1.01);
+}
+
+.btn-autolog {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.btn-autolog:hover {
+    background-color: #0056b3;
+}

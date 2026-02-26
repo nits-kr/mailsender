@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { Trash2, Edit, Plus, X, ExternalLink, FileText } from "lucide-react";
-import "./Interface.css";
+import React, { useState, useEffect } from "react";
+import { Trash2, Edit } from "lucide-react";
+import "./ComplainFetch.css";
 import {
   useGetComplainAccountsQuery,
   useGetComplainFilesQuery,
@@ -12,409 +12,343 @@ import {
 import API_BASE_URL from "../config/api";
 
 const ComplainFetch = () => {
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
   const [formData, setFormData] = useState({
+    accountType: "yahoo_fbl",
+    inboxImapHost: "{imap.mail.yahoo.com:993/imap/ssl}INBOX",
+    spamImapHost: "{imap.mail.yahoo.com:993/imap/ssl}Bulk",
     email: "",
     password: "",
-    imap_host: "",
-    imap_port: 993,
     _id: "",
   });
 
   // RTK Query hooks
-  const { data: accountsList = [], isLoading: accountsLoading } =
+  const { data: accountsList = [], refetch: refetchAccounts } =
     useGetComplainAccountsQuery();
-  const { data: files = [], isLoading: filesLoading } =
+  const { data: files = [], refetch: refetchFiles } =
     useGetComplainFilesQuery();
+
   const [addAccount] = useAddComplainAccountMutation();
   const [updateAccount] = useUpdateComplainAccountMutation();
   const [deleteAccount] = useDeleteComplainAccountMutation();
-  const [fetchComplain, { isLoading: fetching }] = useFetchComplainMutation();
+  const [fetchComplain] = useFetchComplainMutation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (editMode) {
         await updateAccount({
           id: formData._id,
+          accountType: formData.accountType,
+          inboxImapHost: formData.inboxImapHost,
+          spamImapHost: formData.spamImapHost,
           email: formData.email,
           password: formData.password,
-          imap_host: formData.imap_host,
-          imap_port: formData.imap_port,
         }).unwrap();
+        alert("Email updated successfully.");
       } else {
         await addAccount({
+          accountType: formData.accountType,
+          inboxImapHost: formData.inboxImapHost,
+          spamImapHost: formData.spamImapHost,
           email: formData.email,
           password: formData.password,
-          imap_host: formData.imap_host,
-          imap_port: formData.imap_port,
         }).unwrap();
+        alert("Email added successfully.");
       }
-      setShowForm(false);
+      setShowModal(false);
       setEditMode(false);
-      setFormData({
-        email: "",
-        password: "",
-        imap_host: "",
-        imap_port: 993,
-        _id: "",
-      });
+      resetForm();
+      refetchAccounts();
     } catch (error: any) {
       alert("Error: " + (error?.data?.message || "Failed to save account"));
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      accountType: "yahoo_fbl",
+      inboxImapHost: "{imap.mail.yahoo.com:993/imap/ssl}INBOX",
+      spamImapHost: "{imap.mail.yahoo.com:993/imap/ssl}Bulk",
+      email: "",
+      password: "",
+      _id: "",
+    });
+  };
+
   const handleEdit = (acc: any) => {
     setFormData({
+      accountType: acc.accountType,
+      inboxImapHost: acc.inboxImapHost,
+      spamImapHost: acc.spamImapHost,
       email: acc.email,
       password: acc.password,
-      imap_host: acc.imap_host,
-      imap_port: acc.imap_port,
       _id: acc._id,
     });
     setEditMode(true);
-    setShowForm(true);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Sure to delete this account?")) {
+    if (window.confirm("Are you sure you want to delete this email?")) {
       try {
         await deleteAccount(id).unwrap();
+        alert("Email deleted successfully.");
+        refetchAccounts();
       } catch {
-        alert("Failed to delete account");
+        alert("Error deleting email.");
       }
     }
   };
 
-  const handleFetch = async () => {
-    if (!window.confirm("Start fetching complaints from all accounts?")) return;
+  const handleSubmitFetch = async () => {
+    if (!selectedEmail) {
+      setStatusMessage("Please select an email first.");
+      return;
+    }
+
+    setStatusMessage("Processing...");
     try {
-      const result = await fetchComplain({}).unwrap();
-      alert("Fetch complete: " + (result?.message || "Done"));
+      const result = await fetchComplain({ email: selectedEmail }).unwrap();
+      setStatusMessage(result?.message + "\n\n" + (result?.details || ""));
+      refetchFiles();
     } catch (error: any) {
-      alert("Fetch error: " + (error?.data?.message || "Failed"));
+      setStatusMessage(
+        "Error fetching complaints: " + (error?.data?.message || error.message),
+      );
     }
   };
 
   return (
-    <div className="interface-container">
-      <div
-        className="interface-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h2>Complain Fetch Manager</h2>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button className="interface-btn" onClick={() => setShowForm(true)}>
-            <Plus size={14} /> Add Account
-          </button>
+    <div className="imap-fetch-body">
+      <div className="complain-container">
+        {/* Left Div - Complain Fetcher */}
+        <div className="left-div">
+          <div className="heading-main">Complain Fetcher</div>
+          <br />
           <button
-            className="interface-btn secondary"
-            onClick={handleFetch}
-            disabled={fetching}
-          >
-            {fetching ? "Fetching..." : "Fetch Complaints"}
-          </button>
-        </div>
-      </div>
-
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div
-          style={{
-            background: "#1a1d21",
-            border: "1px solid #444",
-            borderRadius: "8px",
-            padding: "20px",
-            marginBottom: "24px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "16px",
+            id="addButton"
+            className="legacy-button btn-add-complainer"
+            onClick={() => {
+              resetForm();
+              setEditMode(false);
+              setShowModal(true);
             }}
           >
-            <h3 style={{ color: "#fff", fontWeight: "bold" }}>
-              {editMode ? "Edit Account" : "Add New Account"}
-            </h3>
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setEditMode(false);
-              }}
-              style={{
-                color: "#aaa",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "18px",
-              }}
+            ADD COMPLAINER EMAIL
+          </button>
+          <br />
+          <br />
+
+          <div className="form-wrapper">
+            <h1>Fetch Complainer</h1>
+            <label className="legacy-label">Select Email:</label>
+            <select
+              className="legacy-select"
+              value={selectedEmail}
+              onChange={(e) => setSelectedEmail(e.target.value)}
             >
-              <X size={18} />
+              <option value="">Select Email</option>
+              {accountsList.map((acc: any) => (
+                <option key={acc._id} value={acc.email}>
+                  {acc.email}
+                </option>
+              ))}
+            </select>
+
+            <label className="legacy-label">Message:</label>
+            <textarea
+              className="legacy-textarea"
+              value={statusMessage}
+              readOnly
+              placeholder="Enter your message"
+            ></textarea>
+
+            <button className="legacy-button" onClick={handleSubmitFetch}>
+              Submit
             </button>
           </div>
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "12px",
-            }}
-          >
-            <div>
-              <label
-                style={{
-                  color: "#ccc",
-                  fontSize: "12px",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
+        </div>
+
+        {/* Right Div - Complain File List */}
+        <div className="right-div">
+          <div id="fileList">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <h2 id="fileListHeading">COMPLAIN FILE LIST</h2>
+              <a
+                href={`${API_BASE_URL}/uploads/complains/fetchLog.txt`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-autolog"
               >
-                Email
-              </label>
-              <input
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #555",
-                  background: "#2a2e35",
-                  color: "#fff",
-                }}
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, email: e.target.value }))
-                }
-                required
-              />
+                AUTO RUN LOG
+              </a>
             </div>
-            <div>
-              <label
-                style={{
-                  color: "#ccc",
-                  fontSize: "12px",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #555",
-                  background: "#2a2e35",
-                  color: "#fff",
-                }}
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, password: e.target.value }))
-                }
-                required
-              />
-            </div>
-            <div>
-              <label
-                style={{
-                  color: "#ccc",
-                  fontSize: "12px",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
-                IMAP Host
-              </label>
-              <input
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #555",
-                  background: "#2a2e35",
-                  color: "#fff",
-                }}
-                value={formData.imap_host}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, imap_host: e.target.value }))
-                }
-                required
-              />
-            </div>
-            <div>
-              <label
-                style={{
-                  color: "#ccc",
-                  fontSize: "12px",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
-                IMAP Port
-              </label>
-              <input
-                type="number"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #555",
-                  background: "#2a2e35",
-                  color: "#fff",
-                }}
-                value={formData.imap_port}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, imap_port: +e.target.value }))
-                }
-              />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <button
-                type="submit"
-                className="interface-btn"
-                style={{ marginTop: "8px" }}
-              >
-                {editMode ? "Update Account" : "Add Account"}
+
+            <table id="fileTable">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Created Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {files.length > 0 ? (
+                  files.map((file: any, idx: number) => (
+                    <tr key={idx}>
+                      <td>
+                        <a
+                          href={`${API_BASE_URL}${file.url}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {file.name}
+                        </a>
+                      </td>
+                      <td>{file.date}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} style={{ textAlign: "center" }}>
+                      No files found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal / Popup for Account Management */}
+      {showModal && (
+        <>
+          <div
+            className="popup-overlay"
+            onClick={() => setShowModal(false)}
+          ></div>
+          <div className="popup">
+            <button className="close-btn" onClick={() => setShowModal(false)}>
+              X
+            </button>
+            <h1>Store Email Account Details</h1>
+            <form onSubmit={handleModalSubmit}>
+              <div>
+                <label className="legacy-label">Account Type:</label>
+                <select
+                  className="legacy-select"
+                  value={formData.accountType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, accountType: e.target.value })
+                  }
+                  required
+                >
+                  <option value="yahoo_fbl">Yahoo FBL</option>
+                </select>
+              </div>
+              <div>
+                <label className="legacy-label">Inbox IMAP Host:</label>
+                <input
+                  type="text"
+                  className="legacy-input"
+                  value={formData.inboxImapHost}
+                  onChange={(e) =>
+                    setFormData({ ...formData, inboxImapHost: e.target.value })
+                  }
+                  placeholder="{imap.mail.yahoo.com:993/imap/ssl}INBOX"
+                  required
+                />
+              </div>
+              <div>
+                <label className="legacy-label">Spam IMAP Host:</label>
+                <input
+                  type="text"
+                  className="legacy-input"
+                  value={formData.spamImapHost}
+                  onChange={(e) =>
+                    setFormData({ ...formData, spamImapHost: e.target.value })
+                  }
+                  placeholder="{imap.mail.yahoo.com:993/imap/ssl}Bulk"
+                  required
+                />
+              </div>
+              <div>
+                <label className="legacy-label">Email:</label>
+                <input
+                  type="email"
+                  className="legacy-input"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="Enter Email"
+                  required
+                />
+              </div>
+              <div>
+                <label className="legacy-label">Password:</label>
+                <input
+                  type="text"
+                  className="legacy-input"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder="Enter Password"
+                  required
+                />
+              </div>
+              <button type="submit" className="legacy-button">
+                Submit
               </button>
+            </form>
+
+            <div id="emailDetailsTable">
+              <table id="detailsTable">
+                <thead>
+                  <tr>
+                    <th>Account Type</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountsList.map((acc: any) => (
+                    <tr key={acc._id}>
+                      <td>{acc.accountType}</td>
+                      <td>{acc.email}</td>
+                      <td>
+                        <button
+                          className="action-btn edit-btn"
+                          onClick={() => handleEdit(acc)}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="action-btn delete-btn"
+                          onClick={() => handleDelete(acc._id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </form>
-        </div>
+          </div>
+        </>
       )}
-
-      {/* Accounts Table */}
-      <div className="interface-section" style={{ marginBottom: "24px" }}>
-        <h3 className="interface-section-title">Email Accounts</h3>
-        <div style={{ overflowX: "auto" }}>
-          <table className="interface-table">
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>IMAP Host</th>
-                <th>Port</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accountsLoading ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    style={{
-                      textAlign: "center",
-                      padding: "20px",
-                      color: "#888",
-                    }}
-                  >
-                    Loading...
-                  </td>
-                </tr>
-              ) : (
-                accountsList.map((acc: any) => (
-                  <tr key={acc._id}>
-                    <td>{acc.email}</td>
-                    <td>{acc.imap_host}</td>
-                    <td>{acc.imap_port}</td>
-                    <td
-                      style={{
-                        display: "flex",
-                        gap: "6px",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <button
-                        onClick={() => handleEdit(acc)}
-                        style={{
-                          color: "#60a5fa",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(acc._id)}
-                        style={{
-                          color: "#f87171",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Complaint Files */}
-      <div className="interface-section">
-        <h3 className="interface-section-title">Fetched Complaint Files</h3>
-        <div style={{ overflowX: "auto" }}>
-          <table className="interface-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>File URL</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filesLoading ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    style={{
-                      textAlign: "center",
-                      padding: "20px",
-                      color: "#888",
-                    }}
-                  >
-                    Loading...
-                  </td>
-                </tr>
-              ) : (
-                files.map((file: any, idx: number) => (
-                  <tr key={idx}>
-                    <td>{idx + 1}</td>
-                    <td>
-                      <a
-                        href={`${API_BASE_URL}${file.url}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          color: "#007bff",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        <FileText size={12} /> {file.url}{" "}
-                        <ExternalLink size={10} />
-                      </a>
-                    </td>
-                    <td>{file.date || "—"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 };
