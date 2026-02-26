@@ -194,7 +194,7 @@ const Credentials = () => {
         </div>
 
         <div className="mainbox no-shadow-padding-0">
-          <table className="legacy-table">
+          <table className="credentials-table">
             <thead>
               <tr>
                 <th style={{ width: "25%" }}>Employee Name</th>
@@ -455,5 +455,3 @@ const Credentials = () => {
 };
 
 export default Credentials;
-
-

@@ -359,7 +359,10 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-6 mt-4">
+        <h3 className="text-gray-400 font-extrabold text-[12.5px] uppercase tracking-[0.2em] opacity-80">
+          Sending Execution Logs
+        </h3>
         <div className="flex items-center gap-3 bg-white/5 p-1 px-4 rounded-full border border-white/5 shadow-inner">
           <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest pt-0.5">
             Quick Filter:
@@ -374,11 +377,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div
-        className="overflow-x-auto border border-gray-800 rounded relative shadow-2xl"
-        style={{ maxHeight: "600px", overflowY: "auto" }}
-      >
-        <table className="legacy-table">
+      <div className="modern-table-container">
+        <table className="modern-table">
           <thead className="sticky top-0 z-10">
             <tr>
               <th>SENT ON</th>
@@ -396,7 +396,21 @@ const Dashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.length > 0 ? (
+            {logsFetching && filteredLogs.length === 0 ? (
+              // Skeleton Loading
+              Array.from({ length: 8 }).map((_, i) => (
+                <tr key={`dash-sk-${i}`}>
+                  {Array.from({ length: 12 }).map((_, j) => (
+                    <td key={j}>
+                      <div
+                        className="skeleton-cell sk-cell-inner"
+                        style={{ width: j === 7 ? "120px" : "50px" }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : filteredLogs.length > 0 ? (
               filteredLogs.map((row, i) => (
                 <tr key={i}>
                   <td>{new Date(row.sent_on).toLocaleDateString()}</td>
@@ -409,12 +423,10 @@ const Dashboard = () => {
                   <td className="truncate max-w-[150px]" title={row.from}>
                     {row.from}
                   </td>
-                  <td className="font-bold text-cyan-400">{row.test_sent}</td>
-                  <td className="font-bold text-cyan-400">
-                    {row.bulk_test_sent}
-                  </td>
-                  <td className="font-bold text-cyan-400">{row.bulk_test}</td>
-                  <td className="font-bold text-red-400">{row.error}</td>
+                  <td className="highlight-green">{row.test_sent}</td>
+                  <td className="highlight-green">{row.bulk_test_sent}</td>
+                  <td className="highlight-green">{row.bulk_test}</td>
+                  <td className="highlight-red">{row.error}</td>
                 </tr>
               ))
             ) : (
@@ -425,24 +437,21 @@ const Dashboard = () => {
               </tr>
             )}
           </tbody>
-          <tfoot
-            className="sticky bottom-0 z-10 bg-primary font-bold text-dark uppercase tracking-tighter"
-            style={{ fontSize: "10px" }}
-          >
-            <tr className="bg-primary border-t-2 border-white">
+          <tfoot className="sticky bottom-0 z-10 uppercase tracking-tighter">
+            <tr>
               <td colSpan={8} className="text-right pr-4">
                 Totals:
               </td>
-              <td className="bg-blue-700">
+              <td className="bg-indigo-600/20">
                 {totals.test_sent.toLocaleString()}
               </td>
-              <td className="bg-blue-700">
+              <td className="bg-indigo-600/20">
                 {totals.bulk_test_sent.toLocaleString()}
               </td>
-              <td className="bg-blue-700">
+              <td className="bg-indigo-600/20">
                 {totals.bulk_test.toLocaleString()}
               </td>
-              <td className="bg-blue-800">{totals.error.toLocaleString()}</td>
+              <td className="bg-red-600/20">{totals.error.toLocaleString()}</td>
             </tr>
           </tfoot>
         </table>

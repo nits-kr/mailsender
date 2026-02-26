@@ -683,12 +683,18 @@ body {
 }
 
 .legacy-table tbody tr {
-  background-color: var(--card-bg);
-  color: var(--text-main);
+  background-color: var(--card-bg) !important;
+  color: var(--text-main) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s ease;
 }
 
 .legacy-table tbody tr:nth-child(even) {
-  background-color: #1e2125;
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.legacy-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .register-gradient {
@@ -808,4 +814,107 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
+}
+
+/* Modern Premium Dashboard & Table System */
+.modern-table-container {
+  background: rgba(17, 19, 23, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8) !important;
+  margin-top: 30px !important;
+  position: relative !important;
+}
+
+.modern-table-container::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+}
+
+.modern-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-size: 12.5px !important;
+}
+
+.modern-table thead th {
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: #60d6ff !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.15em !important;
+  padding: 20px 16px !important;
+  text-align: center !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  white-space: nowrap !important;
+  font-family: 'Inter', sans-serif;
+}
+
+.modern-table tbody tr {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: transparent !important;
+}
+
+.modern-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  transform: scale(1.002);
+}
+
+.modern-table td {
+  padding: 18px 16px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  letter-spacing: 0.01em;
+}
+
+.modern-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+.modern-table .highlight-green {
+  color: #4ade80 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 15px rgba(74, 222, 128, 0.15);
+}
+
+.modern-table .highlight-red {
+  color: #f87171 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 15px rgba(248, 113, 113, 0.15);
+}
+
+.modern-table tfoot {
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+.modern-table tfoot td {
+  font-weight: 900 !important;
+  color: #fff !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding: 20px !important;
+  font-size: 13px !important;
+}
+
+/* Skeleton Enhancements */
+.sk-cell-inner {
+  height: 14px;
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+  margin: 0 auto;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
