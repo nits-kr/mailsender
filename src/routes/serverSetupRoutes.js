@@ -1,9 +1,10 @@
+const express = require("express");
+const router = express.Router();
 const {
   setupServer,
   getSqlFiles,
 } = require("../controllers/serverSetupController");
-
-const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 
 router.post("/setup", setupServer);
 router.get("/sql-files", getSqlFiles);
