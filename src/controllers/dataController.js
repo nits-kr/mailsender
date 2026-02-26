@@ -201,6 +201,28 @@ const deleteData = async (req, res) => {
   }
 };
 
+// @desc    Get generated file content
+// @route   POST /api/data/get-generated
+// @access  Private
+const getGeneratedFile = async (req, res) => {
+  const { filename } = req.body;
+  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const filePath = path.join(dataPath, "buffer", filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    res.json({ content });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error reading file", error: error.message });
+  }
+};
+
 module.exports = {
   getDataCount,
   downloadData,
@@ -211,4 +233,5 @@ module.exports = {
   fetchBounce,
   getAnalytics,
   deleteData,
+  getGeneratedFile,
 };

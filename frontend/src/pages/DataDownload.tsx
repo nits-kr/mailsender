@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   useGetDataCountQuery,
   useDownloadDataMutation,
+  useGetGeneratedFileMutation,
 } from "../store/apiSlice";
 import {
   Download,
@@ -19,6 +20,9 @@ import {
   RefreshCw,
   ArrowRightLeft,
   Trash2,
+  Eye,
+  XCircle,
+  X,
 } from "lucide-react";
 import "./DataDownload.css";
 
@@ -34,6 +38,8 @@ const DataDownload = () => {
     "Daemon active. Ready for data extraction...",
   ]);
   const [generatedFilename, setGeneratedFilename] = useState("");
+  const [previewContent, setPreviewContent] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   const {
     data: allFiles,
@@ -42,6 +48,8 @@ const DataDownload = () => {
   } = useGetDataCountQuery();
   const [downloadData, { isLoading: isDownloading }] =
     useDownloadDataMutation();
+  const [getGeneratedFile, { isLoading: isReading }] =
+    useGetGeneratedFileMutation();
 
   const addLog = (msg: string) => {
     setConsoleLogs((prev) => [
@@ -92,6 +100,7 @@ const DataDownload = () => {
       `Executing extraction pipeline for ${selectedFiles.length} source(s)...`,
     );
     setGeneratedFilename("");
+    setPreviewContent("");
 
     try {
       const res = await downloadData({
@@ -115,6 +124,23 @@ const DataDownload = () => {
     }
   };
 
+  const handlePreview = async () => {
+    if (!generatedFilename) return;
+    addLog(`Interfacing with filesystem to read ${generatedFilename}...`);
+    try {
+      const res = await getGeneratedFile({
+        filename: generatedFilename,
+      }).unwrap();
+      setPreviewContent(res.content);
+      setShowPreview(true);
+      addLog(`SUCCESS: Content cache loaded into preview buffer.`);
+    } catch (error: any) {
+      addLog(
+        `ERROR: Unable to read file - ${error?.data?.message || "File locked"}`,
+      );
+    }
+  };
+
   const filteredFiles = (Array.isArray(allFiles) ? allFiles : []).filter(
     (f) =>
       f.filename?.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -132,6 +158,43 @@ const DataDownload = () => {
 
   return (
     <div className="download-wrapper">
+      {showPreview && (
+        <div className="preview-modal-overlay">
+          <div className="preview-modal">
+            <div className="preview-header">
+              <div className="header-left">
+                <FileText size={18} />
+                <span>Data Sample: {generatedFilename}</span>
+              </div>
+              <button
+                className="close-preview"
+                onClick={() => setShowPreview(false)}
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+            <div className="preview-body">
+              <pre>
+                {previewContent ||
+                  "Establishing link... Empty buffer returned."}
+              </pre>
+            </div>
+            <div className="preview-footer">
+              <span>Showing raw data sample (head stream)</span>
+              <button
+                className="copy-btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedFilename);
+                  alert("Filename copied!");
+                }}
+              >
+                Copy Filename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="download-container">
         {/* Header */}
         <div className="download-header">
@@ -364,7 +427,21 @@ const DataDownload = () => {
               )}
               {generatedFilename && (
                 <div className="success-banner">
-                  PACKAGE_ID: {generatedFilename}
+                  <div className="banner-text">
+                    PACKAGE_ID: {generatedFilename}
+                  </div>
+                  <button
+                    className="preview-action-btn"
+                    onClick={handlePreview}
+                    disabled={isReading}
+                  >
+                    {isReading ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Eye size={12} />
+                    )}
+                    View Data Sample
+                  </button>
                 </div>
               )}
             </div>

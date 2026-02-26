@@ -13,6 +13,7 @@ const {
   fetchBounce,
   getAnalytics,
   deleteData,
+  getGeneratedFile,
 } = require("../controllers/dataController");
 
 const router = express.Router();
@@ -40,6 +41,7 @@ router.post("/merge", mergeData);
 router.post("/status-update", updateStatus);
 router.post("/fetch-bounce", fetchBounce);
 router.post("/analytics", getAnalytics);
+router.post("/get-generated", getGeneratedFile);
 router.delete("/:filename", deleteData);
 
 module.exports = router;

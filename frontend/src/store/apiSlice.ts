@@ -126,6 +126,9 @@ export const apiSlice = createApi({
       query: (body) => ({ url: '/data/upload', method: 'POST', body }),
       invalidatesTags: ['DataCount'],
     }),
+    getGeneratedFile: builder.mutation({
+      query: (body) => ({ url: '/data/get-generated', method: 'POST', body }),
+    }),
     splitData: builder.mutation({
       query: (body) => ({ url: '/data/split', method: 'POST', body }),
       invalidatesTags: ['DataCount'],
@@ -395,6 +398,7 @@ export const {
   // Data Count
   useGetDataCountQuery,
   useDownloadDataMutation,
+  useGetGeneratedFileMutation,
   useUploadDataMutation,
   useSplitDataMutation,
   useMergeDataMutation,
