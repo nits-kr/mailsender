@@ -3,9 +3,21 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
 const connectDB = require("./config/db");
+const { Worker } = require("bullmq");
+const { connection } = require("./queues/emailQueue");
+const emailWorker = require("./queues/emailWorker");
+const logger = require("./utils/logger");
 
 dotenv.config();
-// require("./queues/emailWorker"); // Start background worker
+
+// Start BullMQ worker so /api/email/send queued jobs are actually processed.
+const worker = new Worker("email-queue", emailWorker, { connection });
+worker.on("completed", (job) => {
+  logger.info(`Email job completed: ${job.id}`);
+});
+worker.on("failed", (job, err) => {
+  logger.error(`Email job failed: ${job?.id || "unknown"} - ${err.message}`);
+});
 
 // Connect to database
 connectDB();
@@ -31,7 +43,6 @@ const trackingRoutes = require("./routes/trackingRoutes");
 // Express 5 handles async errors natively, so express-async-errors is not needed
 // require("express-async-errors");
 const { errorHandler, notFound } = require("./middleware/errorMiddleware");
-const logger = require("./utils/logger");
 
 // Middleware
 app.use(express.json());
