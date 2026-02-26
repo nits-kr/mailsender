@@ -78,7 +78,8 @@ const downloadData = async (req, res) => {
   // Placeholder for suppression logic (FBL, Supp, Unsub)
   // In a real scenario, this would involve complex SQL/Mongo queries
   // For now, we'll simulate the file generation
-  const downloadId = Math.random().toString(36).substring(7);
+  // use a robust unique ID (MD5 style) for professional enterprise naming
+  const downloadId = require("crypto").randomBytes(16).toString("hex");
   const resultFilename = `${downloadId}.txt`;
   const dataPath = process.env.DATA_PATH || "/var/www/data/";
   const bufferPath = path.join(dataPath, "buffer");
