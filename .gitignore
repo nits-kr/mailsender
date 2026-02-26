@@ -29,4 +29,5 @@ server_setup/out.txt
 server_setup/sql_files/*
 server_setup/sending_ip_setup/out.txt
 node_modules
-node_modules
+logs/
+package-lock.json
