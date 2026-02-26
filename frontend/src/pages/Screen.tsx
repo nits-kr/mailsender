@@ -14,6 +14,7 @@ const Screen = () => {
   // Poll every 10 seconds automatically
   const {
     data: screens = [],
+    isLoading,
     isFetching,
     refetch: refetchScreens,
   } = useGetScreensQuery(undefined, {
@@ -129,7 +130,48 @@ const Screen = () => {
               </tr>
             </thead>
             <tbody>
-              {screens.length > 0 ? (
+              {isLoading || (isFetching && screens.length === 0) ? (
+                // Skeleton Rows
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`sk-${i}`} className="skeleton-row">
+                    <td>
+                      <div
+                        className="skeleton-cell sk-text"
+                        style={{ width: "40px" }}
+                      />
+                    </td>
+                    <td>
+                      <div className="skeleton-cell sk-text" />
+                    </td>
+                    <td>
+                      <div
+                        className="skeleton-cell sk-text"
+                        style={{ width: "50px" }}
+                      />
+                    </td>
+                    <td>
+                      <div
+                        className="skeleton-cell sk-text"
+                        style={{ width: "80px" }}
+                      />
+                    </td>
+                    <td>
+                      <div className="skeleton-cell sk-text" />
+                    </td>
+                    <td>
+                      <div
+                        className="skeleton-cell sk-text"
+                        style={{ width: "40px" }}
+                      />
+                    </td>
+                    <td>
+                      <div className="skeleton-cell sk-btn" />
+                      <div className="skeleton-cell sk-btn" />
+                      <div className="skeleton-cell sk-btn" />
+                    </td>
+                  </tr>
+                ))
+              ) : screens.length > 0 ? (
                 screens.map((row: any) => (
                   <tr key={row._id}>
                     <td>{row._id.substring(18) || "N/A"}</td>

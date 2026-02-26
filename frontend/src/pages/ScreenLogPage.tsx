@@ -89,7 +89,7 @@ const ScreenLogPage = () => {
     <div className="slp-container">
       {/* Header Bar */}
       <div className="slp-header">
-        <button className="slp-back-btn" onClick={() => navigate("/screens")}>
+        <button className="slp-back-btn" onClick={() => navigate("/screen")}>
           ← Go Back
         </button>
         <h2 className="slp-title">{stats?.template_name ?? id}</h2>
