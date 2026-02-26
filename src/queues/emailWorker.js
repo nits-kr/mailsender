@@ -49,8 +49,10 @@ const emailWorker = async (job) => {
       logger: true,
     };
 
-    const ipKey = mailing_ip.split("|")[0];
-    const ipRecord = await IP.findOne({ ip: ipKey });
+    const ipKey = String(mailing_ip.split("|")[0] || "").trim();
+    const ipRecord =
+      (await IP.findOne({ ip: ipKey })) ||
+      (await IP.findOne({ ip: new RegExp(`^${ipKey}$`, "i") }));
     if (ipRecord && ipRecord.hostname) {
       smtpConfig = {
         host: ipRecord.hostname,
@@ -65,7 +67,13 @@ const emailWorker = async (job) => {
       };
     } else {
       // Fallback for new SMTP Details UI records (assignedip/server based).
-      const smtpDetail = await SmtpDetail.findOne({ assignedip: ipKey });
+      const smtpDetail =
+        (await SmtpDetail.findOne({ assignedip: ipKey })) ||
+        (await SmtpDetail.findOne({ server: ipKey })) ||
+        (await SmtpDetail.findOne({
+          assignedip: new RegExp(`^${ipKey}$`, "i"),
+        })) ||
+        (await SmtpDetail.findOne({ server: new RegExp(`^${ipKey}$`, "i") }));
       if (smtpDetail && smtpDetail.hostname) {
         const normalizedTls = String(smtpDetail.tls || "").toLowerCase();
         const isSecure =
@@ -85,6 +93,13 @@ const emailWorker = async (job) => {
           logger: true,
         };
       }
+    }
+
+    // Fail fast with actionable error if alias does not map to real SMTP host.
+    if (!smtpConfig.host || smtpConfig.host === ipKey) {
+      throw new Error(
+        `SMTP mapping not found for '${ipKey}'. Configure hostname/user/pass/port in IP or SMTP Details.`,
+      );
     }
 
     const transporter = nodemailer.createTransport(smtpConfig);
