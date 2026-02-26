@@ -1,4 +1,4 @@
-const { z } = require("zod");
+﻿const { z } = require("zod");
 
 const userLoginSchema = z.object({
   uemail: z.string().email(),
@@ -11,6 +11,16 @@ const userCreateSchema = z.object({
   password: z.string().min(1),
   designation: z.string().min(1),
   status: z.string().optional(),
+  header_acces: z.string().optional(),
+});
+
+const userUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(1).optional(),
+  designation: z.string().min(1).optional(),
+  status: z.string().optional(),
+  header_acces: z.string().optional(),
 });
 
 const sendEmailSchema = z.object({
@@ -52,6 +62,7 @@ const serverSetupSchema = z.object({
 module.exports = {
   userLoginSchema,
   userCreateSchema,
+  userUpdateSchema,
   sendEmailSchema,
   addOfferSchema,
   serverSetupSchema,

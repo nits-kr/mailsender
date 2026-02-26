@@ -1,14 +1,48 @@
-const User = require("../models/User");
-const { userLoginSchema } = require("../utils/validators");
-const generateToken = require("../utils/generateToken");
+﻿const mongoose = require("mongoose");
 const axios = require("axios");
+
+const User = require("../models/User");
+const {
+  userLoginSchema,
+  userCreateSchema,
+  userUpdateSchema,
+} = require("../utils/validators");
+const generateToken = require("../utils/generateToken");
+
+const isAdminUser = (user) => user && user.designation === "Admin";
+
+const normalizeStatus = (status) => (String(status) === "0" ? "0" : "1");
+
+const normalizeHeaderAccess = (value, fallback = "0") => {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+  return String(value) === "1" ? "1" : "0";
+};
+
+const findUserByIdentifier = async (identifier) => {
+  if (mongoose.isValidObjectId(identifier)) {
+    const byObjectId = await User.findById(identifier);
+    if (byObjectId) {
+      return byObjectId;
+    }
+  }
+
+  const numericId = Number(identifier);
+  if (Number.isFinite(numericId)) {
+    return User.findOne({ id: numericId });
+  }
+
+  return null;
+};
 
 // @desc    Get all users
 // @route   GET /api/users
-// @access  Private/Admin
+// @access  Private
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({}).sort({ id: -1 });
+    const query = isAdminUser(req.user) ? {} : { id: req.user.id };
+    const users = await User.find(query).sort({ id: -1 });
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Error fetching users" });
@@ -19,16 +53,33 @@ const getUsers = async (req, res) => {
 // @route   POST /api/users
 // @access  Private/Admin
 const createUser = async (req, res) => {
-  const { name, email, password, designation, status } = req.body;
+  if (!isAdminUser(req.user)) {
+    return res.status(403).json({ message: "Not authorized" });
+  }
+
+  try {
+    userCreateSchema.parse(req.body);
+  } catch (error) {
+    return res
+      .status(400)
+      .json({ message: "Validation failed", errors: error.errors });
+  }
+
+  const {
+    name,
+    email,
+    password,
+    designation,
+    status,
+    header_acces,
+  } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
-
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Get the latest ID
     const lastUser = await User.findOne().sort({ id: -1 });
     const nextId = lastUser ? lastUser.id + 1 : 1;
 
@@ -36,16 +87,13 @@ const createUser = async (req, res) => {
       id: nextId,
       name,
       email,
-      password, // Note: In production, use bcrypt. Moving existing base64 for now for parity.
+      password,
       designation,
-      status: status || "1",
+      status: normalizeStatus(status),
+      header_acces: normalizeHeaderAccess(header_acces),
     });
 
-    if (user) {
-      res.status(201).json(user);
-    } else {
-      res.status(400).json({ message: "Invalid user data" });
-    }
+    res.status(201).json(user);
   } catch (error) {
     res.status(500).json({ message: "Error creating user" });
   }
@@ -62,7 +110,6 @@ const authUser = async (req, res) => {
 
   const { uemail, password } = req.body;
 
-  // Base64 encode credentials as required by the legacy PHP API
   const b64_uemail = Buffer.from(uemail).toString("base64");
   const b64_password = Buffer.from(password).toString("base64");
 
@@ -71,16 +118,14 @@ const authUser = async (req, res) => {
     const response = await axios.get(authUrl);
     let cred = response.data;
 
-    // Handle string or object responses defensively
     if (typeof cred !== "string" && cred.data) {
-      cred = cred.data; // Sometimes axios wraps text
+      cred = cred.data;
     } else if (typeof cred !== "string") {
       cred = String(cred);
     }
     cred = cred.trim();
 
     if (cred === "|||||" || !cred || cred.includes("html")) {
-      // Try local fallback for testing
       const localUser = await User.findOne({
         email: uemail,
         password: password,
@@ -93,6 +138,7 @@ const authUser = async (req, res) => {
           email: localUser.email,
           designation: localUser.designation,
           status: localUser.status,
+          header_acces: localUser.header_acces || "0",
           token: generateToken(localUser._id),
         });
       }
@@ -104,32 +150,33 @@ const authUser = async (req, res) => {
     const username = credn[1];
     const name = credn[2];
     const designation = credn[3];
-    // external password is credn[4]
     const status = credn[5] ? credn[5].trim() : "0";
 
     if (status !== "1") {
       return res.status(403).json({ message: "Blocked" });
     }
 
-    // Upsert user in local DB to keep routes functioning completely
     let user = await User.findOne({ email: uemail });
     if (!user) {
-      // Find latest ID if API didn't provide a reliable one
       const lastUser = await User.findOne().sort({ id: -1 });
       const nextId = lastUser ? lastUser.id + 1 : 1;
 
       user = await User.create({
-        id: isNaN(id) ? nextId : id,
+        id: Number.isNaN(id) ? nextId : id,
         name: name || username || "Unknown",
         email: uemail,
-        password: password, // Base64 encoding handled ad-hoc or standard bcrypt if desired later, but right now we bypass local auth.
+        password: password,
         designation: designation || "Admin",
-        status: status,
+        status: normalizeStatus(status),
+        header_acces: "0",
       });
     } else {
       user.name = name || username || user.name;
       user.designation = designation || user.designation;
-      user.status = status;
+      user.status = normalizeStatus(status);
+      if (!user.header_acces) {
+        user.header_acces = "0";
+      }
       await user.save();
     }
 
@@ -140,6 +187,7 @@ const authUser = async (req, res) => {
       email: user.email,
       designation: user.designation,
       status: user.status,
+      header_acces: user.header_acces || "0",
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -152,25 +200,50 @@ const authUser = async (req, res) => {
 
 // @desc    Update user
 // @route   PUT /api/users/:id
-// @access  Private/Admin
+// @access  Private
 const updateUser = async (req, res) => {
   try {
-    const user = await User.findOne({ id: req.params.id });
+    userUpdateSchema.parse(req.body);
+  } catch (error) {
+    return res
+      .status(400)
+      .json({ message: "Validation failed", errors: error.errors });
+  }
 
-    if (user) {
+  try {
+    const user = await findUserByIdentifier(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isAdmin = isAdminUser(req.user);
+    const isSelf = String(user._id) === String(req.user._id);
+
+    if (!isAdmin && !isSelf) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    if (isAdmin) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.designation = req.body.designation || user.designation;
-      user.status = req.body.status || user.status;
-      if (req.body.password) {
-        user.password = req.body.password;
-      }
-
-      const updatedUser = await user.save();
-      res.json(updatedUser);
-    } else {
-      res.status(404).json({ message: "User not found" });
+      user.status =
+        req.body.status !== undefined
+          ? normalizeStatus(req.body.status)
+          : user.status;
+      user.header_acces = normalizeHeaderAccess(
+        req.body.header_acces,
+        user.header_acces || "0",
+      );
     }
+
+    if (req.body.password !== undefined && req.body.password !== "") {
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+    res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: "Error updating user" });
   }
@@ -180,8 +253,12 @@ const updateUser = async (req, res) => {
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
 const deleteUser = async (req, res) => {
+  if (!isAdminUser(req.user)) {
+    return res.status(403).json({ message: "Not authorized" });
+  }
+
   try {
-    const user = await User.findOne({ id: req.params.id });
+    const user = await findUserByIdentifier(req.params.id);
 
     if (user) {
       await user.deleteOne();

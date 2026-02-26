@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+﻿import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import API_BASE_URL from '../config/api';
 
 export const apiSlice = createApi({
@@ -37,7 +37,7 @@ export const apiSlice = createApi({
   ],
   endpoints: (builder) => ({
 
-    // ─── Test IDs ────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Test IDs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getTestIds: builder.query<any[], void>({
       query: () => '/testids',
       providesTags: ['TestId'],
@@ -55,7 +55,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['TestId'],
     }),
 
-    // ─── SMTP Details ────────────────────────────────────────────────────────
+    // â”€â”€â”€ SMTP Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getSmtpDetails: builder.query<any[], void>({
       query: () => '/smtp/details',
       providesTags: ['SmtpDetail'],
@@ -69,27 +69,35 @@ export const apiSlice = createApi({
       invalidatesTags: ['SmtpDetail'],
     }),
 
-    // ─── SMTP Tester ─────────────────────────────────────────────────────────
+    // â”€â”€â”€ SMTP Tester â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     testSmtp: builder.mutation({
       query: (credentials) => ({ url: '/smtp/test', method: 'POST', body: credentials }),
     }),
 
-    // ─── Auth ─────────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     loginUser: builder.mutation({
       query: (credentials) => ({ url: '/users/login', method: 'POST', body: credentials }),
     }),
 
-    // ─── Users / Credentials ─────────────────────────────────────────────────
+    // â”€â”€â”€ Users / Credentials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getUsers: builder.query<any[], void>({
       query: () => '/users',
       providesTags: ['User'],
+    }),
+    addUser: builder.mutation({
+      query: (body) => ({ url: '/users', method: 'POST', body }),
+      invalidatesTags: ['User'],
+    }),
+    updateUser: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/users/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['User'],
     }),
     deleteUser: builder.mutation<void, string>({
       query: (id) => ({ url: `/users/${id}`, method: 'DELETE' }),
       invalidatesTags: ['User'],
     }),
 
-    // ─── Dashboard ────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getDashboardLogs: builder.query<any[], { from: string; to: string }>({
       query: ({ from, to }) => `/dashboard/logs?from=${from}&to=${to}`,
       providesTags: ['Dashboard'],
@@ -99,8 +107,8 @@ export const apiSlice = createApi({
       providesTags: ['Dashboard'],
     }),
 
-    // ─── Data Count ────────────────────────────────────────────────────────────
-    // ─── Data Status & Analytics ───────────────────────────────────────────────
+    // â”€â”€â”€ Data Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€â”€ Data Status & Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     updateDataStatus: builder.mutation({
       query: (body) => ({ url: '/data/status-update', method: 'POST', body }),
     }),
@@ -134,7 +142,7 @@ export const apiSlice = createApi({
       query: (body) => ({ url: '/data/analytics', method: 'POST', body }),
     }),
 
-    // ─── Campaigns / Email Interface ──────────────────────────────────────────
+    // â”€â”€â”€ Campaigns / Email Interface â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getCampaigns: builder.query<any[], void>({
       query: () => '/email/campaigns',
       providesTags: ['Campaign'],
@@ -153,7 +161,7 @@ export const apiSlice = createApi({
       providesTags: (result, error, id) => [{ type: 'Campaign', id }],
     }),
 
-    // ─── Screens ──────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getScreens: builder.query<any[], void>({
       query: () => '/screens',
       providesTags: ['Screen'],
@@ -171,7 +179,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Screen'],
     }),
 
-    // ─── Offers ───────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Offers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getOffers: builder.query<any[], void>({
       query: () => '/offers',
       providesTags: ['Offer'],
@@ -185,7 +193,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Offer'],
     }),
     
-    // ─── Links ────────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getLinks: builder.query<any[], void>({
       query: () => '/links',
       providesTags: ['Legacy'],
@@ -199,7 +207,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Legacy'],
     }),
 
-    // ─── Images ───────────────────────────────────────────────────────────────
+    // â”€â”€â”€ Images â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     uploadImage: builder.mutation({
       query: (formData) => ({
         url: '/images/upload',
@@ -209,7 +217,7 @@ export const apiSlice = createApi({
       }),
     }),
 
-    // ─── Suppression ──────────────────────────────────────────────────────────
+    // â”€â”€â”€ Suppression â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getSuppressionMappings: builder.query<any[], void>({
       query: () => '/suppression/mappings',
       providesTags: ['SuppressionMapping'],
@@ -223,7 +231,7 @@ export const apiSlice = createApi({
         url: '/suppression/upload',
         method: 'POST',
         body: formData,
-        // Don't set Content-Type — browser sets it with boundary for FormData
+        // Don't set Content-Type â€” browser sets it with boundary for FormData
         formData: true,
       }),
     }),
@@ -267,7 +275,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['ComplainAccount'],
     }),
 
-    // ─── Complain Fetch ───────────────────────────────────────────────────────
+    // â”€â”€â”€ Complain Fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getComplainAccounts: builder.query<any[], void>({
       query: () => '/complain/accounts',
       providesTags: ['ComplainAccount'],
@@ -293,7 +301,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['ComplainFile'],
     }),
 
-    // ─── Server Setup ─────────────────────────────────────────────────────────
+    // â”€â”€â”€ Server Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     runServerSetup: builder.mutation({
       query: (config) => ({ url: '/server-setup/setup', method: 'POST', body: config }),
     }),
@@ -301,13 +309,13 @@ export const apiSlice = createApi({
       query: () => '/server-setup/sql-files',
     }),
 
-    // ─── Servers Management (Navbar) ──────────────────────────────────────────
+    // â”€â”€â”€ Servers Management (Navbar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getServersManagement: builder.query<any[], void>({
       query: () => '/servers-management',
       providesTags: ['Server'],
     }),
     
-    // ─── Legacy / FSOCK ───────────────────────────────────────────────────────
+    // â”€â”€â”€ Legacy / FSOCK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getLegacyCampaign: builder.query<any, string>({
       query: (id) => `/legacy/campaign/${id}`,
       providesTags: ['Legacy'],
@@ -319,7 +327,7 @@ export const apiSlice = createApi({
       query: (payload) => ({ url: '/legacy/campaign-link-search', method: 'POST', body: payload }),
     }),
 
-    // ─── IMAP Screens ──────────────────────────────────────────────────────────
+    // â”€â”€â”€ IMAP Screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getImapScreens: builder.query<any[], void>({
       query: () => "/imap-screens",
       providesTags: ["Legacy"],
@@ -350,7 +358,7 @@ export const apiSlice = createApi({
       invalidatesTags: ["Legacy"],
     }),
 
-    // ─── IMAP Mailbox ──────────────────────────────────────────────────────────
+    // â”€â”€â”€ IMAP Mailbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getMailboxEmails: builder.query<string[], void>({
       query: () => "/mailbox/emails",
     }),
@@ -375,6 +383,8 @@ export const {
   useLoginUserMutation,
   // Users
   useGetUsersQuery,
+  useAddUserMutation,
+  useUpdateUserMutation,
   useDeleteUserMutation,
   // Dashboard
   useGetDashboardLogsQuery,
@@ -449,3 +459,5 @@ export const {
   useGetMailboxEmailsQuery,
   useGetMailboxDataQuery,
 } = apiSlice;
+
+

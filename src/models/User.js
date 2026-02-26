@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = mongoose.Schema(
@@ -28,6 +28,10 @@ const userSchema = mongoose.Schema(
     status: {
       type: String,
       default: "1",
+    },
+    header_acces: {
+      type: String,
+      default: "0",
     },
   },
   {
