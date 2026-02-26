@@ -1,26 +1,14 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import { useGetDataCountQuery, useSplitDataMutation } from "../store/apiSlice";
 
 const DataSplit = () => {
   const [filename, setFilename] = useState("");
   const [count, setCount] = useState("50000");
-  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [log, setLog] = useState("");
-  const [files, setFiles] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  const fetchFiles = async () => {
-    try {
-      const res = await axios.get("/api/data/count");
-      setFiles(res.data);
-    } catch (error) {
-      console.error("Error fetching files:", error);
-    }
-  };
+  const { data: files } = useGetDataCountQuery();
+  const [splitData, { isLoading: loading }] = useSplitDataMutation();
 
   const handleSplit = async () => {
     if (!filename || !count) {
@@ -31,32 +19,29 @@ const DataSplit = () => {
       return;
     }
 
-    setLoading(true);
     setStatus({ type: "info", message: "Processing split..." });
     setLog(
       `[INFO] Starting split operation for ${filename}...\n[INFO] Target records per file: ${count}`,
     );
 
     try {
-      const res = await axios.post("/api/data/split", { filename, count });
+      const res = await splitData({ filename, count }).unwrap();
       setStatus({ type: "success", message: "Done" });
       setLog(
         (prev) =>
           prev +
-          `\n[SUCCESS] File split completed.\n[INFO] Result: ${res.data.message || "Files generated in data directory."}`,
+          `\n[SUCCESS] File split completed.\n[INFO] Result: ${res.message || "Files generated in data directory."}`,
       );
     } catch (error: any) {
       setStatus({
         type: "error",
-        message: error.response?.data?.message || "Split failed",
+        message: error?.data?.message || "Split failed",
       });
       setLog(
         (prev) =>
           prev +
-          `\n[ERROR] Split operation failed: ${error.response?.data?.message || error.message}`,
+          `\n[ERROR] Split operation failed: ${error?.data?.message || "Unknown error"}`,
       );
-    } finally {
-      setLoading(false);
     }
   };
 

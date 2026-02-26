@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import {
+  useGetOffersQuery,
+  useGetDataAnalyticsMutation,
+} from "../store/apiSlice";
 
 const DataAnalytics = () => {
   const [filters, setFilters] = useState({
@@ -9,32 +12,17 @@ const DataAnalytics = () => {
     isp: "",
     timeframe: "",
   });
-  const [offers, setOffers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  useEffect(() => {
-    fetchOffers();
-  }, []);
-
-  const fetchOffers = async () => {
-    try {
-      const res = await axios.get("/api/offers");
-      setOffers(res.data);
-    } catch (error) {
-      console.error("Error fetching offers:", error);
-    }
-  };
+  const { data: offers } = useGetOffersQuery();
+  const [getAnalytics, { isLoading: loading }] = useGetDataAnalyticsMutation();
 
   const handleLoadData = async () => {
-    setLoading(true);
     try {
-      const res = await axios.post("/api/data/analytics", filters);
-      setResult(res.data);
+      const res = await getAnalytics(filters).unwrap();
+      setResult(res);
     } catch (error) {
       console.error("Analysis failed:", error);
-    } finally {
-      setLoading(false);
     }
   };
 

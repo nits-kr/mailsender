@@ -14,7 +14,6 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.24",
-    "axios": "^1.13.4",
     "framer-motion": "^12.33.0",
     "lucide-react": "^0.563.0",
     "postcss": "^8.5.6",

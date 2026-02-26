@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import {
+  useGetOffersQuery,
+  useGetSuppressionComplainersGroupedQuery,
+  useGetSuppressionComplainersByOfferQuery,
+  useCreateSuppressionComplainerMutation,
+  useDeleteSuppressionComplainerMutation,
+} from "../store/apiSlice";
+import API_BASE_URL from "../config/api";
 import {
   Loader2,
   Trash2,
@@ -44,22 +51,19 @@ const ComplainerSuppression: React.FC = () => {
     {},
   );
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  const { data: offersData = [] } = useGetOffersQuery();
+  const { data: groupedDataRes = [], refetch: refetchGrouped } =
+    useGetSuppressionComplainersGroupedQuery();
 
-  const fetchInitialData = async () => {
-    try {
-      const [offersRes, groupedRes] = await Promise.all([
-        axios.get("/api/offers"),
-        axios.get("/api/suppression/complainers/grouped"),
-      ]);
-      setOffers(offersRes.data);
-      setGroupedData(groupedRes.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
+  const [createSuppressionComplainer] =
+    useCreateSuppressionComplainerMutation();
+  const [deleteSuppressionComplainer] =
+    useDeleteSuppressionComplainerMutation();
+
+  useEffect(() => {
+    setOffers(offersData);
+    setGroupedData(groupedDataRes);
+  }, [offersData, groupedDataRes]);
 
   const handleAddComplainers = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,16 +71,18 @@ const ComplainerSuppression: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.post("/api/suppression/complainers", {
+      await createSuppressionComplainer({
         offer_id: selectedOffer,
         emails: emailsRaw,
-      });
+      }).unwrap();
       setEmailsRaw("");
       setSelectedOffer("");
-      await fetchInitialData();
+      await refetchGrouped();
       alert("Complainers added successfully");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Error adding complainers");
+      alert(
+        error?.data?.message || error?.message || "Error adding complainers",
+      );
     } finally {
       setLoading(false);
     }
@@ -89,10 +95,11 @@ const ComplainerSuppression: React.FC = () => {
     if (!isExpanded && !offerEmails[offer_id]) {
       setFetchingEmails((prev) => ({ ...prev, [offer_id]: true }));
       try {
-        const res = await axios.get(
-          `/api/suppression/complainers/offer/${offer_id}`,
+        const res = await fetch(
+          `${API_BASE_URL}/api/suppression/complainers/offer/${offer_id}`,
         );
-        setOfferEmails((prev) => ({ ...prev, [offer_id]: res.data }));
+        const data = await res.json();
+        setOfferEmails((prev) => ({ ...prev, [offer_id]: data }));
       } catch (error) {
         console.error("Error fetching offer emails:", error);
       } finally {
@@ -105,7 +112,7 @@ const ComplainerSuppression: React.FC = () => {
     if (!window.confirm("Are you sure you want to remove this email?")) return;
 
     try {
-      await axios.delete(`/api/suppression/complainers/${id}`);
+      await deleteSuppressionComplainer(id).unwrap();
       setOfferEmails((prev) => ({
         ...prev,
         [offer_id]: (Array.isArray(prev[offer_id])

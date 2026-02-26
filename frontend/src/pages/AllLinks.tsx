@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import {
+  useGetLinksQuery,
+  useToggleLinkStatusMutation,
+  useUpdateMainLinkMutation,
+} from "../store/apiSlice";
 import {
   Loader2,
   Search,
@@ -11,36 +15,15 @@ import {
 } from "lucide-react";
 
 const AllLinks: React.FC = () => {
-  const [links, setLinks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchLinks();
-  }, []);
-
-  const fetchLinks = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get("/api/links");
-      setLinks(response.data);
-    } catch (error) {
-      console.error("Error fetching links", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: links = [], isLoading: loading } = useGetLinksQuery();
+  const [toggleLinkStatus] = useToggleLinkStatusMutation();
+  const [updateMainLink] = useUpdateMainLinkMutation();
 
   const handleToggleStatus = async (id: string) => {
     try {
-      await axios.patch(`/api/links/${id}/toggle`);
-      setLinks(
-        links.map((link) =>
-          link._id === id
-            ? { ...link, status: link.status === 1 ? 0 : 1 }
-            : link,
-        ),
-      );
+      await toggleLinkStatus(id).unwrap();
     } catch (error) {
       console.error("Error toggling link status", error);
     }
@@ -48,7 +31,7 @@ const AllLinks: React.FC = () => {
 
   const handleUpdateMainLink = async (id: string, newLink: string) => {
     try {
-      await axios.patch(`/api/links/${id}/main_link`, { main_link: newLink });
+      await updateMainLink({ id, main_link: newLink }).unwrap();
       console.log("Main link updated successfully");
     } catch (error) {
       console.error("Error updating main link", error);

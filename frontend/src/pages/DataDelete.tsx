@@ -1,25 +1,13 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import { useGetDataCountQuery, useDeleteDataMutation } from "../store/apiSlice";
 
 const DataDelete = () => {
-  const [files, setFiles] = useState<any[]>([]);
   const [filename, setFilename] = useState("");
-  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  const fetchFiles = async () => {
-    try {
-      const res = await axios.get("/api/data/count");
-      setFiles(res.data);
-    } catch (error) {
-      console.error("Error fetching files:", error);
-    }
-  };
+  const { data: files } = useGetDataCountQuery();
+  const [deleteData, { isLoading: loading }] = useDeleteDataMutation();
 
   const handleDelete = async (targetFilename?: string) => {
     const fileToDelete = targetFilename || filename;
@@ -40,21 +28,17 @@ const DataDelete = () => {
       return;
     }
 
-    setLoading(true);
     setStatus({ type: "info", message: "Deleting file..." });
 
     try {
-      await axios.delete(`/api/data/${fileToDelete}`);
+      await deleteData(fileToDelete).unwrap();
       setStatus({ type: "success", message: "Done" });
       setFilename("");
-      fetchFiles();
     } catch (error: any) {
       setStatus({
         type: "error",
-        message: error.response?.data?.message || "Delete failed",
+        message: error?.data?.message || "Delete failed",
       });
-    } finally {
-      setLoading(false);
     }
   };
 

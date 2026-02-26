@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import { useGetOffersQuery } from "../store/apiSlice";
 import {
   Edit,
   Link as LinkIcon,
@@ -12,26 +12,10 @@ import {
 import { useNavigate } from "react-router-dom";
 
 const AllOffers: React.FC = () => {
-  const [offers, setOffers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchOffers();
-  }, []);
-
-  const fetchOffers = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get("/api/offers");
-      setOffers(response.data);
-    } catch (error) {
-      console.error("Error fetching offers", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: offers = [], isLoading: loading } = useGetOffersQuery();
 
   const filteredOffers = Array.isArray(offers)
     ? offers.filter(

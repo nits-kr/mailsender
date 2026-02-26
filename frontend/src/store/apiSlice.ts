@@ -100,9 +100,38 @@ export const apiSlice = createApi({
     }),
 
     // ─── Data Count ────────────────────────────────────────────────────────────
+    // ─── Data Status & Analytics ───────────────────────────────────────────────
+    updateDataStatus: builder.mutation({
+      query: (body) => ({ url: '/data/status-update', method: 'POST', body }),
+    }),
+    fetchDataBounce: builder.mutation({
+      query: (body) => ({ url: '/data/fetch-bounce', method: 'POST', body }),
+    }),
     getDataCount: builder.query<any[], void>({
       query: () => '/data/count',
       providesTags: ['DataCount'],
+    }),
+    downloadData: builder.mutation({
+      query: (body) => ({ url: '/data/download', method: 'POST', body }),
+    }),
+    uploadData: builder.mutation({
+      query: (body) => ({ url: '/data/upload', method: 'POST', body }),
+      invalidatesTags: ['DataCount'],
+    }),
+    splitData: builder.mutation({
+      query: (body) => ({ url: '/data/split', method: 'POST', body }),
+      invalidatesTags: ['DataCount'],
+    }),
+    mergeData: builder.mutation({
+      query: (body) => ({ url: '/data/merge', method: 'POST', body }),
+      invalidatesTags: ['DataCount'],
+    }),
+    deleteData: builder.mutation<void, string>({
+      query: (filename) => ({ url: `/data/${filename}`, method: 'DELETE' }),
+      invalidatesTags: ['DataCount'],
+    }),
+    getDataAnalytics: builder.mutation({
+      query: (body) => ({ url: '/data/analytics', method: 'POST', body }),
     }),
 
     // ─── Campaigns / Email Interface ──────────────────────────────────────────
@@ -147,6 +176,38 @@ export const apiSlice = createApi({
       query: () => '/offers',
       providesTags: ['Offer'],
     }),
+    createOffer: builder.mutation({
+      query: (body) => ({ url: '/offers', method: 'POST', body }),
+      invalidatesTags: ['Offer'],
+    }),
+    updateOffer: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/offers/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Offer'],
+    }),
+    
+    // ─── Links ────────────────────────────────────────────────────────────────
+    getLinks: builder.query<any[], void>({
+      query: () => '/links',
+      providesTags: ['Legacy'],
+    }),
+    toggleLinkStatus: builder.mutation({
+      query: (id) => ({ url: `/links/${id}/toggle`, method: 'PATCH' }),
+      invalidatesTags: ['Legacy'],
+    }),
+    updateMainLink: builder.mutation({
+      query: ({ id, main_link }) => ({ url: `/links/${id}/main_link`, method: 'PATCH', body: { main_link } }),
+      invalidatesTags: ['Legacy'],
+    }),
+
+    // ─── Images ───────────────────────────────────────────────────────────────
+    uploadImage: builder.mutation({
+      query: (formData) => ({
+        url: '/images/upload',
+        method: 'POST',
+        body: formData,
+        formData: true,
+      }),
+    }),
 
     // ─── Suppression ──────────────────────────────────────────────────────────
     getSuppressionMappings: builder.query<any[], void>({
@@ -166,6 +227,10 @@ export const apiSlice = createApi({
         formData: true,
       }),
     }),
+    getSuppressionComplainersByOffer: builder.query<any[], string>({
+      query: (offerId) => `/suppression/complainers/offer/${offerId}`,
+      providesTags: (_result, _error, id) => [{ type: 'ComplainAccount', id }],
+    }),
     createSuppressionMapping: builder.mutation({
       query: (body) => ({ url: '/suppression/mapping', method: 'POST', body }),
       invalidatesTags: ['SuppressionMapping'],
@@ -184,6 +249,22 @@ export const apiSlice = createApi({
     }),
     getSuppressionLog: builder.query<string, string>({
       query: (id) => `/suppression/log/${id}`,
+    }),
+    getSuppressionComplainers: builder.query<any[], void>({
+      query: () => '/suppression/complainers',
+      providesTags: ['ComplainAccount'],
+    }),
+    getSuppressionComplainersGrouped: builder.query<any[], void>({
+      query: () => '/suppression/complainers/grouped',
+      providesTags: ['ComplainAccount'],
+    }),
+    createSuppressionComplainer: builder.mutation({
+      query: (body) => ({ url: '/suppression/complainers', method: 'POST', body }),
+      invalidatesTags: ['ComplainAccount'],
+    }),
+    deleteSuppressionComplainer: builder.mutation<void, string>({
+      query: (id) => ({ url: `/suppression/complainers/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['ComplainAccount'],
     }),
 
     // ─── Complain Fetch ───────────────────────────────────────────────────────
@@ -300,6 +381,14 @@ export const {
   useGetDashboardStatsQuery,
   // Data Count
   useGetDataCountQuery,
+  useDownloadDataMutation,
+  useUploadDataMutation,
+  useSplitDataMutation,
+  useMergeDataMutation,
+  useDeleteDataMutation,
+  useGetDataAnalyticsMutation,
+  useUpdateDataStatusMutation,
+  useFetchDataBounceMutation,
   // Campaigns / Email
   useGetCampaignsQuery,
   useGetCampaignByIdQuery,
@@ -313,6 +402,14 @@ export const {
   useDeleteScreenMutation,
   // Offers
   useGetOffersQuery,
+  useCreateOfferMutation,
+  useUpdateOfferMutation,
+  // Links
+  useGetLinksQuery,
+  useToggleLinkStatusMutation,
+  useUpdateMainLinkMutation,
+  // Images
+  useUploadImageMutation,
   // Suppression
   useGetSuppressionMappingsQuery,
   useGetSuppressionQueueQuery,
@@ -322,6 +419,10 @@ export const {
   useDeleteSuppressionMappingMutation,
   useDeleteSuppressionQueueMutation,
   useGetSuppressionLogQuery,
+  useGetSuppressionComplainersGroupedQuery,
+  useGetSuppressionComplainersByOfferQuery,
+  useCreateSuppressionComplainerMutation,
+  useDeleteSuppressionComplainerMutation,
   // Complain
   useGetComplainAccountsQuery,
   useGetComplainFilesQuery,

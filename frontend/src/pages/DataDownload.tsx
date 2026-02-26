@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import {
+  useGetDataCountQuery,
+  useDownloadDataMutation,
+} from "../store/apiSlice";
 import {
   Search,
   Download,
@@ -9,7 +12,6 @@ import {
 } from "lucide-react";
 
 const DataDownload = () => {
-  const [allFiles, setAllFiles] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [ip, setIp] = useState("173.249.50.153");
@@ -17,22 +19,11 @@ const DataDownload = () => {
   const [repeat, setRepeat] = useState("1");
   const [type, setType] = useState("Random");
   const [selector, setSelector] = useState("email");
-  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("");
   const [generatedFilename, setGeneratedFilename] = useState("");
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  const fetchFiles = async () => {
-    try {
-      const res = await axios.get("/api/data/count");
-      setAllFiles(res.data);
-    } catch (error) {
-      console.error("Error fetching files:", error);
-    }
-  };
+  const { data: allFiles } = useGetDataCountQuery();
+  const [downloadData, { isLoading: loading }] = useDownloadDataMutation();
 
   const toggleFile = (file: any) => {
     if (!Array.isArray(selectedFiles)) return;
@@ -51,10 +42,9 @@ const DataDownload = () => {
       return;
     }
     setResult("Processing...");
-    setLoading(true);
 
     try {
-      const res = await axios.post("/api/data/download", {
+      const res = await downloadData({
         filenames: (Array.isArray(selectedFiles) ? selectedFiles : []).map(
           (f) => f.filename,
         ),
@@ -63,15 +53,13 @@ const DataDownload = () => {
         times: repeat,
         ip,
         selector,
-      });
-      setGeneratedFilename(res.data.filename);
+      }).unwrap();
+      setGeneratedFilename(res.filename);
       setResult(
-        `Success! File: ${res.data.filename} | Final: ${res.data.finalCount} | Supp: ${res.data.suppCount}`,
+        `Success! File: ${res.filename} | Final: ${res.finalCount} | Supp: ${res.suppCount}`,
       );
     } catch (error: any) {
-      setResult(`Error: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setLoading(false);
+      setResult(`Error: ${error?.data?.message || "Download failed"}`);
     }
   };
 
