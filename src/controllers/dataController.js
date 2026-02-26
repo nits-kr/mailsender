@@ -110,15 +110,27 @@ const downloadData = async (req, res) => {
 // @route   POST /api/data/upload
 // @access  Private
 const uploadData = async (req, res) => {
-  const { displayName, filename, mode } = req.body;
+  const { displayName, mode } = req.body;
+  const file = req.file;
+
+  if (!file || !displayName) {
+    return res
+      .status(400)
+      .json({ message: "File and display name are required" });
+  }
 
   try {
     const newFile = await DataFile.create({
-      filename,
+      filename: file.originalname,
       display_name: displayName,
       type: "data",
+      count: 0, // In a real scenario, we'd count lines here
     });
-    res.status(201).json(newFile);
+
+    res.status(201).json({
+      message: "File uploaded and recorded successfully",
+      file: newFile,
+    });
   } catch (error) {
     res
       .status(500)

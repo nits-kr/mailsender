@@ -1,138 +1,328 @@
-import React, { useState } from "react";
-import { useUploadDataMutation } from "../store/apiSlice";
+import React, { useState, useRef } from "react";
+import {
+  Upload,
+  FileText,
+  Database,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Terminal,
+  FileUp,
+  Monitor,
+} from "lucide-react";
+import API_BASE_URL from "../config/api";
+import "./DataUpload.css";
 
 const DataUpload = () => {
   const [displayName, setDisplayName] = useState("");
-  const [filename, setFilename] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [mode, setMode] = useState("Desktop");
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState({ type: "", message: "" });
+  const [status, setStatus] = useState<{
+    type: string;
+    message: string;
+    logs: string[];
+  }>({
+    type: "",
+    message: "",
+    logs: ["Waiting for file selection..."],
+  });
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [uploadData, { isLoading: loading }] = useUploadDataMutation();
+  const addLog = (msg: string) => {
+    setStatus((prev) => ({
+      ...prev,
+      logs: [...prev.logs, `[${new Date().toLocaleTimeString()}] ${msg}`],
+    }));
+  };
 
-  const handleUpload = async () => {
-    if (!displayName || !filename) {
-      setStatus({
-        type: "error",
-        message: "Display name and filename are required!",
-      });
-      return;
-    }
-
-    setStatus({ type: "info", message: "Uploading to database..." });
-
-    try {
-      await uploadData({
-        displayName,
-        filename,
-        mode,
-      }).unwrap();
-      setStatus({
-        type: "success",
-        message: "Data inserted into DB successfully!",
-      });
-      setDisplayName("");
-      setFilename("");
-    } catch (error: any) {
-      setStatus({
-        type: "error",
-        message: error?.data?.message || "Upload failed",
-      });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      addLog(
+        `File selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`,
+      );
     }
   };
 
+  const handleUpload = () => {
+    if (!displayName || !selectedFile) {
+      setStatus((prev) => ({
+        ...prev,
+        type: "error",
+        message: "Display name and file are required!",
+      }));
+      addLog("ERROR: Validation failed - Missing fields");
+      return;
+    }
+
+    setLoading(true);
+    setProgress(0);
+    setStatus((prev) => ({
+      ...prev,
+      type: "info",
+      message: "Initialising upload...",
+      logs: [
+        ...prev.logs,
+        `[${new Date().toLocaleTimeString()}] Starting data transmission...`,
+      ],
+    }));
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("displayName", displayName);
+    formData.append("mode", mode);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setProgress(percentComplete);
+        if (percentComplete === 100) {
+          addLog("File transmitted. Server is processing...");
+        }
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      setLoading(false);
+      try {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const response = JSON.parse(xhr.responseText);
+          setStatus((prev) => ({
+            ...prev,
+            type: "success",
+            message: "Data successfully inserted into database!",
+          }));
+          addLog(
+            `SUCCESS: ${response.file?.display_name || displayName} recorded in master database.`,
+          );
+          setDisplayName("");
+          setSelectedFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        } else {
+          const error = JSON.parse(xhr.responseText);
+          setStatus((prev) => ({
+            ...prev,
+            type: "error",
+            message: error.message || "Upload failed",
+          }));
+          addLog(
+            `ERROR: Server rejected the request - ${error.message || xhr.statusText}`,
+          );
+        }
+      } catch (err) {
+        setStatus((prev) => ({
+          ...prev,
+          type: "error",
+          message: "Invalid server response",
+        }));
+        addLog("ERROR: Failed to parse server response.");
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      setLoading(false);
+      setStatus((prev) => ({
+        ...prev,
+        type: "error",
+        message: "Network error occurred.",
+      }));
+      addLog("ERROR: Connection lost or network failure.");
+    });
+
+    xhr.open("POST", `${API_BASE_URL}/api/data/upload`);
+
+    // Add Authorization header
+    const userInfo = localStorage.getItem("userInfo");
+    if (userInfo) {
+      try {
+        const { token } = JSON.parse(userInfo);
+        if (token) {
+          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        }
+      } catch (e) {}
+    }
+
+    xhr.send(formData);
+  };
+
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1000px] mx-auto">
-        <h2 className="text-center text-xl font-bold mb-8 pt-4 uppercase tracking-tighter">
-          Data Insert Portal
-        </h2>
-
-        <div className="flex flex-col items-center gap-4 text-[12px] font-bold">
-          <div className="flex items-center gap-2">
-            <label>File Name To Display = </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={mode === "Desktop"}
-                onChange={() => setMode("Desktop")}
-              />{" "}
-              Desktop
-            </label>
-          </div>
-
-          <div className="flex items-center gap-4 mt-2">
-            <label>File Upload = </label>
-            <input
-              type="file"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setFilename(e.target.files[0].name);
-                }
-              }}
-              className="text-[11px]"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 mt-2">
-            <label>Upload Progrss -{">"} </label>
-            <div className="w-64 h-2 bg-gray-200 border border-gray-400 rounded-sm">
-              <div
-                className="h-full bg-blue-500 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
+    <div className="upload-wrapper">
+      <div className="upload-card">
+        {/* Header */}
+        <div className="upload-header">
+          <div className="upload-header-title">
+            <div className="header-icon-circle">
+              <Database size={28} color="white" />
+            </div>
+            <div>
+              <h2>Data Insert Portal</h2>
+              <p className="header-subtitle">
+                Import and process bulk email data
+              </p>
             </div>
           </div>
-
-          <div className="mt-4">
-            <button
-              onClick={handleUpload}
-              disabled={loading}
-              className="bg-gray-100 border border-gray-500 px-8 py-1 font-bold shadow-sm hover:bg-gray-200 transition-colors"
-            >
-              {loading ? "Processing..." : "Insert Into DB"}
-            </button>
+          <div className="mode-badge">
+            <Monitor size={14} /> {mode} Mode
           </div>
         </div>
 
-        <div className="mt-8 px-4">
-          <div className="w-full bg-[#5F9EA0] border border-gray-400 p-2 h-[400px] overflow-y-auto font-mono text-[11px] leading-tight">
-            <p className="text-green-900 font-bold mb-1">
-              Upload Progress Status...
-            </p>
-            {status.message && (
-              <p
-                className={
-                  status.type === "error" ? "text-red-800" : "text-green-800"
-                }
-              >
-                [{status.type.toUpperCase()}] {status.message}
-              </p>
-            )}
+        <div className="upload-body">
+          {/* Main Form Section */}
+          <div className="upload-form-section">
+            <div className="section-title-modern">
+              <FileText size={18} /> Configuration
+            </div>
+
+            <div className="upload-form-grid">
+              <div className="input-group-modern">
+                <label className="label-modern">Display Name</label>
+                <div className="input-wrapper-modern">
+                  <input
+                    type="text"
+                    placeholder="e.g., April_Batch_01"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="input-field-modern"
+                  />
+                </div>
+              </div>
+
+              <div className="input-group-modern">
+                <label className="label-modern">Upload Mode</label>
+                <div className="radio-group-modern">
+                  <label
+                    className={`radio-label-modern ${mode === "Desktop" ? "active" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="mode"
+                      checked={mode === "Desktop"}
+                      onChange={() => setMode("Desktop")}
+                    />
+                    Desktop
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="file-drop-zone"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+                accept=".txt,.csv"
+              />
+              <div className="drop-zone-content">
+                {selectedFile ? (
+                  <>
+                    <FileUp size={48} className="text-blue-500 mb-2" />
+                    <span className="file-name-display">
+                      {selectedFile.name}
+                    </span>
+                    <span className="file-size-display">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={48} className="text-gray-400 mb-2" />
+                    <span className="drop-text">
+                      Click to browse email data file
+                    </span>
+                    <span className="drop-subtext">
+                      Supports .txt and .csv formats
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
             {loading && (
-              <div className="text-white">
-                <p>Processing file: {filename}...</p>
-                <p>Target DB Display: {displayName}...</p>
-                <p>--- DATABASE INSERTION IN PROGRESS ---</p>
-                <p className="animate-pulse">Reading chunks...</p>
+              <div className="progress-container-modern">
+                <div className="progress-stats">
+                  <span className="progress-label">Uploading...</span>
+                  <span className="progress-percent">{progress}%</span>
+                </div>
+                <div className="progress-bar-bg">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
               </div>
             )}
-            {status.type === "success" && (
-              <div className="text-green-900 font-bold">
-                <p>DONE! {displayName} inserted into emailmaster database.</p>
-                <p>Total records processed: [COUNT]</p>
+
+            <button
+              className={`btn-upload-modern ${loading ? "loading" : ""}`}
+              onClick={handleUpload}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} /> Processing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={20} /> Insert Into DB
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Console / Log Section */}
+          <div className="upload-log-section">
+            <div className="section-title-modern">
+              <Terminal size={18} /> Console Output
+            </div>
+
+            <div className="console-wrapper">
+              <div className="console-header-bar">
+                <div className="dot red"></div>
+                <div className="dot yellow"></div>
+                <div className="dot green"></div>
+                <span className="console-title">upload_terminal_v2.0</span>
+              </div>
+              <div className="console-content">
+                {status.logs.map((log, idx) => (
+                  <div key={idx} className="console-line">
+                    {log}
+                  </div>
+                ))}
+                {loading && (
+                  <div className="console-line blink">
+                    Processing chunks... System engaging master-db-01
+                  </div>
+                )}
+                {status.type === "success" && (
+                  <div className="console-line text-green-400 font-bold">
+                    ✓ DONE: Insertion completed successfully.
+                  </div>
+                )}
+                {status.type === "error" && (
+                  <div className="console-line text-red-500 font-bold">
+                    ✖ FATAL: {status.message}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {status.message && !loading && (
+              <div className={`status-alert ${status.type}`}>
+                {status.type === "error" ? (
+                  <AlertCircle size={18} />
+                ) : (
+                  <CheckCircle2 size={18} />
+                )}
+                {status.message}
               </div>
             )}
           </div>
