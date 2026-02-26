@@ -126,12 +126,23 @@ const ScreenLogPage = () => {
         <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">INBOX</span>
-          <span className="slp-stat-value slp-green">0</span>
+          <span className="slp-stat-value slp-green">
+            {stats?.inbox_count ?? 0}
+          </span>
         </span>
         <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">SPAM</span>
-          <span className="slp-stat-value slp-red">0</span>
+          <span className="slp-stat-value slp-red">
+            {stats?.spam_count ?? 0}
+          </span>
+        </span>
+        <span className="slp-stat-sep">|</span>
+        <span className="slp-stat">
+          <span className="slp-stat-label">PROMO</span>
+          <span className="slp-stat-value slp-orange">
+            {stats?.promo_count ?? 0}
+          </span>
         </span>
         {total > 0 && (
           <>

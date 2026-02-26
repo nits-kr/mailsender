@@ -118,6 +118,9 @@
 .slp-stat-value.slp-red {
   color: #ff4444;
 }
+.slp-stat-value.slp-orange {
+  color: #ff9900;
+}
 
 .slp-stat-sep {
   color: #222;

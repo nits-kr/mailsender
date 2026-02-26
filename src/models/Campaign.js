@@ -10,6 +10,9 @@ const campaignSchema = mongoose.Schema(
     total_emails: { type: Number, default: 0 },
     success_count: { type: Number, default: 0 },
     error_count: { type: Number, default: 0 },
+    inbox_count: { type: Number, default: 0 },
+    spam_count: { type: Number, default: 0 },
+    promo_count: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["Pending", "Running", "Completed", "Stopped"],
