@@ -3,6 +3,7 @@ const IP = require("../models/IP");
 const SmtpDetail = require("../models/SmtpDetail");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
+const { evaluate: guardianEvaluate } = require("../services/guardianService");
 
 const emailWorker = async (job) => {
   const {
@@ -209,12 +210,11 @@ const emailWorker = async (job) => {
         log_text: `[${email}] SENT SUCCESS\n${transcriptText}\nResponse: ${info.response}`,
         type: "success",
         sent: totalSent,
-        mail_status: `${email} success`,
-        inbox: 0,
-        spam: 0,
-        received: 0,
         inbox_percent: 0,
       });
+
+      // Guardian Evaluation
+      await guardianEvaluate(campaign_id).catch(() => {});
     }
 
     console.log(`Email sent successfully to ${email} via ${mailing_ip}`);
@@ -234,12 +234,11 @@ const emailWorker = async (job) => {
         log_text: `[${email}] SEND ERROR: ${error.message}`,
         type: "error",
         sent: totalSent,
-        mail_status: `${email} error`,
-        inbox: 0,
-        spam: 0,
-        received: 0,
         inbox_percent: 0,
       });
+
+      // Guardian Evaluation
+      await guardianEvaluate(campaign_id).catch(() => {});
     }
     throw error;
   }

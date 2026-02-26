@@ -4,6 +4,7 @@ const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const TestId = require("../models/TestId");
 const crypto = require("crypto");
+const { evaluate: guardianEvaluate } = require("./guardianService");
 
 /**
  * Modern IMAP Scanner Service
@@ -169,6 +170,13 @@ const runScanner = async () => {
           },
         );
       }
+    }
+
+    // After all scans, evaluate Guardian thresholds for all active campaigns
+    for (const campaign of activeCampaigns) {
+      await guardianEvaluate(campaign._id).catch((err) =>
+        console.error(`Guardian eval error for ${campaign._id}:`, err),
+      );
     }
   } catch (error) {
     console.error("Scanner run error:", error);
