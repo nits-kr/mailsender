@@ -25,7 +25,7 @@ import "./DataDownload.css";
 const DataDownload = () => {
   const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [ip, setIp] = useState("173.249.50.153");
+  const [ip, setIp] = useState(window.location.hostname || "173.249.50.153");
   const [count, setCount] = useState("10000");
   const [repeat, setRepeat] = useState("1");
   const [type, setType] = useState("Random");
