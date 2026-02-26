@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const IP = require("../models/IP");
+const SmtpDetail = require("../models/SmtpDetail");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 
@@ -48,7 +49,8 @@ const emailWorker = async (job) => {
       logger: true,
     };
 
-    const ipRecord = await IP.findOne({ ip: mailing_ip.split("|")[0] });
+    const ipKey = mailing_ip.split("|")[0];
+    const ipRecord = await IP.findOne({ ip: ipKey });
     if (ipRecord && ipRecord.hostname) {
       smtpConfig = {
         host: ipRecord.hostname,
@@ -61,6 +63,28 @@ const emailWorker = async (job) => {
         debug: true,
         logger: true,
       };
+    } else {
+      // Fallback for new SMTP Details UI records (assignedip/server based).
+      const smtpDetail = await SmtpDetail.findOne({ assignedip: ipKey });
+      if (smtpDetail && smtpDetail.hostname) {
+        const normalizedTls = String(smtpDetail.tls || "").toLowerCase();
+        const isSecure =
+          normalizedTls === "1" ||
+          normalizedTls === "yes" ||
+          normalizedTls === "true";
+
+        smtpConfig = {
+          host: smtpDetail.hostname,
+          port: Number(smtpDetail.port) || (isSecure ? 465 : 587),
+          secure: isSecure,
+          auth: smtpDetail.user
+            ? { user: smtpDetail.user, pass: smtpDetail.pass }
+            : null,
+          tls: { rejectUnauthorized: false },
+          debug: true,
+          logger: true,
+        };
+      }
     }
 
     const transporter = nodemailer.createTransport(smtpConfig);

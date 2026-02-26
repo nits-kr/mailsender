@@ -62,15 +62,23 @@ const Interface = () => {
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const [pollLogs, setPollLogs] = useState(false);
 
   // Polling for logs when a campaign is active
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
     activeCampaignId || "",
     {
       skip: !activeCampaignId,
-      pollingInterval: 2000,
+      pollingInterval: pollLogs ? 2000 : 0,
+      refetchOnMountOrArgChange: true,
     },
   );
+
+  useEffect(() => {
+    if (!pollLogs) return;
+    const timer = window.setTimeout(() => setPollLogs(false), 60000);
+    return () => window.clearTimeout(timer);
+  }, [pollLogs, activeCampaignId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -163,6 +171,7 @@ const Interface = () => {
 
     // Start tracking logs for this campaign
     setActiveCampaignId(selectedCampaignId);
+    setPollLogs(false);
   };
 
   const [sendEmailMutation] = useSendEmailMutation();
@@ -188,6 +197,7 @@ const Interface = () => {
 
       const result = await sendEmailMutation(payload).unwrap();
       setActiveCampaignId(result.campaign_id);
+      setPollLogs(true);
       setStatus("Last sent: " + new Date().toLocaleTimeString());
     } catch (error: any) {
       alert("Error: " + (error?.data?.message || "Send failed"));
