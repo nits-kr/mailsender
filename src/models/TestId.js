@@ -33,6 +33,12 @@ const testIdSchema = new mongoose.Schema(
       enum: ["A", "D"], // A for Active, D for Deactive
       default: "A",
     },
+    filenameinbox: {
+      type: String,
+    },
+    filenamespam: {
+      type: String,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt, replacing 'created' and 'last_update_time'

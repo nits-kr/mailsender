@@ -28,8 +28,12 @@ import ComplainFetch from "./pages/ComplainFetch";
 import DataAnalytics from "./pages/DataAnalytics";
 import DataDelete from "./pages/DataDelete";
 import Screen from "./pages/Screen";
+import TestidsScreen from "./pages/TestidsScreen";
 import TestIdsManagement from "./pages/TestIdsManagement";
 import SmtpTester from "./pages/SmtpTester";
+import SmtpDetails from "./pages/SmtpDetails";
+import FsockManual from "./pages/FsockManual";
+import { InterfaceNewPage } from "./pages/InterfaceNewPage";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -227,6 +231,14 @@ function App() {
                 }
               />
               <Route
+                path="/testids-screen"
+                element={
+                  <ProtectedRoute>
+                    <TestidsScreen />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/testids-man"
                 element={
                   <ProtectedRoute>
@@ -243,10 +255,50 @@ function App() {
                 }
               />
               <Route
+                path="/smtp"
+                element={
+                  <ProtectedRoute>
+                    <SmtpDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/delete-datafile"
                 element={
                   <ProtectedRoute>
                     <DataDelete />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/fsock-manual"
+                element={
+                  <ProtectedRoute>
+                    <FsockManual />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/fsock-send-smtp"
+                element={
+                  <ProtectedRoute>
+                    <FsockManual />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/fsock-send-smtp-auto"
+                element={
+                  <ProtectedRoute>
+                    <FsockManual />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interface-new"
+                element={
+                  <ProtectedRoute>
+                    <InterfaceNewPage />
                   </ProtectedRoute>
                 }
               />

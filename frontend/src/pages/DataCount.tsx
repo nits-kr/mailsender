@@ -1,76 +1,221 @@
-import React from "react";
-import { Database, RefreshCw, Send } from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { useGetDataCountQuery } from "../store/apiSlice";
 
 const DataCount = () => {
-  const { data: dataFiles = [], isFetching, refetch } = useGetDataCountQuery();
+  const { data: dataFiles = [], isFetching } = useGetDataCountQuery();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return dataFiles;
+    const lowerSearch = searchTerm.toLowerCase();
+    return dataFiles.filter(
+      (file: any) =>
+        String(file.file).toLowerCase().includes(lowerSearch) ||
+        String(file.date).toLowerCase().includes(lowerSearch) ||
+        String(file.time).toLowerCase().includes(lowerSearch) ||
+        String(file.count).toLowerCase().includes(lowerSearch),
+    );
+  }, [dataFiles, searchTerm]);
+
+  // Compute total
+  const totalCount = useMemo(() => {
+    return filteredData.reduce(
+      (acc: number, file: any) => acc + (Number(file.count) || 0),
+      0,
+    );
+  }, [filteredData]);
+
+  const handleTransfer = (fileName: string) => {
+    // Basic transfer alert to match legacy JS behavior before it opens full functionality
+    if (window.confirm("Are you sure you want to transfer this file?")) {
+      // Logic for choosing IP would normally go here
+      alert(`Transfer initialized for ${fileName}`);
+    }
+  };
 
   return (
-    <div className="dashboard-container">
-      <header className="flex justify-between items-center mb-8 bg-dark-2 p-4 border border-light rounded">
-        <div>
-          <h1 className="text-xl font-bold text-white uppercase tracking-wider">
-            Data File Repository
-          </h1>
-          <p className="text-gray-400 text-10px italic">
-            Monitor and manage email data files in /var/www/data/
-          </p>
-        </div>
-        <button
-          onClick={refetch}
-          className="bg-primary flex items-center gap-2 px-5 py-2 rounded text-white font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg text-xs"
+    <div style={{ padding: "0" }}>
+      <style>{`
+        .dc-mainbox {
+          padding: 10px;
+          width: 95%;
+          margin: 30px auto;
+          background-color: white;
+          color: black;
+          font-family: Arial, "Trebuchet MS", verdana;
+          border: 1px solid #ddd;
+          -webkit-box-shadow: 2px 4px 7px 1px rgba(0,0,0,0.48);
+          -moz-box-shadow: 2px 4px 7px 1px rgba(0,0,0,0.48);
+          box-shadow: 2px 4px 7px 1px rgba(0,0,0,0.48);
+        }
+
+        .dc-header {
+          text-align: center;
+          background: #1abc9c;
+          color: white;
+          font-size: 30px;
+          margin: 0 0 20px 0;
+          padding: 10px;
+          font-weight: bold;
+        }
+
+        .dc-data-table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid #ddd;
+        }
+
+        .dc-data-table th, .dc-data-table td {
+          border: 1px solid #dee2e6;
+        }
+
+        .dc-data-table thead th, .dc-data-table tfoot th {
+          vertical-align: bottom;
+          text-align: center;
+          background-color: #60D6FF;
+          font-weight: bold;
+          font-size: 14px;
+          padding: 8px;
+        }
+
+        .dc-data-table tbody td {
+          text-align: center;
+          font-weight: bold;
+          font-size: 14px;
+          padding: 8px;
+        }
+
+        .dc-data-table tbody tr:nth-of-type(odd) {
+          background-color: #f9f9f9;
+        }
+        .dc-data-table tbody tr:nth-of-type(even) {
+          background-color: transparent;
+        }
+
+        .dc-btn-primary {
+          color: #fff;
+          background-color: #007bff;
+          border-color: #007bff;
+          display: inline-block;
+          font-weight: 400;
+          text-align: center;
+          white-space: nowrap;
+          vertical-align: middle;
+          user-select: none;
+          border: 1px solid transparent;
+          padding: .375rem .75rem;
+          font-size: 1rem;
+          line-height: 1.5;
+          border-radius: .25rem;
+          cursor: pointer;
+        }
+        .dc-btn-primary:hover {
+          background-color: #0069d9;
+          border-color: #0062cc;
+        }
+      `}</style>
+
+      <div className="dc-mainbox">
+        <h1 className="dc-header">Data File Panel </h1>
+        <div
+          style={{
+            textAlign: "right",
+            marginBottom: "10px",
+            paddingRight: "10px",
+          }}
         >
-          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-          Refresh Data
-        </button>
-      </header>
-
-      <div className="grid grid-cols-1 lg-grid-cols-3 gap-6">
-        {dataFiles.map((file, index) => (
-          <div
-            key={index}
-            className="bg-dark-3 p-6 rounded border border-light hover:border-blue-500 transition-colors shadow-xl"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-primary-10 rounded-lg">
-                <Database className="text-primary w-6 h-6" />
-              </div>
-              <div className="text-right">
-                <p className="text-gray-500 text-9px uppercase font-bold tracking-widest">
-                  Row Count
-                </p>
-                <p className="text-2xl font-bold text-white font-mono">
-                  {file.count.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <h3
-              className="text-xs font-bold text-gray-200 mb-2 truncate bg-dark-1 p-2 rounded border border-gray-800"
-              title={file.file}
-            >
-              {file.file}
-            </h3>
-            <p className="text-gray-500 text-9px font-bold uppercase mb-6 flex justify-between">
-              <span>Date: {file.date}</span>
-              <span>Time: {file.time}</span>
-            </p>
-
-            <button className="w-full py-2 bg-primary-20 hover:bg-primary text-white text-10px font-bold rounded transition-all flex items-center justify-center gap-2 border border-primary-30 uppercase tracking-tighter">
-              Transfer to Server
-              <Send size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {dataFiles.length === 0 && !isFetching && (
-        <div className="p-20 text-center bg-[#25282c] rounded border border-gray-800 shadow-xl">
-          <Database className="mx-auto w-12 h-12 text-gray-700 mb-4" />
-          <p className="text-gray-400 font-bold italic text-sm">
-            No data files found in the specified directory.
-          </p>
+          <label style={{ fontWeight: "bold", color: "red", fontSize: "14px" }}>
+            Search:{" "}
+          </label>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              border: "1px solid #ccc",
+              padding: "3px",
+              width: "200px",
+              borderRadius: "3px",
+            }}
+          />
         </div>
-      )}
+        <table className="dc-data-table" style={{ width: "100%" }}>
+          <thead>
+            <tr>
+              <th align="center">CREATED DATE</th>
+              <th align="center">CREATED TIME</th>
+              <th align="center">DATAFILE NAME</th>
+              <th align="center">CURRENT COUNT</th>
+              <th align="center">TRANSFER</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.map((file: any, index: number) => (
+              <tr key={index}>
+                <td align="center">
+                  <b>{file.date}</b>
+                </td>
+                <td align="center">
+                  <b>{file.time}</b>
+                </td>
+                <td align="center">
+                  <b>{file.file}</b>
+                </td>
+                <td align="center">
+                  <b>{file.count}</b>
+                </td>
+                <td align="center">
+                  <button
+                    className="dc-btn-primary"
+                    onClick={() => handleTransfer(file.file)}
+                  >
+                    Transfer
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filteredData.length === 0 && !isFetching && (
+              <tr>
+                <td
+                  colSpan={5}
+                  style={{
+                    textAlign: "center",
+                    fontStyle: "italic",
+                    fontWeight: "normal",
+                    padding: "20px",
+                  }}
+                >
+                  No data files found.
+                </td>
+              </tr>
+            )}
+            {isFetching && (
+              <tr>
+                <td
+                  colSpan={5}
+                  style={{
+                    textAlign: "center",
+                    fontStyle: "italic",
+                    fontWeight: "normal",
+                    padding: "20px",
+                  }}
+                >
+                  Loading...
+                </td>
+              </tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colSpan={3} style={{ textAlign: "center" }}>
+                Total
+              </th>
+              <th align="center">{totalCount}</th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 };

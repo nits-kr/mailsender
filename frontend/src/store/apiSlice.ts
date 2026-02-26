@@ -18,6 +18,8 @@ export const apiSlice = createApi({
     'Server',
     'DataCount',
     'Dashboard',
+    'SmtpDetail',
+    'Legacy',
   ],
   endpoints: (builder) => ({
 
@@ -37,6 +39,20 @@ export const apiSlice = createApi({
     deleteTestId: builder.mutation({
       query: (id) => ({ url: `/testids/${id}`, method: 'DELETE' }),
       invalidatesTags: ['TestId'],
+    }),
+
+    // ─── SMTP Details ────────────────────────────────────────────────────────
+    getSmtpDetails: builder.query<any[], void>({
+      query: () => '/smtp/details',
+      providesTags: ['SmtpDetail'],
+    }),
+    addSmtpDetails: builder.mutation({
+      query: (body) => ({ url: '/smtp/details', method: 'POST', body }),
+      invalidatesTags: ['SmtpDetail'],
+    }),
+    deleteSmtpDetails: builder.mutation<void, string>({
+      query: (sno) => ({ url: `/smtp/details/${sno}`, method: 'DELETE' }),
+      invalidatesTags: ['SmtpDetail'],
     }),
 
     // ─── SMTP Tester ─────────────────────────────────────────────────────────
@@ -195,6 +211,49 @@ export const apiSlice = createApi({
       query: () => '/servers-management',
       providesTags: ['Server'],
     }),
+    
+    // ─── Legacy / FSOCK ───────────────────────────────────────────────────────
+    getLegacyCampaign: builder.query<any, string>({
+      query: (id) => `/legacy/campaign/${id}`,
+      providesTags: ['Legacy'],
+    }),
+    sendFsockSmtp: builder.mutation<any, any>({
+      query: (payload) => ({ url: '/legacy/fsock-send', method: 'POST', body: payload }),
+    }),
+    searchLegacyLink: builder.mutation<any, any>({
+      query: (payload) => ({ url: '/legacy/campaign-link-search', method: 'POST', body: payload }),
+    }),
+
+    // ─── IMAP Screens ──────────────────────────────────────────────────────────
+    getImapScreens: builder.query<any[], void>({
+      query: () => "/imap-screens",
+      providesTags: ["Legacy"],
+    }),
+    getImapLogs: builder.query<{ logs: string }, string>({
+      query: (name) => `/imap-screens/logs/${name}`,
+    }),
+    stopImapScreen: builder.mutation<any, string>({
+      query: (name) => ({
+        url: `/imap-screens/stop/${name}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Legacy"],
+    }),
+    deleteImapScreen: builder.mutation<any, string>({
+      query: (name) => ({
+        url: `/imap-screens/${name}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Legacy"],
+    }),
+    createImapScreen: builder.mutation<any, { sno: string }>({
+      query: (body) => ({
+        url: "/imap-screens/create",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Legacy"],
+    }),
   }),
 });
 
@@ -206,6 +265,9 @@ export const {
   useDeleteTestIdMutation,
   // SMTP
   useTestSmtpMutation,
+  useGetSmtpDetailsQuery,
+  useAddSmtpDetailsMutation,
+  useDeleteSmtpDetailsMutation,
   // Auth
   useLoginUserMutation,
   // Users
@@ -250,4 +312,14 @@ export const {
   useGetSqlFilesQuery,
   // Servers Management
   useGetServersManagementQuery,
+  // Legacy
+  useGetLegacyCampaignQuery,
+  useSendFsockSmtpMutation,
+  useSearchLegacyLinkMutation,
+  // IMAP Screens
+  useGetImapScreensQuery,
+  useGetImapLogsQuery,
+  useStopImapScreenMutation,
+  useDeleteImapScreenMutation,
+  useCreateImapScreenMutation,
 } = apiSlice;

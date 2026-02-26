@@ -1,14 +1,5 @@
 import React, { useState } from "react";
-import {
-  RefreshCcw,
-  Layout,
-  List,
-  LogOut,
-  Terminal,
-  StopCircle,
-  Trash2,
-  Maximize2,
-} from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 import {
   useGetScreensQuery,
   useGetScreenLogsQuery,
@@ -19,7 +10,6 @@ import {
 const Screen = () => {
   const [selectedScreen, setSelectedScreen] = useState<any>(null);
   const [showLogs, setShowLogs] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [logsScreenId, setLogsScreenId] = useState<string | null>(null);
 
   // Poll every 10 seconds automatically
@@ -61,426 +51,384 @@ const Screen = () => {
   };
 
   return (
-    <div className="screen-container">
-      {/* Custom Styles to guarantee visibility */}
+    <div style={{ padding: "0" }}>
       <style>{`
-                .screen-container {
-                    background-color: #ffffff;
-                    min-height: calc(100vh - 60px);
-                    padding: 30px 40px;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                    color: #333333;
-                }
+        .screen-mainbox {
+          padding: 10px;
+          height: auto;
+          width: 95%;
+          margin: 30px auto;
+          text-align: center;
+          background-color: white;
+          color: black;
+          font-family: Arial, "Trebuchet MS", verdana;
+          border: 1px solid #ddd;
+          -webkit-box-shadow: 3px 4px 23px -4px rgba(0, 0, 0, 0.48);
+          -moz-box-shadow: 3px 4px 23px -4px rgba(0, 0, 0, 0.48);
+          box-shadow: 3px 4px 23px -4px rgba(0, 0, 0, 0.48);
+        }
 
-                .screen-header-title {
-                    text-align: center;
-                    margin-bottom: 25px;
-                    position: relative;
-                }
+        .screen-mainbox h1 {
+          color: #4D4D4D;
+          font-size: 28px;
+          font-weight: bold;
+          font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+          font-style: italic;
+          text-shadow: 4px 3px 3px #b0b0b0;
+          text-align: center;
+          margin-top: 20px;
+          margin-bottom: 20px;
+        }
 
-                .screen-header-title h1 {
-                    color: #4D4D4D;
-                    font-size: 28px;
-                    font-weight: 900;
-                    font-style: italic;
-                    letter-spacing: 1px;
-                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-                    text-transform: uppercase;
-                    margin: 0;
-                    font-family: "Trebuchet MS", sans-serif;
-                }
+        .blinking {
+          animation: opacity 0.5s ease-in-out infinite;
+          opacity: 1;
+        }
 
-                .refresh-icon {
-                    position: absolute;
-                    right: 0;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #000000;
-                    cursor: pointer;
-                    transition: transform 0.3s ease;
-                }
+        @keyframes opacity {
+          0% { opacity: 4; }
+          50% { opacity: 2; }
+          100% { opacity: 0; }
+        }
 
-                .refresh-icon:hover {
-                    transform: translateY(-50%) rotate(180deg);
-                }
+        .screen-hr {
+          border: 1px solid #f1f1f1;
+          margin-bottom: 25px;
+          width: 100%;
+        }
 
-                .divider {
-                    border: 0;
-                    border-top: 1px solid #e0e0e0;
-                    margin-bottom: 30px;
-                }
+        .screen-btn {
+          color: white;
+          font-weight: bold;
+          border: none;
+          border-radius: 12px;
+          padding: 5px 14px;
+          font-size: 13px;
+          cursor: pointer;
+          margin: 5px;
+          text-decoration: none;
+          display: inline-block;
+        }
 
-                .create-btn {
-                    background-color: #42d838;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                    font-size: 13px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    cursor: pointer;
-                    margin-bottom: 20px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                    transition: all 0.2s;
-                }
+        .screen-btn-details {
+          background-color: slateblue;
+        }
+        .screen-btn-details:hover {
+          opacity: 0.8;
+        }
 
-                .create-btn:hover {
-                    background-color: #38b82e;
-                    transform: translateY(-1px);
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                }
+        .screen-btn-info {
+          background-color: #2196F3;
+        }
+        .screen-btn-info:hover {
+          background-color: #0b7dda;
+        }
 
-                .screen-table-wrapper {
-                    overflow-x: auto;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-                    border-radius: 4px;
-                    border: 1px solid #e0e0e0;
-                }
+        .screen-btn-warning {
+          background-color: #ff9800;
+        }
+        .screen-btn-warning:hover {
+          background-color: #e68a00;
+        }
 
-                .screen-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    background-color: #ffffff;
-                }
+        .screen-btn-danger {
+          background-color: #f44336;
+        }
+        .screen-btn-danger:hover {
+          background-color: #da190b;
+        }
 
-                .screen-table thead tr {
-                    background-color: #60D6FF;
-                    color: #ffffff;
-                }
+        .screen-data-table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid #ddd;
+          margin-bottom: 20px;
+        }
 
-                .screen-table th {
-                    padding: 12px 10px;
-                    text-transform: uppercase;
-                    font-size: 12px;
-                    font-weight: 800;
-                    border: 1px solid #e0e0e0;
-                    text-align: center;
-                }
+        .screen-data-table th, .screen-data-table td {
+          border: 1px solid #dee2e6;
+        }
 
-                .screen-table td {
-                    padding: 10px 8px;
-                    border: 1px solid #f0f0f0;
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #333333;
-                    text-align: center;
-                }
+        .screen-data-table thead th {
+          vertical-align: bottom;
+          text-align: center;
+          background-color: #60D6FF;
+          font-weight: bold;
+          font-size: 15px;
+          padding: 8px;
+          color: white;
+        }
 
-                .screen-table tbody tr:nth-child(even) {
-                    background-color: #fcfcfc;
-                }
+        .screen-data-table tbody td {
+          text-align: center;
+          font-weight: bold;
+          font-size: 14px;
+          padding: 8px;
+        }
 
-                .text-left { text-align: left !important; }
+        .screen-data-table tbody tr:nth-of-type(odd) {
+          background-color: rgba(0,0,0,.05);
+        }
+        .screen-data-table tbody tr:nth-of-type(even) {
+          background-color: transparent;
+        }
 
-                .action-btns {
-                    display: flex;
-                    gap: 4px;
-                    justify-content: center;
-                    flex-wrap: wrap;
-                }
+        .screen-form-box {
+          -webkit-box-shadow: 6px 3px 80px 9px rgb(102 102 102 / 37%);
+          -moz-box-shadow: 6px 3px 80px 9px rgba(102, 102, 102, 0.37);
+          box-shadow: 6px 3px 80px 9px rgb(102 102 102 / 37%);
+          margin: 25px;
+          padding: 25px;
+          min-height: 100px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
 
-                .action-btn {
-                    color: white;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 3px 12px;
-                    font-size: 10px;
-                    font-weight: 800;
-                    cursor: pointer;
-                    text-transform: uppercase;
-                    transition: opacity 0.2s;
-                }
+        .screen-input {
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+        
+        .screen-select {
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-weight: bold;
+        }
 
-                .btn-details { background-color: #6a5acd; }
-                .btn-log { background-color: #2196F3; }
-                .btn-stop { background-color: #ff9800; }
-                .btn-delete { background-color: #f44336; }
+        /* Log modal matching original style */
+        .log-modal {
+          position: fixed;
+          top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(0,0,0,0.8);
+          z-index: 100;
+          display: flex;
+          align-items: center; justify-content: center;
+        }
 
-                .action-btn:hover { opacity: 0.85; }
+        .log-content {
+          background-color: black;
+          color: #10ff00;
+          font-size: 20px;
+          padding: 20px;
+          width: 80%;
+          height: 80%;
+          border: 2px solid #10ff00;
+          overflow-y: auto;
+        }
 
-                .status-badge {
-                    padding: 2px 8px;
-                    border-radius: 4px;
-                    font-size: 10px;
-                    color: white;
-                }
+        .log-header {
+          display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #10ff00; padding-bottom: 10px; margin-bottom: 20px;
+        }
+      `}</style>
 
-                .status-running { background-color: #4caf50; }
-                .status-stopped { background-color: #9e9e9e; }
-
-                /* Log Modal - Legacy Style but modern performance */
-                .log-modal {
-                    position: fixed;
-                    inset: 0;
-                    background-color: rgba(0,0,0,0.85);
-                    z-index: 1000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 40px;
-                }
-
-                .log-content {
-                    background-color: #000000;
-                    border: 2px solid #10ff00;
-                    width: 100%;
-                    max-width: 1000px;
-                    height: 80vh;
-                    display: flex;
-                    flex-direction: column;
-                    box-shadow: 0 0 30px rgba(16,255,0,0.2);
-                    border-radius: 4px;
-                    overflow: hidden;
-                }
-
-                .log-header {
-                    padding: 15px 20px;
-                    border-bottom: 1px solid rgba(16,255,0,0.3);
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background-color: #111111;
-                }
-
-                .log-header h2 {
-                    margin: 0;
-                    color: #10ff00;
-                    font-size: 18px;
-                    font-family: "Courier New", monospace;
-                    text-transform: uppercase;
-                }
-
-                .close-btn {
-                    background-color: #ffffff;
-                    color: #000000;
-                    border: none;
-                    padding: 4px 15px;
-                    border-radius: 4px;
-                    font-weight: 900;
-                    font-size: 11px;
-                    cursor: pointer;
-                }
-
-                .log-body {
-                    flex: 1;
-                    padding: 20px;
-                    overflow-y: auto;
-                    font-family: "Courier New", monospace;
-                    color: #10ff00;
-                    font-size: 13px;
-                }
-
-                .log-line {
-                    margin-bottom: 4px;
-                    display: flex;
-                    gap: 15px;
-                }
-
-                .log-time { color: rgba(16,255,0,0.5); }
-                .log-success { color: #32CD32; font-weight: bold; }
-                .log-error { color: #ff3333; }
-
-                .no-data {
-                    padding: 50px;
-                    color: #999999;
-                    font-style: italic;
-                    text-align: center;
-                }
-            `}</style>
-
-      <div className="screen-header-title">
-        <h1>SCREEN MANAGMENT</h1>
-        <div className="refresh-icon" onClick={refetchScreens}>
-          <RefreshCcw size={26} />
-        </div>
-      </div>
-
-      <hr className="divider" />
-
-      <button
-        className="create-btn"
-        onClick={() => setShowCreateForm(!showCreateForm)}
-      >
-        <span>▶</span> CREATE NEW SCREEN
-      </button>
-
-      {showCreateForm && (
-        <div
-          style={{
-            marginBottom: "30px",
-            padding: "20px",
-            border: "1px solid #eee",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "15px",
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            <input
-              type="text"
-              placeholder="Screen Name"
-              style={{
-                padding: "8px",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
-            />
-            <select
-              style={{
-                padding: "8px",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                fontWeight: "bold",
-              }}
+      <div style={{ textAlign: "center" }}>
+        <div className="screen-mainbox">
+          <br />
+          <br />
+          <h1>
+            {" "}
+            <b>SCREEN MANAGMENT</b>{" "}
+          </h1>
+          <br />
+          <div style={{ textAlign: "center" }} id="mydiv">
+            <span
+              style={{ color: "red", fontSize: "16px" }}
+              className="blinking"
             >
-              <option>INTERFACE</option>
-              <option>INTERFACE AUTO TESTER</option>
-              <option>SMTP AUTO TESTER</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Put svml id"
-              style={{
-                padding: "8px",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                width: "250px",
-              }}
-            />
-            <button
-              style={{
-                backgroundColor: "#2196F3",
-                color: "white",
-                border: "none",
-                padding: "10px 25px",
-                borderRadius: "4px",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
-              START
-            </button>
+              <b> Delete Screen if not using...</b>
+            </span>
           </div>
-        </div>
-      )}
+          <br />
+          {/* Refresh Icon aligned completely to the right as in original UI */}
+          <div style={{ textAlign: "right", margin: "0 15px 0 0" }}>
+            <span
+              onClick={refetchScreens}
+              style={{ cursor: "pointer", color: "black" }}
+            >
+              <RefreshCcw size={24} />
+            </span>
+          </div>
+          <hr className="screen-hr" />
+          <br />
 
-      <div className="screen-table-wrapper">
-        <table className="screen-table">
-          <thead>
-            <tr>
-              <th style={{ width: "10%" }}>Screen Id</th>
-              <th className="text-left" style={{ width: "20%" }}>
-                Screen Name
-              </th>
-              <th style={{ width: "10%" }}>Temp ID</th>
-              <th style={{ width: "12%" }}>MAILER</th>
-              <th style={{ width: "22%" }}>DATAFILE NAME</th>
-              <th style={{ width: "8%" }}>COUNT</th>
-              <th style={{ width: "18%" }}>ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {screens.length > 0 ? (
-              screens.map((s) => (
-                <tr key={s._id}>
-                  <td>{s._id.substring(18)}</td>
-                  <td className="text-left" style={{ color: "#32CD32" }}>
-                    {s.template_name}
-                  </td>
-                  <td>{s.offer_id || "---"}</td>
-                  <td>{s.mailer}</td>
-                  <td style={{ fontWeight: "normal" }}>
-                    {s.data_file || "NULL"}
-                  </td>
-                  <td style={{ fontWeight: "normal" }}>
-                    {s.total_emails || 0}
-                  </td>
-                  <td>
-                    <div className="action-btns">
-                      <button className="action-btn btn-details">
+          <details style={{ textAlign: "left", margin: "0 10px" }}>
+            <summary
+              role="button"
+              style={{
+                background: "#42d838",
+                borderRadius: "4px",
+                height: "auto",
+                width: "250px",
+                textAlign: "center",
+                margin: "5px",
+                padding: "5px",
+                cursor: "pointer",
+                color: "white",
+              }}
+            >
+              <b>
+                <span>CREATE NEW SCREEN</span>
+              </b>
+            </summary>
+
+            <div className="screen-form-box">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault(); /* submit logic to be integrated with API later if needed */
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "20px",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                }}
+              >
+                <input
+                  type="text"
+                  className="screen-input"
+                  placeholder="Screen Name"
+                  required
+                />
+                <select className="screen-select" style={{ width: "350px" }}>
+                  <option value="/var/www/html/interface/send_mul_phpm_new.php">
+                    INTERFACE
+                  </option>
+                  <option value="/var/www/html/interface_new/php_mailer_auto_send_v2.php">
+                    INTERFACE AUTO TESTER
+                  </option>
+                  <option value="/var/www/html/ESP_Module_fsock_send_smtp_auto/auto_send.php">
+                    SMTP AUTO TESTER
+                  </option>
+                </select>
+                <input
+                  type="text"
+                  className="screen-input"
+                  placeholder="Put svml id"
+                  style={{ width: "350px" }}
+                  required
+                />
+                <input
+                  type="submit"
+                  value="START"
+                  className="screen-btn screen-btn-info"
+                  style={{
+                    fontSize: "25px",
+                    fontWeight: "600",
+                    padding: "10px 20px",
+                  }}
+                />
+              </form>
+            </div>
+          </details>
+          <br />
+
+          <table className="screen-data-table">
+            <thead>
+              <tr>
+                <th style={{ width: "8%" }}>Screen Id</th>
+                <th style={{ width: "18%" }}>Screen Name</th>
+                <th style={{ width: "8%" }}>Temp ID</th>
+                <th style={{ width: "12%" }}>MAILER</th>
+                <th style={{ width: "22%" }}>DATAFILE NAME</th>
+                <th style={{ width: "7%" }}>COUNT</th>
+                <th style={{ width: "25%" }}>ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              {screens.length > 0 ? (
+                screens.map((row: any) => (
+                  <tr key={row._id}>
+                    <td>{row._id.substring(18) || "N/A"}</td>
+                    <td style={{ color: "limegreen" }}>{row.template_name}</td>
+                    <td>{row.offer_id || "---"}</td>
+                    <td>{row.mailer || "---"}</td>
+                    <td>{row.data_file || "NULL"}</td>
+                    <td>{row.total_emails || "NULL"}</td>
+                    <td>
+                      <button className="screen-btn screen-btn-details">
                         DETAILS
                       </button>
                       <button
-                        className="action-btn btn-log"
-                        onClick={() => handleLogClick(s)}
+                        className="screen-btn screen-btn-info"
+                        onClick={() => handleLogClick(row)}
                       >
                         LOG
                       </button>
                       <button
-                        className="action-btn btn-stop"
-                        onClick={() => handleStop(s._id)}
+                        className="screen-btn screen-btn-warning"
+                        onClick={() => handleStop(row._id)}
                       >
                         STOP Process
                       </button>
                       <button
-                        className="action-btn btn-delete"
-                        onClick={() => handleDelete(s._id)}
+                        className="screen-btn screen-btn-danger"
+                        onClick={() => handleDelete(row._id)}
                       >
                         DELETE
                       </button>
-                    </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{
+                      textAlign: "center",
+                      padding: "20px",
+                      fontStyle: "italic",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    No running screens found.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="no-data">
-                  No screens found. Direct your campaigns from the Interface
-                  page.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+          <br />
+          <hr className="screen-hr" />
+          <br />
+        </div>
       </div>
 
       {showLogs && (
         <div className="log-modal" onClick={() => setShowLogs(false)}>
           <div className="log-content" onClick={(e) => e.stopPropagation()}>
             <div className="log-header">
-              <h2>EXECUTION LOG: {selectedScreen?.template_name}</h2>
-              <button className="close-btn" onClick={() => setShowLogs(false)}>
-                CLOSE
+              <h1 style={{ margin: 0 }}>{selectedScreen?.template_name}</h1>
+              <button
+                onClick={() => setShowLogs(false)}
+                style={{
+                  background: "white",
+                  padding: "4px 12px",
+                  borderRadius: "4px",
+                  border: "none",
+                  color: "black",
+                  fontSize: "20px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                }}
+              >
+                Go Back
               </button>
             </div>
-            <div className="log-body">
+            <pre
+              style={{ margin: 0, whiteSpace: "pre-wrap", textAlign: "left" }}
+            >
               {logs.length > 0 ? (
-                logs.map((log, i) => (
-                  <div key={i} className="log-line">
-                    <span className="log-time">
-                      [{new Date(log.created_at).toLocaleTimeString()}]
-                    </span>
-                    <span
-                      className={
-                        log.type === "success"
-                          ? "log-success"
-                          : log.type === "error"
-                            ? "log-error"
-                            : ""
-                      }
-                    >
-                      {log.log_text}
-                    </span>
-                  </div>
+                logs.map((log: any, i: number) => (
+                  <div key={i}>{log.log_text}</div>
                 ))
               ) : (
-                <div
-                  className="no-data"
-                  style={{ color: "#10ff00", opacity: 0.5 }}
-                >
-                  Syncing with worker...
-                </div>
+                <div style={{ opacity: 0.5 }}>Loading logs...</div>
               )}
-            </div>
+            </pre>
           </div>
         </div>
       )}

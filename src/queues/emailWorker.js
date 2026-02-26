@@ -77,8 +77,46 @@ const emailWorker = async (job) => {
       if (type === "reset" || !type) return text;
       if (type === "base64")
         return `=?UTF-8?B?${Buffer.from(text).toString("base64")}?=`;
-      if (type === "ascii") return `=?UTF-8?Q?${text.replace(/ /g, "_")}?=`; // Simple Q-encoding
+      if (type === "ascii") {
+        // Match legacy PHP ascii2hex behavior (Quoted-Printable style)
+        const hex = Array.from(text)
+          .map(
+            (char) =>
+              "=" +
+              char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"),
+          )
+          .join("");
+        return `=?UTF-8?Q?${hex}?=`;
+      }
       return text;
+    };
+
+    const transformTags = (text) => {
+      if (!text) return "";
+
+      const offer = job.data.offer_id || "0";
+
+      // Legacy tracking tags
+      const em = `${offer}||${email}`;
+      const ed = Buffer.from(em).toString("base64");
+      const eg = ed.split("").reverse().join("");
+      const eh = Buffer.from(eg).toString("base64");
+
+      const newem = `${offer}|${email}`;
+      const newembase = Buffer.from(newem).toString("base64");
+      const newemhex = Buffer.from(newem).toString("hex");
+      const trackMd5 = require("crypto")
+        .createHash("md5")
+        .update(email)
+        .digest("hex");
+
+      return text
+        .replace(/{unsl}/g, eh)
+        .replace(/{ourl}/g, eh)
+        .replace(/{oln}/g, eh)
+        .replace(/{base_trk}/g, newembase)
+        .replace(/{hex_trk}/g, newemhex)
+        .replace(/\(\(_track_\)\)/g, trackMd5);
     };
 
     const mailOptions = {
@@ -98,19 +136,20 @@ const emailWorker = async (job) => {
       customHeaderLines.forEach((line) => {
         const [key, ...valueParts] = line.split(":");
         if (key && valueParts.length) {
-          mailOptions.headers[key.trim()] = valueParts.join(":").trim();
+          mailOptions.headers[key.trim()] = transformTags(
+            valueParts.join(":").trim(),
+          );
         }
       });
     }
 
     if (msg_type === "html") {
-      mailOptions.html = body_html;
+      mailOptions.html = transformTags(body_html);
     } else if (msg_type === "plain") {
-      mailOptions.text = body_plain;
+      mailOptions.text = transformTags(body_plain);
     } else if (msg_type === "mime") {
-      // Simple MIME handling for now
-      mailOptions.html = body_html;
-      mailOptions.text = body_plain;
+      mailOptions.html = transformTags(body_html);
+      mailOptions.text = transformTags(body_plain);
     }
 
     const info = await transporter.sendMail(mailOptions);
