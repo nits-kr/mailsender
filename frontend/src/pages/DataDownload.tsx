@@ -3,6 +3,7 @@ import {
   useGetDataCountQuery,
   useDownloadDataMutation,
   useGetGeneratedFileMutation,
+  useDeleteDataMutation,
 } from "../store/apiSlice";
 import {
   Download,
@@ -50,6 +51,7 @@ const DataDownload = () => {
     useDownloadDataMutation();
   const [getGeneratedFile, { isLoading: isReading }] =
     useGetGeneratedFileMutation();
+  const [deleteDataFile] = useDeleteDataMutation();
 
   const addLog = (msg: string) => {
     setConsoleLogs((prev) => [
@@ -68,6 +70,26 @@ const DataDownload = () => {
   const removeFileFromSelected = (filename: string) => {
     setSelectedFiles((prev) => prev.filter((f) => f.filename !== filename));
     addLog(`Detached: ${filename}`);
+  };
+
+  const handleDelete = async (filename: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete ${filename}?`)) return;
+
+    addLog(`Initiating destruction sequence for ${filename}...`);
+    try {
+      await deleteDataFile(filename).unwrap();
+      addLog(`SUCCESS: ${filename} has been purged from the filesystem.`);
+
+      // Sync local state: remove from selected if it was there
+      setSelectedFiles((prev) => prev.filter((f) => f.filename !== filename));
+
+      refetch();
+    } catch (error: any) {
+      addLog(
+        `ERROR: Destruction failed - ${error?.data?.message || "File locked"}`,
+      );
+    }
   };
 
   // Drag & Drop Handlers
@@ -228,7 +250,7 @@ const DataDownload = () => {
                 <Layers size={16} /> Available Clusters
               </div>
               <div className="pool-meta">
-                <Hash size={12} /> {totalAllCount}
+                Total: {totalAllCount.toLocaleString()}
               </div>
             </div>
             <div className="pool-search">
@@ -258,8 +280,18 @@ const DataDownload = () => {
                   >
                     <FileText size={14} className="text-slate-400" />
                     <span className="file-name">{file.filename}</span>
-                    <span className="file-count">{file.count}</span>
-                    <PlusCircle size={14} className="add-icon" />
+                    <span className="file-separator">|</span>
+                    <span className="file-count">
+                      {file.count.toLocaleString()}
+                    </span>
+                    <div className="item-actions">
+                      <PlusCircle size={14} className="add-icon" />
+                      <Trash2
+                        size={14}
+                        className="delete-item-btn"
+                        onClick={(e) => handleDelete(file.filename, e)}
+                      />
+                    </div>
                   </div>
                 ))
               )}
@@ -282,7 +314,7 @@ const DataDownload = () => {
                 <CheckCircle2 size={16} /> Selected Pipeline
               </div>
               <div className="pool-meta active">
-                <Hash size={12} /> {totalSelectedCount}
+                Total: {totalSelectedCount.toLocaleString()}
               </div>
             </div>
             <div className="pool-list scrollable">

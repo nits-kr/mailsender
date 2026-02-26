@@ -195,12 +195,31 @@
 .file-count {
   font-size: 11px;
   font-family: 'JetBrains Mono', monospace;
-  color: #94a3b8;
-  font-weight: 600;
+  color: #ef4444; /* High-visibility red counts */
+  font-weight: 700;
 }
 
-.add-icon { color: #334eac; opacity: 0; transition: opacity 0.2s; }
-.pool-item:hover .add-icon { opacity: 1; }
+.file-separator {
+  color: #cbd5e1;
+  font-weight: 300;
+  margin: 0 4px;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.pool-item:hover .item-actions {
+  opacity: 1;
+}
+
+.add-icon { color: #334eac; cursor: pointer; }
+.delete-item-btn { color: #94a3b8; transition: color 0.2s; cursor: pointer; }
+.delete-item-btn:hover { color: #ef4444; }
 
 .remove-btn { color: #ef4444; opacity: 0.6; cursor: pointer; }
 .remove-btn:hover { opacity: 1; }

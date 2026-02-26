@@ -191,8 +191,24 @@ const getAnalytics = async (req, res) => {
 // @access  Private
 const deleteData = async (req, res) => {
   const { filename } = req.params;
+  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const filePath = path.join(dataPath, filename);
+  const bufferPath = path.join(dataPath, "buffer", filename);
+
   try {
+    // 1. Delete from Database
     await DataFile.findOneAndDelete({ filename });
+
+    // 2. Delete Physical File from MAIN path
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // 3. Delete from BUFFER path (if it's an extracted file)
+    if (fs.existsSync(bufferPath)) {
+      fs.unlinkSync(bufferPath);
+    }
+
     res.json({ message: "File deleted successfully" });
   } catch (error) {
     res
