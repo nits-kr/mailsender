@@ -210,6 +210,7 @@ const emailWorker = async (job) => {
         log_text: `[${email}] SENT SUCCESS\n${transcriptText}\nResponse: ${info.response}`,
         type: "success",
         sent: totalSent,
+        mail_status: `${email} success`,
         inbox_percent: 0,
       });
 
@@ -234,6 +235,7 @@ const emailWorker = async (job) => {
         log_text: `[${email}] SEND ERROR: ${error.message}`,
         type: "error",
         sent: totalSent,
+        mail_status: `${email} error`,
         inbox_percent: 0,
       });
 
