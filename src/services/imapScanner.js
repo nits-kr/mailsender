@@ -16,7 +16,8 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
     const imap = new Imap({
       user: testIdDoc.email,
       password: testIdDoc.password,
-      host: testIdDoc.inboxhostname || testIdDoc.spamhostname,
+      host:
+        testIdDoc.inboxhostname || testIdDoc.spamhostname || "imap.gmail.com",
       port: parseInt(testIdDoc.port) || 993,
       tls: true,
       tlsOptions: { rejectUnauthorized: false },
@@ -25,13 +26,20 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
     const results = [];
 
     imap.once("ready", () => {
-      // Folders to scan
+      // Folders to scan - expanded for better Gmail/Yahoo compatibility
       const folders = [
         "INBOX",
         "Spam",
         "Junk",
         "[Gmail]/Spam",
         "[Gmail]/Promotions",
+        "[Gmail]/Social",
+        "[Gmail]/Updates",
+        "Categories/Promotions",
+        "Categories/Social",
+        "Promozioni", // Italian
+        "Promociones", // Spanish
+        "Promotions",
       ];
       let foldersChecked = 0;
 
@@ -49,8 +57,15 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
           }
 
           if (box.messages.total === 0) {
+            console.log(
+              `[IMAP] Folder ${folderName} empty for ${testIdDoc.email}`,
+            );
             return checkNextFolder();
           }
+
+          console.log(
+            `[IMAP] Scanning ${folderName} (${box.messages.total} msgs) for ${testIdDoc.email}...`,
+          );
 
           // Search for messages with X-Campaign-Fingerprint header in the last 24 hours
           const yesterday = new Date();
@@ -128,8 +143,13 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
 
 const runScanner = async () => {
   try {
+    // Include recently completed campaigns (last 15 minutes) to catch late deliveries
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
     const activeCampaigns = await Campaign.find({
-      status: { $in: ["Running", "Pending"] },
+      $or: [
+        { status: { $in: ["Running", "Pending"] } },
+        { status: "Completed", updatedAt: { $gte: fifteenMinsAgo } },
+      ],
     });
     if (!activeCampaigns.length) return;
 
@@ -141,34 +161,52 @@ const runScanner = async () => {
     );
 
     for (const testId of testIds) {
-      const scanResults = await scanTestId(testId, activeCampaigns);
+      console.log(`[IMAP] Connecting to ${testId.email}...`);
+      const scanResults = await scanTestId(testId, activeCampaigns).catch(
+        (err) => {
+          console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
+          return [];
+        },
+      );
+
+      if (scanResults.length > 0) {
+        console.log(
+          `[IMAP] Found ${scanResults.length} fingerprint matches in ${testId.email}`,
+        );
+      }
 
       for (const res of scanResults) {
-        // Update Stats
-        const updateField =
-          res.placement === "spam"
-            ? "spam_count"
-            : res.placement === "promo"
-              ? "promo_count"
-              : "inbox_count";
-
-        await Campaign.findByIdAndUpdate(res.campaignId, {
-          $inc: { [updateField]: 1 },
+        // Update Stats ONLY if not already counted to prevent double-counting
+        const existingLog = await CampaignLog.findOne({
+          campaign_id: res.campaignId,
+          mail_status: new RegExp(`^${res.email}`, "i"),
         });
 
-        // Update Log
-        await CampaignLog.findOneAndUpdate(
-          {
-            campaign_id: res.campaignId,
-            mail_status: new RegExp(`^${res.email}`, "i"),
-          },
-          {
+        // Only count if it hasn't been placed yet (no inbox/spam/promo field set)
+        if (
+          existingLog &&
+          !existingLog.inbox &&
+          !existingLog.spam &&
+          !existingLog.promo
+        ) {
+          const updateField =
+            res.placement === "spam"
+              ? "spam_count"
+              : res.placement === "promo"
+                ? "promo_count"
+                : "inbox_count";
+
+          await Campaign.findByIdAndUpdate(res.campaignId, {
+            $inc: { [updateField]: 1 },
+          });
+
+          await CampaignLog.findByIdAndUpdate(existingLog._id, {
             $set: {
               [res.placement]: 1,
               mail_status: `${res.email} ${res.placement}`,
             },
-          },
-        );
+          });
+        }
       }
     }
 
