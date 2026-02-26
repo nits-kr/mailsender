@@ -3,7 +3,21 @@ import API_BASE_URL from '../config/api';
 
 export const apiSlice = createApi({
   reducerPath: 'api',
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api` }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${API_BASE_URL}/api`,
+    prepareHeaders: (headers) => {
+      const userInfo = localStorage.getItem('userInfo');
+      if (userInfo) {
+        try {
+          const { token } = JSON.parse(userInfo);
+          if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+          }
+        } catch (_) {}
+      }
+      return headers;
+    },
+  }),
   tagTypes: [
     'TestId',
     'User',
