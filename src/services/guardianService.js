@@ -25,7 +25,10 @@ const evaluate = async (campaignId) => {
     const sent = success_count + error_count;
 
     // Auto-complete if finished
-    if (sent >= (total_emails || 0)) {
+    if (total_emails > 0 && sent >= total_emails) {
+      console.log(
+        `[GUARDIAN] Campaign ${campaignId} finished (${sent}/${total_emails}). Marking Completed.`,
+      );
       await Campaign.findByIdAndUpdate(campaignId, {
         status: "Completed",
         end_time: new Date(),

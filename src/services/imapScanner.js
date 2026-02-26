@@ -26,106 +26,160 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
     const results = [];
 
     imap.once("ready", () => {
-      // Folders to scan - expanded for better Gmail/Yahoo compatibility
-      const folders = [
-        "INBOX",
-        "Spam",
-        "Junk",
-        "[Gmail]/Spam",
-        "[Gmail]/Promotions",
-        "[Gmail]/Social",
-        "[Gmail]/Updates",
-        "Categories/Promotions",
-        "Categories/Social",
-        "Promozioni", // Italian
-        "Promociones", // Spanish
-        "Promotions",
-      ];
-      let foldersChecked = 0;
-
-      const checkNextFolder = () => {
-        if (foldersChecked >= folders.length) {
+      // Fetch list of folders to see what's actually available
+      imap.getBoxes((err, boxes) => {
+        if (err) {
+          console.error(
+            `[IMAP] Error getting boxes for ${testIdDoc.email}:`,
+            err,
+          );
           imap.end();
           return resolve(results);
         }
 
-        const folderName = folders[foldersChecked++];
-        imap.openBox(folderName, true, (err, box) => {
-          if (err) {
-            // Folder might not exist, skip
-            return checkNextFolder();
+        // Flatten boxes to a simple array of names
+        const availableFolders = [];
+        const processBoxes = (prefix, folderObj) => {
+          for (const key in folderObj) {
+            const folder = folderObj[key];
+            const fullName = prefix ? prefix + folder.delimiter + key : key;
+            availableFolders.push(fullName);
+            if (folder.children) processBoxes(fullName, folder.children);
+          }
+        };
+        processBoxes("", boxes);
+
+        // Filter folders we want to check
+        const targetKeywords = [
+          "inbox",
+          "spam",
+          "junk",
+          "promo",
+          "social",
+          "update",
+          "advertising",
+          "oferta",
+          "publicidad",
+        ];
+        const foldersToScan = availableFolders.filter((f) =>
+          targetKeywords.some((k) => f.toLowerCase().includes(k)),
+        );
+
+        console.log(
+          `[IMAP] Found ${availableFolders.length} folders, scanning ${foldersToScan.length} for ${testIdDoc.email}`,
+        );
+
+        let folderIdx = 0;
+        const checkNextFolder = () => {
+          if (folderIdx >= foldersToScan.length) {
+            imap.end();
+            return resolve(results);
           }
 
-          if (box.messages.total === 0) {
-            console.log(
-              `[IMAP] Folder ${folderName} empty for ${testIdDoc.email}`,
-            );
-            return checkNextFolder();
-          }
-
-          console.log(
-            `[IMAP] Scanning ${folderName} (${box.messages.total} msgs) for ${testIdDoc.email}...`,
-          );
-
-          // Search for messages with X-Campaign-Fingerprint header in the last 24 hours
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-
-          imap.search(["ALL", ["SINCE", yesterday]], (err, searchResults) => {
-            if (err || !searchResults.length) {
+          const folderName = foldersToScan[folderIdx++];
+          imap.openBox(folderName, true, (err, box) => {
+            if (err) {
+              // Folder might not exist or other error, skip
               return checkNextFolder();
             }
 
-            const fetch = imap.fetch(searchResults, {
-              bodies: "HEADER.FIELDS (X-CAMPAIGN-FINGERPRINT SUBJECT FROM)",
-              struct: true,
-            });
+            if (box.messages.total === 0) {
+              console.log(
+                `[IMAP] Folder ${folderName} empty for ${testIdDoc.email}`,
+              );
+              return checkNextFolder();
+            }
 
-            fetch.on("message", (msg) => {
-              msg.on("body", (stream) => {
-                simpleParser(stream, async (err, parsed) => {
-                  if (err) return;
+            console.log(
+              `[IMAP] Scanning ${folderName} (${box.messages.total} msgs) for ${testIdDoc.email}...`,
+            );
 
-                  const fingerprint = parsed.headers.get(
-                    "x-campaign-fingerprint",
-                  );
-                  if (fingerprint) {
-                    // Match fingerprint with active campaigns
-                    for (const campaign of activeCampaigns) {
-                      const expectedFingerprint = crypto
-                        .createHash("md5")
-                        .update(`${campaign._id}:${testIdDoc.email}`)
-                        .digest("hex");
+            // Search for messages with our fingerprint header
+            // Note: Not all IMAP servers support Searching custom headers, so we fallback to recent
+            const searchCriteria = ["ALL"];
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            searchCriteria.push(["SINCE", yesterday]);
 
-                      if (fingerprint === expectedFingerprint) {
-                        const placement =
-                          folderName.toLowerCase().includes("spam") ||
-                          folderName.toLowerCase().includes("junk")
-                            ? "spam"
-                            : folderName.toLowerCase().includes("promotions")
-                              ? "promo"
-                              : "inbox";
+            imap.search(searchCriteria, (err, searchResults) => {
+              if (err || !searchResults.length) {
+                return checkNextFolder();
+              }
 
-                        results.push({
-                          campaignId: campaign._id,
-                          email: testIdDoc.email,
-                          placement,
-                        });
+              // Limit to last 100 messages to avoid timeouts
+              const finalIds = searchResults.slice(-100);
+              const fetch = imap.fetch(finalIds, {
+                bodies: "HEADER.FIELDS (X-CAMPAIGN-FINGERPRINT)",
+              });
+
+              let pendingParsers = 0;
+              let fetchEnded = false;
+
+              const tryFinish = () => {
+                if (fetchEnded && pendingParsers === 0) {
+                  checkNextFolder();
+                }
+              };
+
+              fetch.on("message", (msg) => {
+                pendingParsers++;
+                msg.on("body", (stream) => {
+                  simpleParser(stream, async (err, parsed) => {
+                    pendingParsers--;
+                    if (!err) {
+                      const fingerprint = parsed.headers.get(
+                        "x-campaign-fingerprint",
+                      );
+                      if (fingerprint) {
+                        for (const campaign of activeCampaigns) {
+                          const expectedFingerprint = crypto
+                            .createHash("md5")
+                            .update(`${campaign._id}:${testIdDoc.email}`)
+                            .digest("hex");
+
+                          if (fingerprint === expectedFingerprint) {
+                            const placement =
+                              folderName.toLowerCase().includes("spam") ||
+                              folderName.toLowerCase().includes("junk")
+                                ? "spam"
+                                : folderName.toLowerCase().includes("promo") ||
+                                    folderName
+                                      .toLowerCase()
+                                      .includes("social") ||
+                                    folderName.toLowerCase().includes("update")
+                                  ? "promo"
+                                  : "inbox";
+
+                            results.push({
+                              campaignId: campaign._id,
+                              email: testIdDoc.email,
+                              placement,
+                            });
+                          }
+                        }
                       }
                     }
-                  }
+                    tryFinish();
+                  });
                 });
               });
-            });
 
-            fetch.once("end", () => {
-              checkNextFolder();
+              fetch.once("error", (err) => {
+                console.error(`[IMAP] Fetch error for ${folderName}:`, err);
+                fetchEnded = true;
+                tryFinish();
+              });
+
+              fetch.once("end", () => {
+                fetchEnded = true;
+                tryFinish();
+              });
             });
           });
-        });
-      };
+        };
 
-      checkNextFolder();
+        checkNextFolder();
+      });
     });
 
     imap.once("error", (err) => {
