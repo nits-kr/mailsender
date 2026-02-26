@@ -30,9 +30,9 @@ const SmtpDetails = () => {
 
   useEffect(() => {
     if (userInfo && !isAdmin) {
-      setAssignTo(userInfo.id.toString());
+      setAssignTo(userInfo._id?.toString() || "");
     } else if (users.length > 0 && !assignTo) {
-      setAssignTo(users[0].id.toString());
+      setAssignTo(users[0]._id?.toString() || "");
     }
   }, [userInfo, isAdmin, users, assignTo]);
 
@@ -108,12 +108,12 @@ const SmtpDetails = () => {
                     >
                       {isAdmin ? (
                         users.map((u: any) => (
-                          <option key={u.id} value={u.id}>
+                          <option key={u._id} value={u._id}>
                             {u.name}
                           </option>
                         ))
                       ) : (
-                        <option value={userInfo?.id}>{userInfo?.name}</option>
+                        <option value={userInfo?._id}>{userInfo?.name}</option>
                       )}
                     </select>
                     <br />

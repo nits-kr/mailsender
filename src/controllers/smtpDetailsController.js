@@ -10,18 +10,6 @@ const getSmtpDetails = async (req, res) => {
     }
     const isAdmin =
       req.user.designation === "Admin" || req.user.designation === "admin";
-    const userId = req.user.id;
-
-    let filter = {};
-    if (!isAdmin) {
-      filter = { accountname: userId };
-    }
-
-    const rows = await SmtpDetail.find(filter)
-      .populate("accountname", "name")
-      .sort({ createdAt: -1 });
-
-    // Normalize output shape to match legacy frontend expectations
     const data = rows.map((r) => ({
       _id: r._id,
       sno: r._id,
