@@ -1,23 +1,20 @@
+const TestId = require("../models/TestId");
 const { exec } = require("child_process");
 const util = require("util");
 const execPromise = util.promisify(exec);
-const mysql = require("../config/mysql");
 
 // @desc    Get all IMAP screens from the system
 // @route   GET /api/imap-screens
 const getImapScreens = async (req, res) => {
   try {
-    // 1. Get screen list from system
     let screenOutput = "";
     try {
       const { stdout } = await execPromise("sudo screen -ls");
       screenOutput = stdout;
     } catch (err) {
-      // screen -ls returns non-zero if no screens are found
       screenOutput = err.stdout || "";
     }
 
-    // Filter for our specific imap screens (matching PHP logic)
     const lines = screenOutput.split("\n");
     const screenLines = lines.filter(
       (line) => line.includes("SPAM_") || line.includes("INBOX_"),
@@ -26,7 +23,6 @@ const getImapScreens = async (req, res) => {
     const imapScreens = [];
 
     for (const line of screenLines) {
-      // Format: \tPID.NAME\t(Detached/Attached)
       const part = line.trim().split("\t")[0];
       if (!part) continue;
 
@@ -34,14 +30,11 @@ const getImapScreens = async (req, res) => {
       const fullName = part.split(".")[1];
       if (!fullName) continue;
 
-      // Parse screen name to get SNO (test ID)
-      // Example: INBOX_test_SNO.php
       const nameParts = fullName.split("_");
-      const snoWithExt = nameParts[nameParts.length - 1]; // e.g. "30.php"
+      const snoWithExt = nameParts[nameParts.length - 1];
       const sno = snoWithExt.split(".")[0];
       const type = fullName.includes("INBOX") ? "INBOX" : "SPAM";
 
-      // 2. Get CMD Id and Command details using ps
       let cmdId = "---";
       let fullCommand = "---";
       try {
@@ -51,7 +44,7 @@ const getImapScreens = async (req, res) => {
         cmdId = psOut.trim();
         if (cmdId) {
           const { stdout: commandOut } = await execPromise(
-            `sudo ps -ef | grep "${cmdId}" | grep -v 'bash\\|grep' | awk -F ':' '{print ":"\$4}' | sed 's|:[0-9][0-9] ||g'`,
+            `sudo ps -ef | grep "${cmdId}" | grep -v 'bash\\|grep' | awk -F ':' '{print ":"$4}' | sed 's|:[0-9][0-9] ||g'`,
           );
           fullCommand = commandOut.trim() || "---";
         }
@@ -59,27 +52,26 @@ const getImapScreens = async (req, res) => {
         // ps might fail if screen is gone
       }
 
-      // 3. Get Metadata from MySQL (testids and counts)
+      // Get metadata from MongoDB TestId (replaces MySQL admin.testids)
       let email = "---";
       let count = 0;
 
-      if (!isNaN(parseInt(sno))) {
-        const [testIdRows] = await mysql.execute(
-          "SELECT email FROM admin.testids WHERE sno = ?",
-          [sno],
-        );
-        if (testIdRows.length > 0) {
-          email = testIdRows[0].email;
-
-          try {
-            const countQuery = `SELECT count(*) as count FROM imap_data_new.\`${email}\` WHERE status = ?`;
-            const [countRows] = await mysql.execute(countQuery, [type]);
-            count = countRows[0]?.count || 0;
-          } catch (err) {
-            // Table might not exist yet
-            count = 0;
-          }
+      try {
+        // TestId stores _id as MongoDB ObjectId, but sno is a string index
+        // Match by filenameinbox/filenamespam pattern or find by sno field if present
+        const testIdDoc = await TestId.findOne({
+          $or: [
+            { filenameinbox: { $regex: `_${sno}\\b` } },
+            { filenamespam: { $regex: `_${sno}\\b` } },
+          ],
+        });
+        if (testIdDoc) {
+          email = testIdDoc.email;
+          // Count not applicable without MySQL imap_data_new — return 0
+          count = 0;
         }
+      } catch (e) {
+        // ignore lookup errors
       }
 
       imapScreens.push({
@@ -103,7 +95,7 @@ const getImapScreens = async (req, res) => {
   }
 };
 
-// @desc    Stop an IMAP screen (stuff control-c)
+// @desc    Stop an IMAP screen
 // @route   POST /api/imap-screens/stop/:name
 const stopImapScreen = async (req, res) => {
   try {
@@ -135,7 +127,7 @@ const deleteImapScreen = async (req, res) => {
 // @route   GET /api/imap-screens/logs/:name
 const getImapLogs = async (req, res) => {
   try {
-    const { name } = req.params; // This will be the email.txt filename
+    const { name } = req.params;
     const logPath = `/var/www/html/advance_imap/${name}`;
     const { stdout } = await execPromise(`tac ${logPath} | head -100`);
     res.json({ logs: stdout });
@@ -154,34 +146,36 @@ const createImapScreen = async (req, res) => {
     if (!sno)
       return res.status(400).json({ message: "Test ID (sno) is required" });
 
-    // Fetch Test ID details
-    const [rows] = await mysql.execute(
-      "SELECT * FROM admin.testids WHERE sno = ?",
-      [sno],
-    );
-    if (rows.length === 0)
+    // Fetch Test ID from MongoDB (replaces MySQL admin.testids lookup)
+    const testIdDoc =
+      (await TestId.findById(sno).catch(() => null)) ||
+      (await TestId.findOne({
+        $or: [
+          { filenameinbox: { $regex: `_${sno}\\b` } },
+          { filenamespam: { $regex: `_${sno}\\b` } },
+        ],
+      }));
+
+    if (!testIdDoc)
       return res.status(404).json({ message: "Test ID not found" });
 
-    const testId = rows[0];
-    const email = testId.email;
+    const email = testIdDoc.email;
 
-    // Side effects matching legacy
-    await mysql.execute(`TRUNCATE TABLE imap_data_new.\`${email}\``);
-    await execPromise(`rm -rf /var/www/html/advance_imap/${email}.txt`);
+    // Clean up old log file (MySQL TRUNCATE no longer needed)
+    await execPromise(`rm -rf /var/www/html/advance_imap/${email}.txt`).catch(
+      () => {},
+    );
 
-    // Calculate screen names
-    const inboxBase = testId.filenameinbox.split(".")[0];
-    const spamBase = testId.filenamespam.split(".")[0];
+    const inboxBase = testIdDoc.filenameinbox.split(".")[0];
+    const spamBase = testIdDoc.filenamespam.split(".")[0];
     const sinboxname = `${inboxBase}_${sno}`;
     const sspamname = `${spamBase}_${sno}`;
 
-    // Commands to start screening
     const commands = [
       `sudo screen -dmS ${sinboxname}.php && sudo screen -S ${sinboxname}.php -X stuff "cd /var/www/html/advance_imap/ ;php /var/www/html/advance_imap/inbox.php ${sno}\n"`,
       `sudo screen -dmS ${sspamname}.php && sudo screen -S ${sspamname}.php -X stuff "cd /var/www/html/advance_imap/ ;php /var/www/html/advance_imap/spam.php ${sno}\n"`,
     ];
 
-    // Execute commands immediately
     for (const cmd of commands) {
       await execPromise(cmd);
     }

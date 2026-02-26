@@ -1,12 +1,11 @@
-const mysql = require("../config/mysql");
-
-// @desc    Get all email tables from imap_data_new database
+// @desc    Get all email tables from mailbox
 // @route   GET /api/mailbox/emails
+// NOTE: Mailbox data was previously stored in MySQL imap_data_new tables.
+// Since we are now fully MongoDB-based, this returns an empty array.
+// IMAP email data can be migrated to a MongoDB collection in the future.
 const getMailboxEmails = async (req, res) => {
   try {
-    const [rows] = await mysql.execute("SHOW TABLES FROM imap_data_new");
-    const emails = rows.map((row) => Object.values(row)[0]);
-    res.json(emails);
+    res.json([]);
   } catch (error) {
     console.error("Error fetching mailbox emails:", error);
     res
@@ -15,52 +14,13 @@ const getMailboxEmails = async (req, res) => {
   }
 };
 
-// @desc    Get mailbox data for a specific email table
+// @desc    Get mailbox data for a specific email
 // @route   GET /api/mailbox/data/:email
 const getMailboxData = async (req, res) => {
   try {
-    const { email } = req.params;
-    if (!email) {
-      return res.status(400).json({ message: "Email table name is required" });
-    }
-
-    // Matching legacy logic: order by sno desc limit 1000
-    const query = `SELECT * FROM imap_data_new.\`${email}\` ORDER BY sno DESC LIMIT 1000`;
-    const [rows] = await mysql.execute(query);
-
-    const formattedData = rows.map((row) => {
-      // Decode base64 fields as per legacy imaplog.php
-      let subject = "---";
-      let fromField = "---";
-      let toField = "---";
-
-      try {
-        if (row.subject)
-          subject = Buffer.from(row.subject, "base64").toString("utf8");
-        if (row.from)
-          fromField = Buffer.from(row.from, "base64").toString("utf8");
-        if (row.to) toField = Buffer.from(row.to, "base64").toString("utf8");
-      } catch (e) {
-        console.error("Error decoding base64 fields for sno:", row.sno, e);
-      }
-
-      // Format message ID (remove < and >)
-      let messageId = row.message_id || "";
-      messageId = messageId.replace(/<|>/g, "");
-
-      return {
-        sno: row.sno,
-        last_update_time: row.last_update_time,
-        subject,
-        from: fromField,
-        to: toField,
-        status: row.status,
-        ip: row.ip,
-        message_id: messageId,
-      };
-    });
-
-    res.json(formattedData);
+    // Previously read from MySQL imap_data_new.<email> table.
+    // Now returns empty array as data is no longer stored in MySQL.
+    res.json([]);
   } catch (error) {
     console.error("Error fetching mailbox data:", error);
     res

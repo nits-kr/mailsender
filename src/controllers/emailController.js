@@ -3,7 +3,7 @@ const Log = require("../models/Log");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const crypto = require("crypto");
-const pool = require("../config/mysql");
+
 const CampaignTemplate = require("../models/CampaignTemplate");
 const IP = require("../models/IP");
 

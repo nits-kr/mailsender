@@ -1,6 +1,5 @@
 const { serverSetupSchema } = require("../utils/validators");
 const { NodeSSH } = require("node-ssh");
-const pool = require("../config/mysql");
 const ssh = new NodeSSH();
 
 const setupServer = async (req, res) => {
