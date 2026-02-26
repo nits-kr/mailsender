@@ -23,6 +23,16 @@ const evaluate = async (campaignId) => {
     } = campaign;
 
     const sent = success_count + error_count;
+
+    // Auto-complete if finished
+    if (sent >= (total_emails || 0)) {
+      await Campaign.findByIdAndUpdate(campaignId, {
+        status: "Completed",
+        end_time: new Date(),
+      });
+      return;
+    }
+
     if (sent < 50) return; // Wait for a baseline of 50 emails before triggering auto-pause
 
     const received = inbox_count + spam_count; // Total detected by IMAP

@@ -216,6 +216,14 @@ const emailWorker = async (job) => {
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});
+
+      // Auto-complete if finished
+      if (totalSent >= (updatedCampaign.total_emails || 0)) {
+        await Campaign.findByIdAndUpdate(campaign_id, {
+          status: "Completed",
+          end_time: new Date(),
+        });
+      }
     }
 
     console.log(`Email sent successfully to ${email} via ${mailing_ip}`);
@@ -241,6 +249,14 @@ const emailWorker = async (job) => {
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});
+
+      // Auto-complete if finished
+      if (totalSent >= (updatedCampaign.total_emails || 0)) {
+        await Campaign.findByIdAndUpdate(campaign_id, {
+          status: "Completed",
+          end_time: new Date(),
+        });
+      }
     }
     throw error;
   }
