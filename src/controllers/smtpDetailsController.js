@@ -5,6 +5,9 @@ const SmtpDetail = require("../models/SmtpDetail");
 // @access  Private
 const getSmtpDetails = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
     const isAdmin =
       req.user.designation === "Admin" || req.user.designation === "admin";
     const userId = req.user.id;
