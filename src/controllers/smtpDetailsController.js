@@ -1,4 +1,4 @@
-const pool = require("../config/mysql");
+const SmtpDetail = require("../models/SmtpDetail");
 
 // @desc    Get SMTP details
 // @route   GET /api/smtp/details
@@ -9,30 +9,31 @@ const getSmtpDetails = async (req, res) => {
       req.user.designation === "Admin" || req.user.designation === "admin";
     const userId = req.user.id;
 
-    let query;
-    let params = [];
-
-    if (isAdmin) {
-      query = `
-        SELECT t2.sno, t2.hostname, t2.server, t2.user, t2.pass, t2.port, t2.tls, t2.assignedip, t2.accountname, t1.name 
-        FROM \`login\`.\`users\` t1 
-        JOIN \`svml\`.\`mumara\` t2 ON t1.id = t2.accountname
-        ORDER BY t2.sno DESC
-      `;
-    } else {
-      query = `
-        SELECT t2.sno, t2.hostname, t2.server, t2.user, t2.pass, t2.port, t2.tls, t2.assignedip, t2.accountname, t1.name 
-        FROM \`login\`.\`users\` t1 
-        JOIN \`svml\`.\`mumara\` t2 ON t1.id = t2.accountname 
-        WHERE t1.id = ?
-        ORDER BY t2.sno DESC
-      `;
-      params = [userId];
+    let filter = {};
+    if (!isAdmin) {
+      filter = { accountname: userId };
     }
 
-    const [rows] = await pool.query(query, params);
+    const rows = await SmtpDetail.find(filter)
+      .populate("accountname", "name")
+      .sort({ createdAt: -1 });
 
-    res.json(rows);
+    // Normalize output shape to match legacy frontend expectations
+    const data = rows.map((r) => ({
+      _id: r._id,
+      sno: r._id,
+      assignedip: r.assignedip,
+      server: r.server,
+      hostname: r.hostname,
+      user: r.user,
+      pass: r.pass,
+      port: r.port,
+      tls: r.tls,
+      accountname: r.accountname?._id || r.accountname,
+      name: r.accountname?.name || "",
+    }));
+
+    res.json(data);
   } catch (error) {
     console.error("Error fetching SMTP details:", error);
     res
@@ -64,18 +65,20 @@ const addSmtpDetails = async (req, res) => {
       if (parts.length === 6) {
         const [ip, host, user, pass, port, tls] = parts;
 
-        // Check if IP exist
-        const [existing] = await pool.query(
-          "SELECT assignedip FROM \`svml\`.\`mumara\` WHERE assignedip = ?",
-          [ip],
-        );
+        const existing = await SmtpDetail.findOne({ assignedip: ip });
 
-        if (existing.length === 0) {
+        if (!existing) {
           // Insert
-          await pool.query(
-            "INSERT INTO \`svml\`.\`mumara\` (assignedip, server, hostname, user, pass, port, tls, accountname) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [ip, server, host, user, pass, port, tls, assign],
-          );
+          await SmtpDetail.create({
+            assignedip: ip,
+            server,
+            hostname: host,
+            user,
+            pass,
+            port,
+            tls,
+            accountname: assign,
+          });
           results.push({
             ip,
             status: "INSERTED",
@@ -83,9 +86,10 @@ const addSmtpDetails = async (req, res) => {
           });
         } else {
           // Update
-          await pool.query(
-            "UPDATE \`svml\`.\`mumara\` SET accountname = ?, hostname = ?, user = ?, pass = ?, port = ?, tls = ? WHERE assignedip = ?",
-            [assign, host, user, pass, port, tls, ip],
+          await SmtpDetail.findOneAndUpdate(
+            { assignedip: ip },
+            { accountname: assign, hostname: host, user, pass, port, tls },
+            { new: true },
           );
           results.push({
             ip,
@@ -112,18 +116,19 @@ const addSmtpDetails = async (req, res) => {
 };
 
 // @desc    Delete SMTP details
-// @route   DELETE /api/smtp/details/:sno
+// @route   DELETE /api/smtp/details/:id
 // @access  Private/Admin
 const deleteSmtpDetails = async (req, res) => {
   try {
-    const sno = req.params.sno;
-
     // Legacy code restricted delete to Admins only
     if (req.user.designation !== "Admin" && req.user.designation !== "admin") {
       return res.status(403).json({ message: "Not authorized to delete" });
     }
 
-    await pool.query("DELETE FROM \`svml\`.\`mumara\` WHERE sno = ?", [sno]);
+    const deleted = await SmtpDetail.findByIdAndDelete(req.params.sno);
+    if (!deleted) {
+      return res.status(404).json({ message: "SMTP detail not found" });
+    }
 
     res.json({ message: "SMTP Details removed" });
   } catch (error) {
