@@ -4,12 +4,23 @@ import {
   useDownloadDataMutation,
 } from "../store/apiSlice";
 import {
-  Search,
   Download,
-  Plus,
-  Minus,
-  Search as SearchIcon,
+  Search,
+  PlusCircle,
+  Hash,
+  Settings2,
+  Terminal,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Layers,
+  Globe,
+  RefreshCw,
+  ArrowRightLeft,
+  Trash2,
 } from "lucide-react";
+import "./DataDownload.css";
 
 const DataDownload = () => {
   const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
@@ -19,242 +30,344 @@ const DataDownload = () => {
   const [repeat, setRepeat] = useState("1");
   const [type, setType] = useState("Random");
   const [selector, setSelector] = useState("email");
-  const [result, setResult] = useState("");
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    "Daemon active. Ready for data extraction...",
+  ]);
   const [generatedFilename, setGeneratedFilename] = useState("");
 
-  const { data: allFiles } = useGetDataCountQuery();
-  const [downloadData, { isLoading: loading }] = useDownloadDataMutation();
+  const {
+    data: allFiles,
+    isLoading: isLoadingFiles,
+    refetch,
+  } = useGetDataCountQuery();
+  const [downloadData, { isLoading: isDownloading }] =
+    useDownloadDataMutation();
 
-  const toggleFile = (file: any) => {
-    if (!Array.isArray(selectedFiles)) return;
-    if (selectedFiles.find((f) => f.filename === file.filename)) {
-      setSelectedFiles(
-        selectedFiles.filter((f) => f.filename !== file.filename),
-      );
-    } else {
-      setSelectedFiles([...selectedFiles, file]);
+  const addLog = (msg: string) => {
+    setConsoleLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] ${msg}`,
+    ]);
+  };
+
+  const addFileToSelected = (file: any) => {
+    if (!selectedFiles.find((f) => f.filename === file.filename)) {
+      setSelectedFiles((prev) => [...prev, file]);
+      addLog(`Attached cluster: ${file.filename}`);
+    }
+  };
+
+  const removeFileFromSelected = (filename: string) => {
+    setSelectedFiles((prev) => prev.filter((f) => f.filename !== filename));
+    addLog(`Detached: ${filename}`);
+  };
+
+  // Drag & Drop Handlers
+  const handleDragStart = (e: React.DragEvent, file: any) => {
+    e.dataTransfer.setData("file", JSON.stringify(file));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const fileData = e.dataTransfer.getData("file");
+    if (fileData) {
+      const file = JSON.parse(fileData);
+      addFileToSelected(file);
     }
   };
 
   const handleDownload = async () => {
     if (selectedFiles.length === 0) {
-      setResult("Select any file first!");
+      addLog("ERROR: Extraction pool is empty!");
       return;
     }
-    setResult("Processing...");
+
+    addLog(
+      `Executing extraction pipeline for ${selectedFiles.length} source(s)...`,
+    );
+    setGeneratedFilename("");
 
     try {
       const res = await downloadData({
-        filenames: (Array.isArray(selectedFiles) ? selectedFiles : []).map(
-          (f) => f.filename,
-        ),
+        filenames: selectedFiles.map((f) => f.filename),
         count,
         type,
         times: repeat,
         ip,
         selector,
       }).unwrap();
+
       setGeneratedFilename(res.filename);
-      setResult(
-        `Success! File: ${res.filename} | Final: ${res.finalCount} | Supp: ${res.suppCount}`,
+      addLog(`SUCCESS: Extraction set generated -> ${res.filename}`);
+      addLog(
+        `Report: Records: ${res.finalCount} | Suppressed: ${res.suppCount}`,
       );
     } catch (error: any) {
-      setResult(`Error: ${error?.data?.message || "Download failed"}`);
+      addLog(
+        `CRITICAL: Pipeline failure - ${error?.data?.message || "Connection timeout"}`,
+      );
     }
   };
 
   const filteredFiles = (Array.isArray(allFiles) ? allFiles : []).filter(
     (f) =>
       f.filename?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !(Array.isArray(selectedFiles) ? selectedFiles : []).find(
-        (sf) => sf.filename === f.filename,
-      ),
+      !selectedFiles.find((sf) => sf.filename === f.filename),
   );
 
-  const totalSelectedCount = (
-    Array.isArray(selectedFiles) ? selectedFiles : []
-  ).reduce((acc, f) => acc + (f.count || 0), 0);
+  const totalSelectedCount = selectedFiles.reduce(
+    (acc, f) => acc + (f.count || 0),
+    0,
+  );
   const totalAllCount = (Array.isArray(allFiles) ? allFiles : []).reduce(
     (acc, f) => acc + (f.count || 0),
     0,
   );
 
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4 pb-20"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1100px] mx-auto flex flex-col items-center">
-        <center>
-          <h2 className="text-xl font-bold mb-10 pt-4 uppercase tracking-tighter">
-            DATA DOWNLOADING PORTAL
-          </h2>
-        </center>
+    <div className="download-wrapper">
+      <div className="download-container">
+        {/* Header */}
+        <div className="download-header">
+          <div className="header-title-box">
+            <div className="icon-badge">
+              <Download size={28} color="white" />
+            </div>
+            <div>
+              <h1>Data Extract Portal</h1>
+              <p className="subtitle">
+                High-speed suppression & export utility
+              </p>
+            </div>
+          </div>
+          <div className="header-actions">
+            <button
+              className="refresh-btn"
+              onClick={() => refetch()}
+              title="Refresh Source List"
+            >
+              <RefreshCw size={18} />
+            </button>
+          </div>
+        </div>
 
-        {/* Portlets Container */}
-        <div className="flex flex-row justify-center items-start gap-8 w-full mb-10">
-          {/* SELECTED Portlet */}
-          <div className="w-[480px] border border-blue-600 rounded-sm bg-white flex flex-col h-[420px] shadow-sm">
-            <div className="text-center py-2 border-b border-gray-300 bg-white">
-              <span className="text-green-700 font-bold text-md uppercase">
-                SELECTED
-              </span>
-            </div>
-            <div className="relative flex items-center px-3 py-1 border-b border-gray-400 text-[12px] font-bold bg-white h-8">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span>Filename</span>
+        <div className="workspace-grid">
+          {/* AVAILABLE POOL */}
+          <div className="pool-box available-pool">
+            <div className="pool-header">
+              <div className="pool-label">
+                <Layers size={16} /> Available Clusters
               </div>
-              <div className="ml-auto">
-                <span>Total : {totalSelectedCount}</span>
+              <div className="pool-meta">
+                <Hash size={12} /> {totalAllCount}
               </div>
             </div>
-            <div className="flex-grow overflow-y-auto scrollbar-thin bg-white">
-              {selectedFiles.map((file) => (
-                <div
-                  key={file.filename}
-                  onClick={() => toggleFile(file)}
-                  className="px-3 py-0.5 border-b border-gray-200 hover:bg-gray-50 cursor-pointer text-[12px] font-bold flex justify-between"
-                >
-                  <span className="text-gray-800">{file.filename}</span>
-                  <span className="text-gray-400">[{file.count}]</span>
+            <div className="pool-search">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Filter master data..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="pool-list scrollable">
+              {isLoadingFiles ? (
+                <div className="pool-state">
+                  <Loader2 className="animate-spin" /> Fetching...
                 </div>
-              ))}
+              ) : filteredFiles.length === 0 ? (
+                <div className="pool-state">No matching clusters</div>
+              ) : (
+                filteredFiles.map((file) => (
+                  <div
+                    key={file.filename}
+                    className="pool-item draggable"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, file)}
+                    onClick={() => addFileToSelected(file)}
+                  >
+                    <FileText size={14} className="text-slate-400" />
+                    <span className="file-name">{file.filename}</span>
+                    <span className="file-count">{file.count}</span>
+                    <PlusCircle size={14} className="add-icon" />
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* All Portlet */}
-          <div className="w-[480px] border border-blue-600 rounded-sm bg-white flex flex-col h-[420px] shadow-sm">
-            <div className="text-center py-2 border-b border-gray-300 bg-white">
-              <span className="text-blue-700 font-bold text-md uppercase">
-                All
-              </span>
-            </div>
-            <div className="py-2 border-b border-gray-300 bg-white text-center">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-[12px] font-bold italic text-gray-700">
-                  Search..
-                </span>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border border-gray-300 px-1 py-0.5 text-[11px] w-48 outline-none focus:border-blue-400"
-                />
+          {/* TRANSFER ICON */}
+          <div className="transfer-indicator">
+            <ArrowRightLeft size={24} className="text-slate-300" />
+          </div>
+
+          {/* SELECTED POOL (DROP ZONE) */}
+          <div
+            className="pool-box selected-pool"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            <div className="pool-header">
+              <div className="pool-label">
+                <CheckCircle2 size={16} /> Selected Pipeline
+              </div>
+              <div className="pool-meta active">
+                <Hash size={12} /> {totalSelectedCount}
               </div>
             </div>
-            <div className="relative flex items-center px-3 py-1 border-b border-gray-400 text-[12px] font-bold bg-white h-8">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span>Filename</span>
-              </div>
-              <div className="ml-auto">
-                <span>Total : {totalAllCount}</span>
-              </div>
-            </div>
-            <div className="flex-grow overflow-y-auto scrollbar-thin bg-white">
-              {filteredFiles.map((file) => (
-                <div
-                  key={file.filename}
-                  onClick={() => toggleFile(file)}
-                  className="px-3 py-0.5 border-b border-gray-200 hover:bg-gray-50 cursor-pointer text-[12px] font-bold leading-tight"
-                >
-                  <span className="text-green-700">{file.filename}</span>
-                  <span className="text-black mx-1 font-normal">|</span>
-                  <span className="text-red-600">{file.count}</span>
+            <div className="pool-list scrollable">
+              {selectedFiles.length === 0 ? (
+                <div className="pool-state drop-cue">
+                  <Download size={32} className="mb-2" />
+                  Drag clusters here to stage extraction
                 </div>
-              ))}
+              ) : (
+                selectedFiles.map((file) => (
+                  <div key={file.filename} className="pool-item staged">
+                    <CheckCircle2 size={14} className="text-emerald-500" />
+                    <span className="file-name">{file.filename}</span>
+                    <div className="item-controls">
+                      <span className="file-count">[{file.count}]</span>
+                      <Trash2
+                        size={14}
+                        className="remove-btn"
+                        onClick={() => removeFileFromSelected(file.filename)}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
-        {/* Settings Form */}
-        <div className="flex flex-col items-center gap-2 text-[12px] font-bold mb-8">
-          <div className="flex items-center gap-3">
-            <label className="w-24 text-right">IP :</label>
-            <input
-              type="text"
-              value={ip}
-              onChange={(e) => setIp(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-[220px] outline-none font-mono"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="w-24 text-right">Count :</label>
-            <input
-              type="text"
-              value={count}
-              onChange={(e) => setCount(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-[220px] outline-none font-mono"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="w-24 text-right">Repeat By:</label>
-            <input
-              type="text"
-              value={repeat}
-              onChange={(e) => setRepeat(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-[220px] outline-none font-mono"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="w-24 text-right">Type :</label>
-            <div className="flex items-center gap-6 w-[220px]">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={type === "Random"}
-                  onChange={() => setType("Random")}
-                />{" "}
-                Random
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={type === "Not Random"}
-                  onChange={() => setType("Not Random")}
-                />{" "}
-                Not Random
-              </label>
+        {/* SETTINGS & LOGS */}
+        <div className="bottom-sections">
+          {/* Parameters */}
+          <div className="settings-card">
+            <div className="card-header">
+              <Settings2 size={18} /> Configuration
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="w-24 text-right">Selector :</label>
-            <div className="flex items-center gap-6 w-[220px]">
-              <label className="flex items-center gap-1 cursor-pointer">
+            <div className="settings-grid">
+              <div className="field-group">
+                <label>
+                  <Globe size={14} /> Global IP
+                </label>
                 <input
-                  type="radio"
-                  checked={selector === "email"}
-                  onChange={() => setSelector("email")}
-                />{" "}
-                Email
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer">
+                  type="text"
+                  value={ip}
+                  onChange={(e) => setIp(e.target.value)}
+                />
+              </div>
+              <div className="field-group">
+                <label>
+                  <Hash size={14} /> Extract Limit
+                </label>
                 <input
-                  type="radio"
-                  checked={selector === "both"}
-                  onChange={() => setSelector("both")}
-                />{" "}
-                Email / MD5
-              </label>
+                  type="text"
+                  value={count}
+                  onChange={(e) => setCount(e.target.value)}
+                />
+              </div>
+              <div className="field-group">
+                <label>
+                  <RefreshCw size={14} /> Loop Count
+                </label>
+                <input
+                  type="text"
+                  value={repeat}
+                  onChange={(e) => setRepeat(e.target.value)}
+                />
+              </div>
+              <div className="field-group">
+                <label>Extraction Logic</label>
+                <div className="logic-toggles">
+                  <button
+                    className={type === "Random" ? "active" : ""}
+                    onClick={() => setType("Random")}
+                  >
+                    Random
+                  </button>
+                  <button
+                    className={type === "Not Random" ? "active" : ""}
+                    onClick={() => setType("Not Random")}
+                  >
+                    Static
+                  </button>
+                </div>
+              </div>
+              <div className="field-group span-2">
+                <label>Attribute Selector</label>
+                <div className="logic-toggles">
+                  <button
+                    className={selector === "email" ? "active" : ""}
+                    onClick={() => setSelector("email")}
+                  >
+                    Plain Address
+                  </button>
+                  <button
+                    className={selector === "both" ? "active" : ""}
+                    onClick={() => setSelector("both")}
+                  >
+                    Address + Hash (MD5)
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-6">
             <button
+              className={`execute-btn ${isDownloading ? "processing" : ""}`}
               onClick={handleDownload}
-              disabled={loading}
-              className="bg-gray-100 border border-gray-500 px-8 py-1 font-bold shadow-sm hover:bg-gray-200 active:bg-gray-300 transition-colors uppercase text-[11px]"
+              disabled={isDownloading}
             >
-              {loading ? "Processing..." : "Download"}
+              {isDownloading ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} /> Generating
+                  extraction package...
+                </>
+              ) : (
+                <>
+                  <Download size={20} /> Execute Data Extraction
+                </>
+              )}
             </button>
           </div>
 
-          <div className="mt-8 flex justify-center w-full">
-            <textarea
-              readOnly
-              value={generatedFilename || result}
-              placeholder="Filename Will Be Generated Here...!"
-              className="w-[850px] h-28 border border-gray-400 px-3 py-2 outline-none text-gray-500 resize-none font-mono text-[11px] bg-white italic"
-            />
+          {/* Console */}
+          <div className="console-card">
+            <div className="console-head">
+              <div className="console-dots">
+                <span className="dot d-red"></span>
+                <span className="dot d-yellow"></span>
+                <span className="dot d-green"></span>
+              </div>
+              <div className="console-title">
+                <Terminal size={12} /> extract_daemon_v1.0.4
+              </div>
+            </div>
+            <div className="console-body">
+              {consoleLogs.map((log, i) => (
+                <div key={i} className="log-line">
+                  {log}
+                </div>
+              ))}
+              {isDownloading && (
+                <div className="log-line pulse">
+                  Interfacing with SQL master... suppression in progress...
+                </div>
+              )}
+              {generatedFilename && (
+                <div className="success-banner">
+                  PACKAGE_ID: {generatedFilename}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
