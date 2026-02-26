@@ -39,11 +39,13 @@ const Dashboard = () => {
 
   const handleApply = () => setQueryDates({ from: dateFrom, to: dateTo });
 
-  const filteredLogs = logs.filter((log) =>
-    Object.values(log).some((val) =>
-      String(val).toLowerCase().includes(searchTerm.toLowerCase()),
-    ),
-  );
+  const filteredLogs = Array.isArray(logs)
+    ? logs.filter((log) =>
+        Object.values(log).some((val) =>
+          String(val).toLowerCase().includes(searchTerm.toLowerCase()),
+        ),
+      )
+    : [];
 
   const totals = filteredLogs.reduce(
     (acc, log) => ({
@@ -127,10 +129,12 @@ const Dashboard = () => {
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
-                  data={stats.pieData.map((d: any) => ({
-                    name: d._id,
-                    value: d.count,
-                  }))}
+                  data={(Array.isArray(stats.pieData) ? stats.pieData : []).map(
+                    (d: any) => ({
+                      name: d._id,
+                      value: d.count,
+                    }),
+                  )}
                   cx="50%"
                   cy="45%"
                   innerRadius={65}
@@ -144,23 +148,25 @@ const Dashboard = () => {
                   }
                   labelLine={false}
                 >
-                  {stats.pieData.map((_: any, i: number) => (
-                    <Cell
-                      key={i}
-                      fill={
-                        [
-                          "#6366f1",
-                          "#22d3ee",
-                          "#f59e0b",
-                          "#10b981",
-                          "#ef4444",
-                          "#a855f7",
-                          "#ec4899",
-                          "#14b8a6",
-                        ][i % 8]
-                      }
-                    />
-                  ))}
+                  {(Array.isArray(stats.pieData) ? stats.pieData : []).map(
+                    (_: any, i: number) => (
+                      <Cell
+                        key={i}
+                        fill={
+                          [
+                            "#6366f1",
+                            "#22d3ee",
+                            "#f59e0b",
+                            "#10b981",
+                            "#ef4444",
+                            "#a855f7",
+                            "#ec4899",
+                            "#14b8a6",
+                          ][i % 8]
+                        }
+                      />
+                    ),
+                  )}
                 </Pie>
                 <Tooltip
                   formatter={(value: any) => [
@@ -207,10 +213,12 @@ const Dashboard = () => {
           {stats.barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart
-                data={stats.barData.map((d: any) => ({
-                  name: d._id,
-                  Sent: d.sent,
-                }))}
+                data={(Array.isArray(stats.barData) ? stats.barData : []).map(
+                  (d: any) => ({
+                    name: d._id,
+                    Sent: d.sent,
+                  }),
+                )}
                 margin={{ top: 5, right: 10, left: -10, bottom: 45 }}
               >
                 <defs>

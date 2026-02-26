@@ -149,25 +149,35 @@ const Suppression = () => {
     }
   }, [logData, logModal.open]);
 
-  const filteredMappings = mappings.filter(
-    (m: any) =>
-      (m.Affiliate || "")
-        .toLowerCase()
-        .includes(searchMappings.toLowerCase()) ||
-      (m.offer_name || m.offer_id?.name || "")
-        .toLowerCase()
-        .includes(searchMappings.toLowerCase()) ||
-      (m.filename || "").toLowerCase().includes(searchMappings.toLowerCase()),
-  );
+  const filteredMappings = Array.isArray(mappings)
+    ? mappings.filter(
+        (m: any) =>
+          (m.Affiliate || "")
+            .toLowerCase()
+            .includes(searchMappings.toLowerCase()) ||
+          (m.offer_name || m.offer_id?.name || "")
+            .toLowerCase()
+            .includes(searchMappings.toLowerCase()) ||
+          (m.filename || "")
+            .toLowerCase()
+            .includes(searchMappings.toLowerCase()),
+      )
+    : [];
 
-  const filteredQueue = queue.filter(
-    (q: any) =>
-      (q.Affiliate || "").toLowerCase().includes(searchQueue.toLowerCase()) ||
-      (q.offer_name || q.offer_id?.name || "")
-        .toLowerCase()
-        .includes(searchQueue.toLowerCase()) ||
-      (q.new_filename || "").toLowerCase().includes(searchQueue.toLowerCase()),
-  );
+  const filteredQueue = Array.isArray(queue)
+    ? queue.filter(
+        (q: any) =>
+          (q.Affiliate || "")
+            .toLowerCase()
+            .includes(searchQueue.toLowerCase()) ||
+          (q.offer_name || q.offer_id?.name || "")
+            .toLowerCase()
+            .includes(searchQueue.toLowerCase()) ||
+          (q.new_filename || "")
+            .toLowerCase()
+            .includes(searchQueue.toLowerCase()),
+      )
+    : [];
 
   const getStatusDisplay = (status: number) => {
     switch (status) {
@@ -200,11 +210,12 @@ const Suppression = () => {
               onChange={(e) => setUploadOffer(e.target.value)}
             >
               <option value="">Select Any</option>
-              {offers.map((o: any) => (
-                <option key={o._id} value={o._id}>
-                  {o.id} | {o.affiliate} | {o.name}
-                </option>
-              ))}
+              {Array.isArray(offers) &&
+                offers.map((o: any) => (
+                  <option key={o._id} value={o._id}>
+                    {o.id} | {o.affiliate} | {o.name}
+                  </option>
+                ))}
             </select>
           </div>
           <div
@@ -246,7 +257,7 @@ const Suppression = () => {
               onChange={(e) => setScheduleOffer(e.target.value)}
             >
               <option value="">Select Any</option>
-              {mappings.map((m: any) => (
+              {(Array.isArray(mappings) ? mappings : []).map((m: any) => (
                 <option
                   key={m.offer_id?._id || m._id}
                   value={m.offer_id?._id || m.offer_id}

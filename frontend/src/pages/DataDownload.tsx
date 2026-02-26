@@ -35,6 +35,7 @@ const DataDownload = () => {
   };
 
   const toggleFile = (file: any) => {
+    if (!Array.isArray(selectedFiles)) return;
     if (selectedFiles.find((f) => f.filename === file.filename)) {
       setSelectedFiles(
         selectedFiles.filter((f) => f.filename !== file.filename),
@@ -54,7 +55,9 @@ const DataDownload = () => {
 
     try {
       const res = await axios.post("/api/data/download", {
-        filenames: selectedFiles.map((f) => f.filename),
+        filenames: (Array.isArray(selectedFiles) ? selectedFiles : []).map(
+          (f) => f.filename,
+        ),
         count,
         type,
         times: repeat,
@@ -72,17 +75,21 @@ const DataDownload = () => {
     }
   };
 
-  const filteredFiles = allFiles.filter(
+  const filteredFiles = (Array.isArray(allFiles) ? allFiles : []).filter(
     (f) =>
-      f.filename.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !selectedFiles.find((sf) => sf.filename === f.filename),
+      f.filename?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      !(Array.isArray(selectedFiles) ? selectedFiles : []).find(
+        (sf) => sf.filename === f.filename,
+      ),
   );
 
-  const totalSelectedCount = selectedFiles.reduce(
+  const totalSelectedCount = (
+    Array.isArray(selectedFiles) ? selectedFiles : []
+  ).reduce((acc, f) => acc + (f.count || 0), 0);
+  const totalAllCount = (Array.isArray(allFiles) ? allFiles : []).reduce(
     (acc, f) => acc + (f.count || 0),
     0,
   );
-  const totalAllCount = allFiles.reduce((acc, f) => acc + (f.count || 0), 0);
 
   return (
     <div
