@@ -9,6 +9,13 @@ const campaignLogSchema = mongoose.Schema({
   log_text: { type: String, required: true },
   type: { type: String, enum: ["info", "success", "error"], default: "info" },
   created_at: { type: Date, default: Date.now },
+  // Structured stats for terminal log display
+  sent: { type: Number, default: 0 }, // total sent so far at time of this log
+  inbox: { type: Number, default: 0 }, // IMAP inbox count (future)
+  spam: { type: Number, default: 0 }, // IMAP spam count (future)
+  received: { type: Number, default: 0 }, // IMAP received count (future)
+  mail_status: { type: String, default: "" }, // e.g. "email@x.com success"
+  inbox_percent: { type: Number, default: 0 },
 });
 
 module.exports = mongoose.model("CampaignLog", campaignLogSchema);

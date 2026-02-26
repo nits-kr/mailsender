@@ -170,6 +170,9 @@ export const apiSlice = createApi({
       query: (id) => `/screens/${id}/logs`,
       providesTags: (_r, _e, id) => [{ type: 'ScreenLog', id }],
     }),
+    getCampaignStats: builder.query<any, string>({
+      query: (id) => `/screens/${id}/stats`,
+    }),
     stopScreen: builder.mutation<void, string>({
       query: (id) => ({ url: `/screens/${id}/stop`, method: 'PATCH' }),
       invalidatesTags: ['Screen'],
@@ -408,6 +411,7 @@ export const {
   // Screens
   useGetScreensQuery,
   useGetScreenLogsQuery,
+  useGetCampaignStatsQuery,
   useStopScreenMutation,
   useDeleteScreenMutation,
   // Offers

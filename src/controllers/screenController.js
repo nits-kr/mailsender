@@ -19,13 +19,29 @@ const getScreens = async (req, res) => {
 const getScreenLogs = async (req, res) => {
   try {
     const logs = await CampaignLog.find({ campaign_id: req.params.id })
-      .sort({ created_at: -1 })
+      .sort({ created_at: 1 })
       .limit(500);
     res.json(logs);
   } catch (error) {
     res
       .status(500)
       .json({ message: "Error fetching screen logs", error: error.message });
+  }
+};
+
+// @desc    Get live stats for a campaign
+// @route   GET /api/screens/:id/stats
+const getCampaignStats = async (req, res) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id).select(
+      "template_name total_emails success_count error_count status start_time",
+    );
+    if (!campaign) return res.status(404).json({ message: "Not found" });
+    res.json(campaign);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching campaign stats", error: error.message });
   }
 };
 
@@ -64,4 +80,10 @@ const stopScreen = async (req, res) => {
   }
 };
 
-module.exports = { getScreens, getScreenLogs, deleteScreen, stopScreen };
+module.exports = {
+  getScreens,
+  getScreenLogs,
+  getCampaignStats,
+  deleteScreen,
+  stopScreen,
+};

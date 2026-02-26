@@ -28,6 +28,7 @@ import ComplainFetch from "./pages/ComplainFetch";
 import DataAnalytics from "./pages/DataAnalytics";
 import DataDelete from "./pages/DataDelete";
 import Screen from "./pages/Screen";
+import ScreenLogPage from "./pages/ScreenLogPage";
 import TestidsScreen from "./pages/TestidsScreen";
 import TestidsMailbox from "./pages/TestidsMailbox";
 import TestIdsManagement from "./pages/TestIdsManagement";
@@ -156,6 +157,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Screen />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/screens/:id/logs"
+                element={
+                  <ProtectedRoute>
+                    <ScreenLogPage />
                   </ProtectedRoute>
                 }
               />

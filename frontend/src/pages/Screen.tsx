@@ -1,17 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { RefreshCcw } from "lucide-react";
 import {
   useGetScreensQuery,
-  useGetScreenLogsQuery,
   useStopScreenMutation,
   useDeleteScreenMutation,
 } from "../store/apiSlice";
 import "./Screen.css";
 
 const Screen = () => {
-  const [selectedScreen, setSelectedScreen] = useState<any>(null);
-  const [showLogs, setShowLogs] = useState(false);
-  const [logsScreenId, setLogsScreenId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Poll every 10 seconds automatically
   const {
@@ -21,16 +19,11 @@ const Screen = () => {
   } = useGetScreensQuery(undefined, {
     pollingInterval: 10000,
   });
-  const { data: logs = [] } = useGetScreenLogsQuery(logsScreenId!, {
-    skip: !logsScreenId,
-  });
   const [stopScreen] = useStopScreenMutation();
   const [deleteScreen] = useDeleteScreenMutation();
 
   const handleLogClick = (screen: any) => {
-    setSelectedScreen(screen);
-    setLogsScreenId(screen._id);
-    setShowLogs(true);
+    navigate(`/screens/${screen._id}/logs`);
   };
 
   const handleStop = async (id: string) => {
@@ -184,31 +177,6 @@ const Screen = () => {
           <br />
         </div>
       </div>
-
-      {showLogs && (
-        <div className="log-modal" onClick={() => setShowLogs(false)}>
-          <div className="log-content" onClick={(e) => e.stopPropagation()}>
-            <div className="log-header">
-              <h1 className="m-0">{selectedScreen?.template_name}</h1>
-              <button
-                onClick={() => setShowLogs(false)}
-                className="modal-close-btn"
-              >
-                Go Back
-              </button>
-            </div>
-            <pre className="log-pre">
-              {logs.length > 0 ? (
-                logs.map((log: any, i: number) => (
-                  <div key={i}>{log.log_text}</div>
-                ))
-              ) : (
-                <div className="log-loading">Loading logs...</div>
-              )}
-            </pre>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

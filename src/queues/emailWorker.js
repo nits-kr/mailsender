@@ -188,16 +188,26 @@ const emailWorker = async (job) => {
 
     // Update Campaign Stats & Log SMTP Transcript
     if (campaign_id) {
-      await Campaign.findByIdAndUpdate(campaign_id, {
-        $inc: { success_count: 1 },
-      });
+      const updatedCampaign = await Campaign.findByIdAndUpdate(
+        campaign_id,
+        { $inc: { success_count: 1 } },
+        { new: true },
+      );
 
-      // Log the transcript
+      const totalSent =
+        (updatedCampaign.success_count || 0) +
+        (updatedCampaign.error_count || 0);
       const transcriptText = smtpTranscript.join("\n");
       await CampaignLog.create({
         campaign_id,
         log_text: `[${email}] SENT SUCCESS\n${transcriptText}\nResponse: ${info.response}`,
         type: "success",
+        sent: totalSent,
+        mail_status: `${email} success`,
+        inbox: 0,
+        spam: 0,
+        received: 0,
+        inbox_percent: 0,
       });
     }
 
@@ -205,13 +215,24 @@ const emailWorker = async (job) => {
   } catch (error) {
     console.error(`Error sending email to ${email}`, error);
     if (campaign_id) {
-      await Campaign.findByIdAndUpdate(campaign_id, {
-        $inc: { error_count: 1 },
-      });
+      const updatedCampaign = await Campaign.findByIdAndUpdate(
+        campaign_id,
+        { $inc: { error_count: 1 } },
+        { new: true },
+      );
+      const totalSent =
+        (updatedCampaign.success_count || 0) +
+        (updatedCampaign.error_count || 0);
       await CampaignLog.create({
         campaign_id,
         log_text: `[${email}] SEND ERROR: ${error.message}`,
         type: "error",
+        sent: totalSent,
+        mail_status: `${email} error`,
+        inbox: 0,
+        spam: 0,
+        received: 0,
+        inbox_percent: 0,
       });
     }
     throw error;
