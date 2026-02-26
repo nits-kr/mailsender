@@ -40,14 +40,7 @@ const emailWorker = async (job) => {
       }
     }
 
-    let smtpConfig = {
-      host: mailing_ip.split("|")[0],
-      port: 25,
-      secure: false,
-      tls: { rejectUnauthorized: false },
-      debug: true,
-      logger: true,
-    };
+    let smtpConfig = null;
 
     const ipKey = String(mailing_ip.split("|")[0] || "").trim();
     const ipRecord =
@@ -95,8 +88,8 @@ const emailWorker = async (job) => {
       }
     }
 
-    // Fail fast with actionable error if alias does not map to real SMTP host.
-    if (!smtpConfig.host || smtpConfig.host === ipKey) {
+    // Fail fast with actionable error if no SMTP mapping was found in DB.
+    if (!smtpConfig) {
       throw new Error(
         `SMTP mapping not found for '${ipKey}'. Configure hostname/user/pass/port in IP or SMTP Details.`,
       );

@@ -78,7 +78,16 @@ const Interface = () => {
     if (!pollLogs) return;
     const timer = window.setTimeout(() => setPollLogs(false), 60000);
     return () => window.clearTimeout(timer);
-  }, [pollLogs, activeCampaignId]);
+  }, [pollLogs]);
+
+  // Auto-stop polling when campaign finishes (success OR error log appears)
+  useEffect(() => {
+    if (!pollLogs || campaignLogs.length === 0) return;
+    const isDone = campaignLogs.some(
+      (log: any) => log.type === "success" || log.type === "error",
+    );
+    if (isDone) setPollLogs(false);
+  }, [campaignLogs, pollLogs]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

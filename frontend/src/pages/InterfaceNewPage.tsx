@@ -55,14 +55,32 @@ export const InterfaceNewPage = () => {
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const [pollLogs, setPollLogs] = useState(false);
 
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
     activeCampaignId || "",
     {
       skip: !activeCampaignId,
-      pollingInterval: 2000,
+      pollingInterval: pollLogs ? 2000 : 0,
+      refetchOnMountOrArgChange: true,
     },
   );
+
+  // Stop polling after 60s max
+  useEffect(() => {
+    if (!pollLogs) return;
+    const timer = window.setTimeout(() => setPollLogs(false), 60000);
+    return () => window.clearTimeout(timer);
+  }, [pollLogs]);
+
+  // Auto-stop polling when campaign finishes
+  useEffect(() => {
+    if (!pollLogs || campaignLogs.length === 0) return;
+    const isDone = campaignLogs.some(
+      (log: any) => log.type === "success" || log.type === "error",
+    );
+    if (isDone) setPollLogs(false);
+  }, [campaignLogs, pollLogs]);
 
   const { data: defaultIpsData } = useGetDefaultIpsQuery();
 
@@ -131,6 +149,7 @@ export const InterfaceNewPage = () => {
     }));
 
     setActiveCampaignId(selectedCampaignId);
+    setPollLogs(false);
   };
 
   const [sendEmailMutation] = useSendEmailMutation();
@@ -155,6 +174,7 @@ export const InterfaceNewPage = () => {
 
       const result = await sendEmailMutation(payload).unwrap();
       setActiveCampaignId(result.campaign_id);
+      setPollLogs(true);
       setStatus("Sent successfully!");
     } catch (error: any) {
       alert("Error: " + (error?.data?.message || "Send failed"));
