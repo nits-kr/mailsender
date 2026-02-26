@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import {} from "lucide-react";
 import { useRunServerSetupMutation } from "../store/apiSlice";
 
 const ServerSetup = () => {
