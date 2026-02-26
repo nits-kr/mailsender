@@ -9,7 +9,7 @@ import "./TestIdsManagement.css";
 
 const TestIdsManagement = () => {
   // ... existing state ...
-  const { data: testIds = [], isLoading } = useGetTestIdsQuery();
+  const { data: testIds = [] } = useGetTestIdsQuery();
   const [addTestId] = useAddTestIdMutation();
   const [updateTestId] = useUpdateTestIdMutation();
   const [deleteTestId] = useDeleteTestIdMutation();

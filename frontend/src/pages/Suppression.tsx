@@ -45,8 +45,7 @@ const Suppression = () => {
     skip: !logQueryId,
   });
 
-  const [uploadSuppression, { isLoading: uploading }] =
-    useUploadSuppressionMutation();
+  const [uploadSuppression] = useUploadSuppressionMutation();
   const [createMapping] = useCreateSuppressionMappingMutation();
   const [createQueue] = useCreateSuppressionQueueMutation();
   const [deleteMapping] = useDeleteSuppressionMappingMutation();
