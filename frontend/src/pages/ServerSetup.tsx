@@ -1,14 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  Terminal,
-  Shield,
-  List,
-  Play,
-  RefreshCw,
-  Database,
-  Server,
-  User,
-} from "lucide-react";
+import React, { useState } from "react";
+import {} from "lucide-react";
 import { useRunServerSetupMutation } from "../store/apiSlice";
 
 const ServerSetup = () => {

@@ -1,15 +1,5 @@
 import React, { useState } from "react";
-import {
-  Terminal,
-  Shield,
-  List,
-  Play,
-  RefreshCw,
-  Database,
-  Server,
-  User,
-  Trash2,
-} from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useRunServerSetupMutation } from "../store/apiSlice";
 import "./SendingIpSetup.css";
 
