@@ -22,10 +22,12 @@ const processSuppression = async (queueId) => {
     });
 
     const sourcePath = path.join("/var/www/data", queueItem.filename);
-    const vendorPath = path.join(
-      "/var/www/html/suppression/vendor_suppression_uploaded_files",
-      queueItem.vendor_supp_filename,
-    );
+    const vendorPath = queueItem.vendor_supp_filename
+      ? path.join(
+          "/var/www/html/suppression/vendor_suppression_uploaded_files",
+          queueItem.vendor_supp_filename,
+        )
+      : null;
     const outputPath = path.join(
       "/var/www/data",
       queueItem.new_filename || `suppressed_${queueItem.filename}`,
@@ -36,10 +38,8 @@ const processSuppression = async (queueId) => {
     }
 
     // 2. Load Suppression Data (MD5s or Emails)
-    // For large files, we should use streams or a specialized search.
-    // For feature parity with PHP which used temp tables:
     const suppressionSet = new Set();
-    if (fs.existsSync(vendorPath)) {
+    if (vendorPath && fs.existsSync(vendorPath)) {
       const vendorData = fs
         .readFileSync(vendorPath, "utf8")
         .split(/\r?\n/)
