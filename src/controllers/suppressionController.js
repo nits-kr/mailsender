@@ -136,19 +136,15 @@ const deleteQueue = async (req, res) => {
 // @access  Private
 const getLogs = async (req, res) => {
   try {
-    const logPath = path.join(
-      __dirname,
-      "../../suppression/logs",
-      `${req.params.id}.log`,
-    );
-    if (fs.existsSync(logPath)) {
-      const content = fs.readFileSync(logPath, "utf8");
-      res.send(content);
-    } else {
-      res.status(404).send("Log file not found");
+    const queueItem = await OfferSuppQueue.findById(req.params.id);
+    if (!queueItem) {
+      return res.status(404).json({ message: "Queue item not found" });
     }
+    res.json({ log: queueItem.log, status: queueItem.status });
   } catch (error) {
-    res.status(500).send("Error reading log file");
+    res
+      .status(500)
+      .json({ message: "Error reading log", error: error.message });
   }
 };
 

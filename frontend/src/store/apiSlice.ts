@@ -269,7 +269,7 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/suppression/queue/${id}`, method: 'DELETE' }),
       invalidatesTags: ['SuppressionQueue'],
     }),
-    getSuppressionLog: builder.query<string, string>({
+    getSuppressionLog: builder.query<{ log: string; status: number }, string>({
       query: (id) => `/suppression/log/${id}`,
     }),
     getSuppressionComplainers: builder.query<any[], void>({

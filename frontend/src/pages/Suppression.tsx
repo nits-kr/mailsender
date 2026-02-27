@@ -163,9 +163,12 @@ const Suppression = () => {
 
   React.useEffect(() => {
     if (logData && logModal.open) {
-      const logLines = (
-        typeof logData === "string" ? logData : JSON.stringify(logData)
-      ).split("\n");
+      // Backend returns { log: string, status: number } from MongoDB
+      const rawLog =
+        typeof logData === "string"
+          ? logData
+          : ((logData as any).log ?? JSON.stringify(logData));
+      const logLines = rawLog.split("\n");
       const reversedLog = logLines.reverse().join("\n");
       setLogModal((prev) => ({ ...prev, content: reversedLog }));
     }
