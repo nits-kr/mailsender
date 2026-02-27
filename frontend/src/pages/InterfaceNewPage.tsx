@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./InterfaceNewPage.css";
 import {
   useGetCampaignsQuery,
@@ -9,6 +10,7 @@ import {
 } from "../store/apiSlice";
 
 export const InterfaceNewPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     accs: "",
     headers: "",
@@ -237,7 +239,12 @@ export const InterfaceNewPage = () => {
         </div>
 
         <div className="nav-actions-new">
-          <button className="btn-nav-new guide">Guide</button>
+          <button
+            className="btn-nav-new guide"
+            onClick={() => navigate("/interface/guide")}
+          >
+            Guide
+          </button>
           <button className="btn-nav-new logout">Logout</button>
         </div>
       </div>
@@ -513,6 +520,18 @@ export const InterfaceNewPage = () => {
 
           {/* Main Form Fields */}
           <div className="main-form-content-new">
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "bold",
+                color: "#2b44bc",
+                marginBottom: "10px",
+                borderBottom: "1px solid #eee",
+                paddingBottom: "5px",
+              }}
+            >
+              • Headers & Sender Info
+            </div>
             <textarea
               className="input-field-new"
               name="headers"
@@ -616,6 +635,18 @@ export const InterfaceNewPage = () => {
               </div>
             </div>
 
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "bold",
+                color: "#2b44bc",
+                margin: "15px 0 10px 0",
+                borderBottom: "1px solid #eee",
+                paddingBottom: "5px",
+              }}
+            >
+              • Recipients
+            </div>
             <textarea
               className="input-field-new"
               name="emails"
@@ -625,6 +656,18 @@ export const InterfaceNewPage = () => {
               onChange={handleInput}
             />
 
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "bold",
+                color: "#2b44bc",
+                margin: "15px 0 10px 0",
+                borderBottom: "1px solid #eee",
+                paddingBottom: "5px",
+              }}
+            >
+              • Content & Format
+            </div>
             <div className="msg-type-row-new">
               <div className="type-radios-new">
                 <label>
@@ -697,6 +740,18 @@ export const InterfaceNewPage = () => {
               onChange={handleInput}
             />
 
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "bold",
+                color: "#2b44bc",
+                margin: "15px 0 10px 0",
+                borderBottom: "1px solid #eee",
+                paddingBottom: "5px",
+              }}
+            >
+              • Alternative (MIME/Plain)
+            </div>
             <div className="charset-row-new">
               <select
                 name="charset_alt"
@@ -724,6 +779,18 @@ export const InterfaceNewPage = () => {
               onChange={handleInput}
             />
 
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "bold",
+                color: "#2b44bc",
+                margin: "15px 0 10px 0",
+                borderBottom: "1px solid #eee",
+                paddingBottom: "5px",
+              }}
+            >
+              • Search & Replace
+            </div>
             <textarea
               className="input-field-new"
               name="search_replace"

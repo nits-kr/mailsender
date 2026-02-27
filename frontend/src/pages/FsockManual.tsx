@@ -26,10 +26,15 @@ const FsockManual = () => {
     message_html: "",
     message_plain: "",
     offerId: "",
+    domain: "",
     datafile: "",
     msgid: "",
     total_limit: "",
     send_limit: "",
+    sleep: "",
+    wait: "",
+    inbox_percentage: "",
+    test_after: "",
     interval: "",
   });
 
@@ -362,7 +367,22 @@ const FsockManual = () => {
                                 />
                               </td>
                               <td style={{ width: "30px" }}></td>
-                              <td colSpan={2}></td>
+                              <td
+                                className="fsock-mini-label"
+                                style={{ width: "80px" }}
+                              >
+                                Domain :
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  name="domain"
+                                  className="fsock-mini-input"
+                                  placeholder="Put Domain Name"
+                                  value={formData.domain}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
                             </tr>
                             <tr>
                               <td className="fsock-mini-label">Datafile :</td>
@@ -420,6 +440,66 @@ const FsockManual = () => {
                                   className="fsock-mini-input"
                                   placeholder="Put One Click limit"
                                   value={formData.send_limit}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="fsock-mini-label">Sleep :</td>
+                              <td style={{ width: "180px" }}>
+                                <input
+                                  type="text"
+                                  name="sleep"
+                                  className="fsock-mini-input"
+                                  placeholder="Put Sleep Time"
+                                  value={formData.sleep}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                              <td style={{ width: "30px" }}></td>
+                              <td
+                                className="fsock-mini-label"
+                                style={{ width: "80px" }}
+                              >
+                                Wait :
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  name="wait"
+                                  className="fsock-mini-input"
+                                  placeholder="Put Wait Time"
+                                  value={formData.wait}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="fsock-mini-label">Inbox% :</td>
+                              <td style={{ width: "180px" }}>
+                                <input
+                                  type="text"
+                                  name="inbox_percentage"
+                                  className="fsock-mini-input"
+                                  placeholder="Put Inbox Percentage"
+                                  value={formData.inbox_percentage}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                              <td style={{ width: "30px" }}></td>
+                              <td
+                                className="fsock-mini-label"
+                                style={{ width: "80px" }}
+                              >
+                                Test After :
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  name="test_after"
+                                  className="fsock-mini-input"
+                                  placeholder="Put Test After"
+                                  value={formData.test_after}
                                   onChange={handleInputChange}
                                 />
                               </td>

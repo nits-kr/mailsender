@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Interface.css";
 import {
   useGetCampaignsQuery,
@@ -9,6 +10,7 @@ import {
 } from "../store/apiSlice";
 
 const Interface = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     // Main Headers
     accs: "", // IPs in sidebar (maps to mutidomains)
@@ -273,7 +275,12 @@ const Interface = () => {
           </button>
         </div>
         <div className="nav-right-btns">
-          <button className="guide-btn">Guide</button>
+          <button
+            className="guide-btn"
+            onClick={() => navigate("/interface/guide")}
+          >
+            Guide
+          </button>
           <button className="logout-btn">Logout</button>
         </div>
       </div>

@@ -121,6 +121,8 @@ const searchLegacyCampaignLink = async (req, res) => {
   }
 };
 
+const TagEngine = require("../utils/tagEngine");
+
 // @desc    Send email using raw SMTP (FSOCK Parity)
 // @route   POST /api/legacy/fsock-send
 const sendFsockSmtp = async (req, res) => {
@@ -139,6 +141,13 @@ const sendFsockSmtp = async (req, res) => {
     send_limit,
     headers,
     offerId,
+    domain,
+    message_html: messageHtml,
+    message_plain: messagePlain,
+    sleep,
+    wait,
+    inbox_percentage,
+    test_after,
   } = req.body;
 
   try {
@@ -147,6 +156,25 @@ const sendFsockSmtp = async (req, res) => {
         .status(400)
         .send("<font color='red'>SMTP Details Missing..!</font>");
 
+    // 1. Generate SVML ID (Campaign ID) by creating a template record
+    const campaign = await CampaignTemplate.create({
+      name: subject || "FSock Manual Send",
+      from_email: fromEmail,
+      subject: subject,
+      from_name: fromName,
+      message_html: messageHtml,
+      message_plain: messagePlain,
+      headers: headers,
+      offer_id: offerId,
+      domain: domain,
+      mode: mode || "Test",
+      sleep_time: sleep,
+      wait_time: wait,
+      inbox_percent: inbox_percentage,
+      mail_after: test_after,
+    });
+
+    const svmlId = campaign._id;
     const ipLines = mailing_ip.trim().split("\n");
     const testEmails = testEmailsStr ? testEmailsStr.trim().split("\n") : [];
 
@@ -158,18 +186,11 @@ const sendFsockSmtp = async (req, res) => {
 
     // Encoding logic (UTF8-Q or UTF8-B parity)
     const encodeHeader = (text, type) => {
-      if (type === "reset" || !type) return text;
+      if (!text || type === "reset" || !type) return text;
       if (type === "base64")
         return `=?UTF-8?B?${Buffer.from(text).toString("base64")}?=`;
       if (type === "ascii") {
-        const hex = Array.from(text)
-          .map(
-            (char) =>
-              "=" +
-              char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"),
-          )
-          .join("");
-        return `=?UTF-8?Q?${hex}?=`;
+        return `=?UTF-8?Q?${TagEngine.functions.ascii2hex(text)}?=`;
       }
       return text;
     };
@@ -177,7 +198,7 @@ const sendFsockSmtp = async (req, res) => {
     const encodedSubject = encodeHeader(subject, sencode);
     const encodedFromName = encodeHeader(fromName, fmencode);
 
-    let output = "";
+    let output = `<div style='color: green; font-weight: bold; margin-bottom: 10px;'>Campaign Created Successfully. SVML ID is ${svmlId}</div>`;
     let successCount = 0;
     let errorCount = 0;
 
@@ -197,42 +218,122 @@ const sendFsockSmtp = async (req, res) => {
         });
 
         for (const email of testEmails) {
-          if (!email.trim()) continue;
+          const targetEmail = email.trim();
+          if (!targetEmail) continue;
 
-          // Simple tag replacement parity
-          const body =
-            (headers || "") + "\r\n\r\n" + (req.body.message_html || "");
-          const finalBody = body
-            .replace(/{{SubjectLine}}/g, encodedSubject)
-            .replace(/{{FromEmail}}/g, fromEmail)
-            .replace(/{{FromName}}/g, encodedFromName)
-            .replace(/{{ToEmail}}/g, email.trim())
-            .replace(/{{MessageId}}/g, msgid || "");
+          // Helper for tag replacements (Feature Parity)
+          const context = {
+            email: targetEmail,
+            fromEmail,
+            fromName: encodedFromName,
+            subject: encodedSubject,
+          };
+
+          const [toName, toDomain] = targetEmail.split("@");
+          const fromDomain = fromEmail.split("@")[1] || "";
+
+          // Process Body/Headers with TagEngine and Logic
+          let processedHeaders = headers || "";
+          let processedHtml = messageHtml || "";
+          let processedPlain = messagePlain || "";
+
+          // 1. Basic Tag Replacements
+          const replaceBaseTags = (str) => {
+            return str
+              .replace(/{{SubjectLine}}/g, encodedSubject)
+              .replace(/{{FromEmail}}/g, fromEmail)
+              .replace(/{{FromName}}/g, encodedFromName)
+              .replace(/{{FromDomain}}/g, fromDomain)
+              .replace(/{{Domain}}/g, domain || "")
+              .replace(/{{ToEmail}}/g, targetEmail)
+              .replace(/{{ToName}}/g, toName)
+              .replace(/{{ToDomain}}/g, toDomain);
+          };
+
+          processedHeaders = replaceBaseTags(processedHeaders);
+          processedHtml = replaceBaseTags(processedHtml);
+          processedPlain = replaceBaseTags(processedPlain);
+
+          // 2. Advanced Content Encodings (Parity with PHP original)
+          processedHeaders = processedHeaders
+            .replace(/{{HtmlContent}}/g, processedHtml)
+            .replace(/{{PlainContent}}/g, processedPlain)
+            .replace(
+              /{{HtmlContent_base64}}/g,
+              Buffer.from(processedHtml).toString("base64"),
+            )
+            .replace(
+              /{{PlainContent_base64}}/g,
+              Buffer.from(processedPlain).toString("base64"),
+            )
+            .replace(
+              /{{HtmlContent_qp}}/g,
+              TagEngine.functions.ascii2hex(processedHtml),
+            ) // Roughly equivalent to QP for matching logic
+            .replace(
+              /{{PlainContent_qp}}/g,
+              TagEngine.functions.ascii2hex(processedPlain),
+            );
+
+          // 3. Process Message ID
+          let processedMsgId = TagEngine.process(msgid || "", context).replace(
+            /{{Domain}}/g,
+            domain || "",
+          );
+
+          processedHeaders = processedHeaders.replace(
+            /{{MessageId}}/g,
+            processedMsgId,
+          );
+
+          // 4. Final Pass with Tag Engine (Randomization Engine [[func]])
+          processedHeaders = TagEngine.process(processedHeaders, context);
+          processedHtml = TagEngine.process(processedHtml, context);
+          processedPlain = TagEngine.process(processedPlain, context);
+
+          // 5. Boundary replacement if exists
+          const boundaryMatch = processedHeaders.match(
+            /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|$)/i,
+          );
+          if (boundaryMatch && boundaryMatch[1]) {
+            processedHeaders = processedHeaders.replace(
+              /{{boundary}}/g,
+              boundaryMatch[1],
+            );
+          }
+
+          const finalBody = `${processedHeaders}\r\n\r\n${processedHtml}`;
 
           const result = await client.send({
             user: ipRecord.user || "",
             pass: ipRecord.pass || "",
             from: fromEmail,
-            to: email.trim(),
+            to: targetEmail,
             body: finalBody,
-            returnPath: returnPath || fromEmail,
+            returnPath: TagEngine.process(returnPath || fromEmail, context),
           });
 
           if (result.success) {
             successCount++;
-            output += `<pre><div style='background:black;color:white;'>[${email}] SUCCESS\n${result.transcript}</div></pre>`;
+            output += `<pre><div style='background:black;color:white;'>[${targetEmail}] SUCCESS (ID: ${svmlId})\n${result.transcript}</div></pre>`;
           } else {
             errorCount++;
-            output += `<pre><div style='background:black;color:white;border:1px solid red;'>[${email}] FAILED: ${result.error}\n${result.transcript}</div></pre>`;
+            output += `<pre><div style='background:black;color:white;border:1px solid red;'>[${targetEmail}] FAILED (ID: ${svmlId}): ${result.error}\n${result.transcript}</div></pre>`;
           }
+
+          // 6. Log entry for stats
+          await CampaignLog.create({
+            campaign_id: svmlId,
+            log_text: `Sent to ${targetEmail} via ${ip}. Status: ${result.success ? "Success" : "Failed"}`,
+            type: result.success ? "success" : "error",
+          });
         }
       }
       res.send(
         `${output}<br>Sent successfully to ${successCount} Subscribers. Errors: ${errorCount}`,
       );
     } else {
-      // Bulk logic placeholder (matching middle_fsock.php logic)
-      res.send("Bulk sending initiated (Parity preserved in worker/logic)");
+      res.send(`Bulk sending initiated. Campaign ID: ${svmlId}`);
     }
   } catch (error) {
     res.status(500).send(`Error: ${error.message}`);

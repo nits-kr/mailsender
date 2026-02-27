@@ -42,6 +42,7 @@ import SmtpDetails from "./pages/SmtpDetails";
 import FsockManual from "./pages/FsockManual";
 import FsockHelp from "./pages/FsockHelp";
 import { InterfaceNewPage } from "./pages/InterfaceNewPage";
+import InterfaceGuide from "./pages/InterfaceGuide";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -84,6 +85,7 @@ const TitleUpdater = () => {
       "/fsock-send-smtp": "ESP SMTP",
       "/fsock-send-smtp-auto": "Mail Interface (Auto)",
       "/interface-new": "Advanced Mailer",
+      "/interface/guide": "Interface Guide",
     };
 
     const path = location.pathname;
@@ -139,6 +141,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Interface />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interface/guide"
+                element={
+                  <ProtectedRoute>
+                    <InterfaceGuide />
                   </ProtectedRoute>
                 }
               />

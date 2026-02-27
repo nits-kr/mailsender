@@ -12,26 +12,32 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  background: white;
+  padding: 12px 24px;
+  border-bottom: 2px solid #00c6ff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
 }
 
 .search-load-box {
   display: flex;
   gap: 0;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .legacy-search-container {
   position: relative;
-  width: 250px;
+  width: 280px;
 }
 
 .search-input {
-  padding: 8px 12px;
+  padding: 10px 15px;
   border: 1px solid #ddd;
-  border-radius: 4px 0 0 4px;
+  border-radius: 6px 0 0 6px;
   width: 100%;
-  font-size: 13px;
-  height: 35px;
+  font-size: 14px;
+  height: 38px;
+  transition: all 0.2s;
 }
 
 .dropdown-content {
@@ -71,12 +77,12 @@
   background-color: #007bff;
   color: white;
   border: none;
-  padding: 0 16px;
-  border-radius: 0 4px 4px 0;
+  padding: 0 20px;
+  border-radius: 0 6px 6px 0;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: bold;
-  height: 35px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,27 +90,31 @@
 
 .nav-right-btns {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .guide-btn {
-  background-color: #28a745;
+  background-color: #10b981;
   color: white;
   border: none;
-  padding: 8px 20px;
-  border-radius: 4px;
-  font-weight: bold;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-weight: 700;
   cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
 }
 
 .logout-btn {
-  background-color: #dc3545;
+  background-color: #ef4444;
   color: white;
   border: none;
-  padding: 8px 20px;
-  border-radius: 4px;
-  font-weight: bold;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-weight: 700;
   cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
 }
 
 /* Main Layout */
@@ -145,11 +155,12 @@
 .content-right {
   width: 75%;
   background-color: white;
-  border-top-left-radius: 10% 50%;
-  border-bottom-left-radius: 10% 50%;
   padding: 40px 60px;
-  padding-right: 320px; /* Make space for the floating panel */
+  padding-right: 340px; /* Increased to accommodate wider panel and margin */
   position: relative;
+  /* Reduced border radius to prevent clipping */
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
 }
 
 /* Form Groups */
@@ -243,8 +254,8 @@
 .floating-right-panel {
   position: absolute;
   top: 40px;
-  right: 40px;
-  width: 280px; /* Widened to fit the grid */
+  right: 20px; /* Moved closer to edge */
+  width: 300px; /* Increased to fit buttons */
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -256,8 +267,8 @@
   overflow: hidden;
   border: 1px solid #ddd;
   margin-bottom: 5px;
-  max-width: 120px;
-  align-self: flex-end;
+  max-width: 130px;
+  align-self: flex-start; /* Aligned to start */
 }
 
 .toggle-btn {
@@ -342,7 +353,7 @@
 /* Space Sending Box */
 .space-sending-box {
   background-color: #17a2b8; /* Teal background */
-  padding: 10px;
+  padding: 10px; /* Reduced padding for better button fit */
   border-radius: 4px;
   margin-top: 5px;
   overflow: hidden;
@@ -356,7 +367,8 @@
 }
 
 .interval-control input {
-  width: 100px; /* Reduced fixed width to make room for buttons */
+  flex: 1; /* Use flex to accommodate button room */
+  min-width: 80px; /* Ensure input doesn't push buttons out */
   padding: 6px;
   border: 1px solid #ddd;
   border-radius: 4px;
