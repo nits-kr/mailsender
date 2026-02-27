@@ -6,13 +6,14 @@ const Offer = require("../models/Offer");
 const OfferSuppMapping = require("../models/OfferSuppMapping");
 const ComplainerSuppression = require("../models/ComplainerSuppression");
 const axios = require("axios");
+const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
 
 // @desc    Get data file list and counts
 // @route   GET /api/data/count
 // @access  Private
 const getDataCount = async (req, res) => {
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
-  const bufferPath = path.join(dataPath, "buffer");
+  const bufferPath = BUFFER_PATH;
+  const dataPath = DATA_PATH;
 
   // Always fetch DB-tracked files for display names
   const dbFiles = await DataFile.find({ type: "data" });
@@ -123,8 +124,8 @@ const downloadData = async (req, res) => {
   const isRandom = type !== "Not Random";
   const downloadId = require("crypto").randomBytes(16).toString("hex");
   const resultFilename = `${downloadId}.txt`;
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
-  const bufferPath = path.join(dataPath, "buffer");
+  const dataPath = DATA_PATH;
+  const bufferPath = BUFFER_PATH;
 
   if (!fs.existsSync(bufferPath)) {
     fs.mkdirSync(bufferPath, { recursive: true });
@@ -300,7 +301,7 @@ const splitData = async (req, res) => {
 // @access  Private
 const mergeData = async (req, res) => {
   const { filenames } = req.body;
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const dataPath = DATA_PATH;
 
   if (!filenames || filenames.length === 0) {
     return res.status(400).json({ message: "No files selected for merge" });
@@ -383,9 +384,9 @@ const getAnalytics = async (req, res) => {
 // @access  Private
 const deleteData = async (req, res) => {
   const { filename } = req.params;
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const dataPath = DATA_PATH;
   const filePath = path.join(dataPath, filename);
-  const bufferPath = path.join(dataPath, "buffer", filename);
+  const bufferPath = path.join(BUFFER_PATH, filename);
 
   try {
     // 1. Delete from Database
@@ -414,8 +415,7 @@ const deleteData = async (req, res) => {
 // @access  Private
 const getGeneratedFile = async (req, res) => {
   const { filename } = req.body;
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
-  const filePath = path.join(dataPath, "buffer", filename);
+  const filePath = path.join(BUFFER_PATH, filename);
 
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "File not found" });
@@ -435,8 +435,7 @@ const getGeneratedFile = async (req, res) => {
 // @route   GET /api/data/buffer-files
 // @access  Private
 const getBufferFiles = async (req, res) => {
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
-  const bufferPath = path.join(dataPath, "buffer");
+  const bufferPath = BUFFER_PATH;
 
   if (!fs.existsSync(bufferPath)) {
     return res.json([]);
@@ -478,8 +477,7 @@ const getBufferFiles = async (req, res) => {
 // @access  Private
 const deleteBufferFile = async (req, res) => {
   const { filename } = req.params;
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
-  const filePath = path.join(dataPath, "buffer", filename);
+  const filePath = path.join(BUFFER_PATH, filename);
 
   try {
     if (fs.existsSync(filePath)) {

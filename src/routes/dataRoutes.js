@@ -18,15 +18,16 @@ const {
   deleteBufferFile,
 } = require("../controllers/dataController");
 
+const { DATA_PATH } = require("../config/paths");
+
 const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = process.env.DATA_PATH || path.join(__dirname, "../../data");
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(DATA_PATH)) {
+      fs.mkdirSync(DATA_PATH, { recursive: true });
     }
-    cb(null, dir);
+    cb(null, DATA_PATH);
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname);
