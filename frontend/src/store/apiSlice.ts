@@ -216,6 +216,10 @@ export const apiSlice = createApi({
       query: ({ id, main_link }) => ({ url: `/links/${id}/main_link`, method: 'PATCH', body: { main_link } }),
       invalidatesTags: ['Legacy'],
     }),
+    getLinkReport: builder.query({
+      query: (own_offerid) => `/links/${own_offerid}/report`,
+      providesTags: ['Legacy'],
+    }),
 
     // â”€â”€â”€ Images â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     uploadImage: builder.mutation({
@@ -431,6 +435,8 @@ export const {
   useCreateLinkMutation,
   useToggleLinkStatusMutation,
   useUpdateMainLinkMutation,
+  useGetLinkReportQuery,
+  useLazyGetLinkReportQuery,
   // Images
   useUploadImageMutation,
   // Suppression

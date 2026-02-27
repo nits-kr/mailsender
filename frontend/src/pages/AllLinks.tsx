@@ -3,6 +3,7 @@ import {
   useGetLinksQuery,
   useToggleLinkStatusMutation,
   useUpdateMainLinkMutation,
+  useGetLinkReportQuery,
 } from "../store/apiSlice";
 import {
   Loader2,
@@ -10,7 +11,103 @@ import {
   ExternalLink,
   ToggleLeft,
   ToggleRight,
+  BarChart2,
 } from "lucide-react";
+
+// Sub-component for individual Report cells
+const ReportCell: React.FC<{ ownOfferid: string }> = ({ ownOfferid }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { data, isLoading, error } = useGetLinkReportQuery(ownOfferid, {
+    skip: !isOpen,
+  });
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        style={{
+          padding: "3px 8px",
+          backgroundColor: "#f9f9f9",
+          border: "1px solid #ccc",
+          borderRadius: "3px",
+          cursor: "pointer",
+          fontSize: "10px",
+          fontFamily: "monospace",
+          fontWeight: "bold",
+        }}
+      >
+        CHECK..
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <button
+        onClick={() => setIsOpen(false)}
+        style={{
+          padding: "3px 8px",
+          backgroundColor: "#d9534f",
+          border: "1px solid #d43f3a",
+          color: "white",
+          borderRadius: "3px",
+          cursor: "pointer",
+          fontSize: "10px",
+          fontFamily: "monospace",
+          fontWeight: "bold",
+        }}
+      >
+        CLOSE..
+      </button>
+
+      {isLoading && <Loader2 size={12} className="animate-spin" />}
+      {error && <span style={{ color: "red", fontSize: "10px" }}>Error</span>}
+      {data && (
+        <table
+          style={{
+            borderCollapse: "collapse",
+            fontSize: "10px",
+            border: "1px solid #ddd",
+            background: "white",
+          }}
+        >
+          <thead>
+            <tr style={{ backgroundColor: "#f9f9f9" }}>
+              <th style={{ padding: "2px 5px", border: "1px solid #ddd" }}>
+                TOTAL
+              </th>
+              <th style={{ padding: "2px 5px", border: "1px solid #ddd" }}>
+                UNIQUE
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td
+                style={{
+                  padding: "2px 5px",
+                  border: "1px solid #ddd",
+                  textAlign: "center",
+                }}
+              >
+                {data.total}
+              </td>
+              <td
+                style={{
+                  padding: "2px 5px",
+                  border: "1px solid #ddd",
+                  textAlign: "center",
+                }}
+              >
+                {data.unique}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
 
 const AllLinks: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -146,6 +243,9 @@ const AllLinks: React.FC = () => {
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 ACTION
               </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                FETCH REPORT
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -164,7 +264,7 @@ const AllLinks: React.FC = () => {
             ) : filteredLinks.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   style={{ textAlign: "center", padding: "20px" }}
                 >
                   No links found.
@@ -258,6 +358,9 @@ const AllLinks: React.FC = () => {
                         <ToggleLeft size={24} />
                       )}
                     </div>
+                  </td>
+                  <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                    <ReportCell ownOfferid={link.own_offerid} />
                   </td>
                 </tr>
               ))

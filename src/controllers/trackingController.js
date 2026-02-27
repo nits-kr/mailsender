@@ -1,6 +1,6 @@
 const Link = require("../models/Link");
 // We can use Log or create a more specific ClickLog
-const Log = require("../models/Log");
+const Tracking = require("../models/Tracking");
 
 // @desc    Handle public click tracking and redirect
 // @route   GET /t/:pattern
@@ -16,10 +16,18 @@ const handleTracking = async (req, res) => {
       return res.status(404).send("Link not found or inactive.");
     }
 
-    // Optional: Log the click
-    // For now we use the general Log model or we could create a new ClickLog
-    // For simplicity, let's just redirect for now as the user wants
-    // "exactly same feature" and we need to verify where PHP logged clicks.
+    // Log the click into Tracking collection
+    try {
+      await Tracking.create({
+        oid: link.own_offerid,
+        emailid: e || "unknown",
+        category: link.link_type, // 'Sub', 'Unsub', 'Open', 'Opt-out'
+        ip: req.ip || req.headers["x-forwarded-for"],
+        user_agent: req.headers["user-agent"],
+      });
+    } catch (saveError) {
+      console.error("Failed to save tracking record", saveError);
+    }
 
     let redirectUrl = link.main_link;
 

@@ -1,5 +1,6 @@
 const Link = require("../models/Link");
 const Offer = require("../models/Offer");
+const Tracking = require("../models/Tracking");
 
 // @desc    Create a new redirectional link
 // @route   POST /api/links
@@ -89,4 +90,32 @@ const updateMainLink = async (req, res) => {
   }
 };
 
-module.exports = { createLink, getLinks, toggleLinkStatus, updateMainLink };
+// @desc    Get tracking report for a link
+// @route   GET /api/links/:own_offerid/report
+// @access  Private
+const getLinkReport = async (req, res) => {
+  const { own_offerid } = req.params;
+  try {
+    const totalCount = await Tracking.countDocuments({ oid: own_offerid });
+
+    // For unique count, we distinct by emailid
+    const distinctEmails = await Tracking.distinct("emailid", {
+      oid: own_offerid,
+    });
+    const uniqueCount = distinctEmails.length;
+
+    res.json({ total: totalCount, unique: uniqueCount });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching report", error: error.message });
+  }
+};
+
+module.exports = {
+  createLink,
+  getLinks,
+  toggleLinkStatus,
+  updateMainLink,
+  getLinkReport,
+};

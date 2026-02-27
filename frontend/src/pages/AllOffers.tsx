@@ -100,6 +100,19 @@ const AllOffers: React.FC = () => {
       }).unwrap();
 
       setSuccessMsg("Link created successfully!");
+
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: "New Tracking Link",
+            text: `Offer: ${selectedOffer?.offer_name} | Type: ${linkData.link_type}`,
+            url: generated_link,
+          });
+        }
+      } catch (shareError) {
+        console.error("Share failed", shareError);
+      }
+
       setTimeout(() => {
         setModalOpen(false);
         setSuccessMsg("");
