@@ -124,7 +124,7 @@
 /* Main Layout */
 .legacy-form-container {
   display: flex;
-  background-color: #3944bc; /* Sidebar color */
+  background-color: #269abc; /* Sidebar color */
   border-radius: 8px;
   overflow: visible; /* Fix clipping of floating panels */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);

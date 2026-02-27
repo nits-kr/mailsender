@@ -121,16 +121,23 @@ const uploadData = async (req, res) => {
   }
 
   try {
-    const newFile = await DataFile.create({
-      filename: file.originalname,
-      display_name: displayName,
-      type: "data",
-      count: 0, // In a real scenario, we'd count lines here
-    });
+    // Use upsert so re-uploading a file with the same name updates it instead of throwing a duplicate key error
+    const updatedFile = await DataFile.findOneAndUpdate(
+      { filename: file.originalname },
+      {
+        $set: {
+          filename: file.originalname,
+          display_name: displayName,
+          type: "data",
+          count: 0,
+        },
+      },
+      { upsert: true, new: true },
+    );
 
     res.status(201).json({
       message: "File uploaded and recorded successfully",
-      file: newFile,
+      file: updatedFile,
     });
   } catch (error) {
     res
