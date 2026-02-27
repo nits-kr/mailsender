@@ -298,6 +298,9 @@ body {
 .text-white {
   color: white;
 }
+.text-light {
+  color: #f8fafc;
+}
 .text-black {
   color: black;
 }
