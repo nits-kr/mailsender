@@ -1,5 +1,10 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./store";
 
@@ -39,10 +44,65 @@ import { InterfaceNewPage } from "./pages/InterfaceNewPage";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+const TitleUpdater = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const routeTitles: Record<string, string> = {
+      "/": "Dashboard",
+      "/login": "Login",
+      "/credentials": "Credentials Management",
+      "/data-count": "Data Count Detail",
+      "/interface": "Mail Interface",
+      "/offers": "Offers Management",
+      "/suppression": "Suppression Management",
+      "/complainer-suppression": "Complainer Suppression",
+      "/all-offers": "All Offers View",
+      "/all-links": "All Links View",
+      "/image-portal": "Asset Management",
+      "/server-setup": "Linux Server Setup",
+      "/server-setup-ubuntu": "Ubuntu Server Setup",
+      "/sending-ip-setup": "IP Configuration",
+      "/screen": "Active Screens",
+      "/data-download": "Data Downloader",
+      "/data-upload": "Data Ingestion",
+      "/data-split": "Data Segmentation",
+      "/data-merge": "Data Aggregation",
+      "/bounce-fetch": "Bounce Retrieval",
+      "/bounce-update": "Bounce Processor",
+      "/complain-update": "Complaint Processor",
+      "/complain-fetch": "Complaint Retrieval",
+      "/fetch-opener-clicker": "Behavioral Analytics",
+      "/testids-screen": "TestID Monitor",
+      "/testids-mailbox": "TestID Mailbox",
+      "/testids-man": "TestID Management",
+      "/smtp-tester": "SMTP Connectivity Tester",
+      "/smtp": "SMTP Configuration",
+      "/fsock-manual": "FSock Manual Send",
+      "/fsock-send-smtp": "ESP SMTP",
+      "/fsock-send-smtp-auto": "Mail Interface (Auto)",
+      "/interface-new": "Advanced Mailer",
+    };
+
+    const path = location.pathname;
+    let title = routeTitles[path] || "Mailing Portal";
+
+    // Handle dynamic routes like /screens/:id/logs
+    if (path.startsWith("/screens/") && path.endsWith("/logs")) {
+      title = "Campaign Monitoring";
+    }
+
+    document.title = `${title} | Mailing Portal`;
+  }, [location]);
+
+  return null;
+};
+
 function App() {
   return (
     <Provider store={store}>
       <Router>
+        <TitleUpdater />
         <div className="min-h-screen bg-[#1a1d21]">
           <Navbar />
           <main className="w-full">

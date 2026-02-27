@@ -826,10 +826,32 @@ body {
   -webkit-backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 20px !important;
-  overflow: hidden !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8) !important;
   margin-top: 30px !important;
   position: relative !important;
+}
+
+/* Custom Scrollbar for Modern Table */
+.modern-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.modern-table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-bottom-left-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+}
+
+.modern-table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  border: 2px solid rgba(17, 19, 23, 0.8) !important;
+}
+
+.modern-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 .modern-table-container::after {
@@ -841,6 +863,7 @@ body {
 
 .modern-table {
   width: 100% !important;
+  min-width: 1300px !important; /* Prevents column squishing */
   border-collapse: separate !important;
   border-spacing: 0 !important;
   font-size: 12.5px !important;

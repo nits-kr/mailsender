@@ -50,7 +50,10 @@ app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // Legacy image portal upload path mapping for remote server parity
-app.use("/image_portal/uploads", express.static(path.join(__dirname, "../uploads/images")));
+app.use(
+  "/image_portal/uploads",
+  express.static(path.join(__dirname, "../uploads/images")),
+);
 app.use(
   "/all_tar",
   (req, res, next) => {
@@ -58,6 +61,20 @@ app.use(
     next();
   },
   express.static(path.join(__dirname, "../all_tar")),
+);
+
+// Serve module documentation folders
+app.use(
+  "/ESP_Module_fsock_send_smtp_auto",
+  express.static(path.join(__dirname, "../ESP_Module_fsock_send_smtp_auto")),
+);
+app.use(
+  "/ESP_Module_fsock_send_smtp",
+  express.static(path.join(__dirname, "../ESP_Module_fsock_send_smtp")),
+);
+app.use(
+  "/ESP_Module_fsock",
+  express.static(path.join(__dirname, "../ESP_Module_fsock")),
 );
 
 // Routes

@@ -130,6 +130,11 @@ const FsockManual = () => {
     }
   };
 
+  const handleHelpClick = () => {
+    const helpUrl = `${window.location.protocol}//${window.location.hostname}:5000/ESP_Module_fsock_send_smtp_auto/Example.html`;
+    window.open(helpUrl, "_blank");
+  };
+
   return (
     <div className="fsock-container-parity">
       <fieldset className="fsock-fieldset">
@@ -140,15 +145,36 @@ const FsockManual = () => {
                 <h2>FAST MAILER (ESP/SERVER)</h2>
               </td>
               <td className="fsock-top-center">
-                From Email Address
-                <img src="/help.png" className="fsock-help-icon" alt="help" />
-                <br />
-                <input
-                  type="text"
-                  name="from_email"
-                  value={formData.from_email}
-                  onChange={handleInputChange}
-                />
+                <table className="fsock-content-table">
+                  <tbody>
+                    <tr>
+                      <td className="fsock-label">
+                        From Email Address
+                        <img
+                          src="/help.png"
+                          className="fsock-help-icon"
+                          alt="help"
+                          onClick={handleHelpClick}
+                          style={{
+                            float: "none",
+                            marginLeft: "8px",
+                            opacity: 0.8,
+                            cursor: "pointer",
+                          }}
+                        />
+                      </td>
+                      <td className="fsock-input-group">
+                        <input
+                          type="text"
+                          name="from_email"
+                          placeholder="Enter From Email..."
+                          value={formData.from_email}
+                          onChange={handleInputChange}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </td>
             </tr>
             <tr>
@@ -301,7 +327,7 @@ const FsockManual = () => {
                       </td>
                     </tr>
                     <tr>
-                      <td className="fsock-label va-top">Body</td>
+                      <td className="fsock-label">Body</td>
                       <td className="fsock-input-group">
                         <textarea
                           name="message_html"
@@ -310,7 +336,6 @@ const FsockManual = () => {
                           value={formData.message_html}
                           onChange={handleInputChange}
                         />
-                        <br />
                         <textarea
                           name="message_plain"
                           className="fsock-body-plain"
@@ -321,14 +346,13 @@ const FsockManual = () => {
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={2}>
+                      <td className="fsock-label"></td>
+                      <td className="fsock-input-group">
                         <table className="fsock-mini-table">
                           <tbody>
                             <tr>
-                              <td style={{ width: "80px" }}>
-                                <b>Offer Id :</b>
-                              </td>
-                              <td>
+                              <td className="fsock-mini-label">Offer Id :</td>
+                              <td style={{ width: "180px" }}>
                                 <input
                                   type="text"
                                   name="offerId"
@@ -338,17 +362,12 @@ const FsockManual = () => {
                                   onChange={handleInputChange}
                                 />
                               </td>
-                              <td style={{ width: "20px" }}></td>
+                              <td style={{ width: "30px" }}></td>
                               <td colSpan={2}></td>
                             </tr>
                             <tr>
-                              <td colSpan={5} style={{ height: "5px" }}></td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <b>Datafile :</b>
-                              </td>
-                              <td>
+                              <td className="fsock-mini-label">Datafile :</td>
+                              <td style={{ width: "180px" }}>
                                 <input
                                   type="text"
                                   name="datafile"
@@ -358,15 +377,12 @@ const FsockManual = () => {
                                   onChange={handleInputChange}
                                 />
                               </td>
-                              <td></td>
+                              <td style={{ width: "30px" }}></td>
                               <td
-                                style={{
-                                  width: "60px",
-                                  textAlign: "right",
-                                  paddingRight: "5px",
-                                }}
+                                className="fsock-mini-label"
+                                style={{ width: "80px" }}
                               >
-                                <b>MsgId :</b>
+                                MsgId :
                               </td>
                               <td>
                                 <input
@@ -380,13 +396,8 @@ const FsockManual = () => {
                               </td>
                             </tr>
                             <tr>
-                              <td colSpan={5} style={{ height: "5px" }}></td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <b>Total :</b>
-                              </td>
-                              <td>
+                              <td className="fsock-mini-label">Total :</td>
+                              <td style={{ width: "180px" }}>
                                 <input
                                   type="text"
                                   name="total_limit"
@@ -396,14 +407,12 @@ const FsockManual = () => {
                                   onChange={handleInputChange}
                                 />
                               </td>
-                              <td></td>
+                              <td style={{ width: "30px" }}></td>
                               <td
-                                style={{
-                                  textAlign: "right",
-                                  paddingRight: "5px",
-                                }}
+                                className="fsock-mini-label"
+                                style={{ width: "80px" }}
                               >
-                                <b>Limit :</b>
+                                Limit :
                               </td>
                               <td>
                                 <input
@@ -421,72 +430,84 @@ const FsockManual = () => {
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={2} style={{ textAlign: "center" }}>
+                      <td
+                        colSpan={2}
+                        style={{ textAlign: "center", padding: "20px 0" }}
+                      >
                         {isLoading && (
                           <div className="fsock-loading-bar">Sending ...</div>
                         )}
-                        <div className="mt-10">
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "12px",
+                            justifyContent: "center",
+                          }}
+                        >
                           <button
-                            className="fsock-send-btn p-4-20"
+                            className="fsock-send-btn primary"
                             onClick={() => handleAction("send")}
                             disabled={isLoading}
                           >
-                            Send
+                            Send Message
                           </button>
-                          &nbsp;&nbsp;
                           <button
-                            className="fsock-send-btn p-4-20"
+                            className="fsock-send-btn"
                             onClick={() => handleAction("get_link")}
                             disabled={isLoading}
                           >
-                            Get Link
+                            Get Track Link
                           </button>
                         </div>
                       </td>
                     </tr>
+                    <tr>
+                      <td className="fsock-label"></td>
+                      <td className="fsock-input-group">
+                        <details className="fsock-space-sending">
+                          <summary className="fsock-space-summary">
+                            Space Sending
+                          </summary>
+                          <div className="fsock-space-body">
+                            <table style={{ width: "100%" }}>
+                              <tbody>
+                                <tr>
+                                  <td>
+                                    <input
+                                      type="number"
+                                      name="interval"
+                                      className="w-100"
+                                      placeholder="Interval Time"
+                                      value={formData.interval}
+                                      onChange={handleInputChange}
+                                    />
+                                  </td>
+                                  <td className="tr-pr-5">
+                                    <button
+                                      className="fsock-send-btn"
+                                      onClick={displayStart}
+                                      disabled={!!intervalId}
+                                    >
+                                      Start
+                                    </button>
+                                  </td>
+                                  <td className="tl">
+                                    <button
+                                      className="fsock-send-btn btn-stop"
+                                      onClick={displayStop}
+                                    >
+                                      Stop
+                                    </button>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
-
-                <details className="fsock-space-sending">
-                  <summary className="fsock-space-summary">
-                    Space Sending
-                  </summary>
-                  <div className="fsock-space-body">
-                    <table style={{ width: "100%" }}>
-                      <tbody>
-                        <tr>
-                          <td>
-                            <input
-                              type="number"
-                              name="interval"
-                              className="w-100"
-                              placeholder="Interval Time"
-                              value={formData.interval}
-                              onChange={handleInputChange}
-                            />
-                          </td>
-                          <td className="tr-pr-5">
-                            <button
-                              className="fsock-send-btn"
-                              onClick={displayStart}
-                              disabled={!!intervalId}
-                            >
-                              Start
-                            </button>
-                          </td>
-                          <td className="tl">
-                            <button
-                              className="fsock-send-btn btn-stop"
-                              onClick={displayStop}
-                            >
-                              Stop
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </details>
               </td>
             </tr>
           </tbody>
