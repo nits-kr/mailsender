@@ -277,9 +277,12 @@ const DataDownload = () => {
                     draggable
                     onDragStart={(e) => handleDragStart(e, file)}
                     onClick={() => addFileToSelected(file)}
+                    title={file.filename}
                   >
                     <FileText size={14} className="text-slate-400" />
-                    <span className="file-name">{file.filename}</span>
+                    <span className="file-name">
+                      {file.display_name || file.filename}
+                    </span>
                     <span className="file-separator">|</span>
                     <span className="file-count">
                       {file.count.toLocaleString()}

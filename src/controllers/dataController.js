@@ -13,20 +13,28 @@ const axios = require("axios");
 const getDataCount = async (req, res) => {
   const dataPath = process.env.DATA_PATH || "/var/www/data/";
 
+  // Always fetch DB-tracked files for display names and to ensure uploaded
+  // files appear even if the filesystem scan misses them
+  const dbFiles = await DataFile.find({ type: "data" });
+  const dbMap = {};
+  dbFiles.forEach((f) => {
+    dbMap[f.filename] = f;
+  });
+
   if (!fs.existsSync(dataPath)) {
-    // Return mock data if path doesn't exist (e.g., development on Windows)
-    const mockFiles = await DataFile.find({ type: "data" });
+    // Development/Windows: return only DB records
     return res.json(
-      mockFiles.map((f) => ({
+      dbFiles.map((f) => ({
         date: f.createdAt.toLocaleDateString(),
         time: f.createdAt.toLocaleTimeString(),
         filename: f.filename,
+        display_name: f.display_name || f.filename,
         count: f.count,
       })),
     );
   }
 
-  const command = `find ${dataPath} -mtime -15 -type f`;
+  const command = `find ${dataPath} -maxdepth 1 -type f`;
 
   exec(command, async (error, stdout, stderr) => {
     if (error) {
@@ -35,34 +43,54 @@ const getDataCount = async (req, res) => {
         .json({ message: "Error fetching data files", error: stderr });
     }
 
-    const files = stdout
+    const fsFiles = stdout
       .trim()
       .split("\n")
-      .filter((f) => f);
-    if (files.length === 0) return res.json([]);
+      .filter((f) => f && !f.includes("/buffer"));
+
+    // Build a set of filenames found on disk
+    const fsFilenameSet = new Set(fsFiles.map((f) => path.basename(f)));
+
+    // Also include DB files that may not be on disk yet (or path mismatch)
+    const extraDbFiles = dbFiles
+      .filter((f) => !fsFilenameSet.has(f.filename))
+      .map((f) => ({
+        date: f.createdAt.toLocaleDateString(),
+        time: f.createdAt.toLocaleTimeString(),
+        filename: f.filename,
+        display_name: f.display_name || f.filename,
+        count: f.count,
+      }));
+
+    if (fsFiles.length === 0) {
+      return res.json(extraDbFiles);
+    }
 
     const results = [];
     let processed = 0;
 
-    files.forEach((file) => {
+    fsFiles.forEach((file) => {
       const countCommand = `wc -l ${file} | awk '{print $1}'`;
       const stats = fs.statSync(file);
       const date = stats.mtime.toLocaleDateString();
       const time = stats.mtime.toLocaleTimeString();
+      const basename = path.basename(file);
+      const dbRecord = dbMap[basename];
 
-      exec(countCommand, (cError, cStdout, cStderr) => {
+      exec(countCommand, (cError, cStdout) => {
         processed++;
         if (!cError) {
           results.push({
             date,
             time,
-            filename: path.basename(file),
-            count: parseInt(cStdout.trim()),
+            filename: basename,
+            display_name: dbRecord?.display_name || basename,
+            count: parseInt(cStdout.trim()) || 0,
           });
         }
 
-        if (processed === files.length) {
-          res.json(results);
+        if (processed === fsFiles.length) {
+          res.json([...results, ...extraDbFiles]);
         }
       });
     });
