@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Interface.css";
 import {
@@ -386,24 +387,47 @@ const Interface = () => {
                       onChange={handleInput}
                       style={{
                         width: "100%",
-                        paddingRight: dataFileCount !== null ? "60px" : "8px",
+                        paddingRight:
+                          dataFileCount !== null || isFetchingFileInfo
+                            ? "60px"
+                            : "8px",
                       }}
                     />
-                    {dataFileCount !== null && (
+                    {isFetchingFileInfo ? (
                       <span
                         style={{
                           position: "absolute",
                           right: "10px",
                           top: "50%",
                           transform: "translateY(-50%)",
-                          fontSize: "11px",
-                          fontWeight: "bold",
-                          color: dataFileCount > 0 ? "#10b981" : "#ef4444",
+                          display: "flex",
+                          alignItems: "center",
                           pointerEvents: "none",
                         }}
                       >
-                        {dataFileCount.toLocaleString()}
+                        <Loader2
+                          className="animate-spin"
+                          size={14}
+                          color="#3b82f6"
+                        />
                       </span>
+                    ) : (
+                      dataFileCount !== null && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            right: "10px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            fontSize: "11px",
+                            fontWeight: "bold",
+                            color: dataFileCount > 0 ? "#10b981" : "#ef4444",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          {dataFileCount.toLocaleString()}
+                        </span>
+                      )
                     )}
                   </div>
                   <input
