@@ -531,6 +531,7 @@ const Suppression = () => {
                     </td>
                     <td style={{ textAlign: "center" }}>
                       {q.status === 0 ? (
+                        // Queued — only Delete
                         <button
                           className="supp-delete-btn"
                           onClick={() => handleDeleteQueue(q._id)}
@@ -543,7 +544,8 @@ const Suppression = () => {
                           )}
                           <span style={{ marginLeft: "4px" }}>Delete</span>
                         </button>
-                      ) : (
+                      ) : q.status === 2 ? (
+                        // Running — only Log
                         <button
                           className="supp-log-btn"
                           onClick={() => showLog(q._id)}
@@ -551,6 +553,28 @@ const Suppression = () => {
                           <Activity size={11} />
                           <span style={{ marginLeft: "4px" }}>Log</span>
                         </button>
+                      ) : (
+                        // Completed / Error — Log + Delete
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          <button
+                            className="supp-log-btn"
+                            onClick={() => showLog(q._id)}
+                          >
+                            <Activity size={11} />
+                            <span style={{ marginLeft: "4px" }}>Log</span>
+                          </button>
+                          <button
+                            className="supp-delete-btn"
+                            onClick={() => handleDeleteQueue(q._id)}
+                            disabled={isDeletingQueue}
+                          >
+                            {isDeletingQueue ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={11} />
+                            )}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
