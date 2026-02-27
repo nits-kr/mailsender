@@ -606,7 +606,7 @@ const Interface = () => {
           </div>
 
           {/* Main Form Content */}
-          <div style={{ maxWidth: "650px" }}>
+          <div className="main-form-content">
             <div className="legacy-form-group">
               <textarea
                 name="headers"
@@ -618,7 +618,7 @@ const Interface = () => {
               />
             </div>
 
-            <div className="legacy-form-group" style={{ maxWidth: "300px" }}>
+            <div className="legacy-form-group compact-form-group">
               <input
                 name="from_email"
                 className="legacy-input"
@@ -723,10 +723,7 @@ const Interface = () => {
               />
             </div>
 
-            <div
-              className="legacy-form-group"
-              style={{ display: "flex", alignItems: "center", gap: "20px" }}
-            >
+            <div className="legacy-form-group msg-type-group">
               <div className="radio-group" style={{ marginTop: 0 }}>
                 <label className="radio-item">
                   <input
