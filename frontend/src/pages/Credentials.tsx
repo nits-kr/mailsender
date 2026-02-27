@@ -1,4 +1,7 @@
-﻿import React, { useMemo, useState } from "react";
+﻿import React, { useState, useEffect } from "react";
+import { useNavigate, NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../store/authSlice";
 import {
   useAddUserMutation,
   useDeleteUserMutation,
@@ -16,15 +19,6 @@ type CredentialUser = {
   designation: string;
   status: string;
   header_acces?: string;
-};
-
-type LoginUserInfo = {
-  _id: string;
-  id: number;
-  name: string;
-  email: string;
-  designation: string;
-  status: string;
 };
 
 type CredentialForm = {
@@ -48,15 +42,7 @@ const Credentials = () => {
   const [selectedUser, setSelectedUser] = useState<CredentialUser | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const userInfo = useMemo<LoginUserInfo | null>(() => {
-    try {
-      const raw = localStorage.getItem("userInfo");
-      return raw ? (JSON.parse(raw) as LoginUserInfo) : null;
-    } catch {
-      return null;
-    }
-  }, []);
-
+  const userInfo = useSelector(selectCurrentUser);
   const isAdmin = userInfo?.designation === "Admin";
 
   const getDefaultForm = (): CredentialForm => ({

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "../store/authSlice";
 import { useLoginUserMutation } from "../store/apiSlice";
 import "./Login.css";
 
@@ -9,6 +11,7 @@ const Login = () => {
   const [loginMsg, setLoginMsg] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const [loginUser, { isLoading }] = useLoginUserMutation();
 
   useEffect(() => {
@@ -28,7 +31,7 @@ const Login = () => {
     setLoginMsg("");
     try {
       const result = await loginUser({ uemail: email, password }).unwrap();
-      localStorage.setItem("userInfo", JSON.stringify(result));
+      dispatch(setCredentials({ userInfo: result, token: result.token }));
       navigate("/");
     } catch (err: any) {
       if (err?.data?.message) {

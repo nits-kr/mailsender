@@ -1,5 +1,6 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { logOut, selectCurrentUser } from "../store/authSlice";
 import {
   Mail,
   Settings,
@@ -31,14 +32,10 @@ interface NavItem {
 }
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const userInfo = useSelector(selectCurrentUser);
   const { data: servers = [] } = useGetServersManagementQuery();
-  const userInfo = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("userInfo") || "null");
-    } catch {
-      return null;
-    }
-  })();
 
   // Flatten all IPs from all servers for the submenus
   const allIps = servers.flatMap((s) => {
@@ -306,8 +303,8 @@ const Navbar = () => {
           </span>
           <button
             onClick={() => {
-              localStorage.removeItem("userInfo");
-              window.location.href = "/login?action=logout";
+              dispatch(logOut());
+              navigate("/login?action=logout");
             }}
             className="bg-red-600 hover:bg-red-700 text-dark text-10px font-bold px-3 py-1-5 rounded border border-light flex items-center gap-1 transition-colors"
           >

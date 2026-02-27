@@ -10,10 +10,13 @@ import {
   FileUp,
   Monitor,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { selectCurrentToken } from "../store/authSlice";
 import API_BASE_URL from "../config/api";
 import "./DataUpload.css";
 
 const DataUpload = () => {
+  const token = useSelector(selectCurrentToken);
   const [displayName, setDisplayName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [mode, setMode] = useState("Desktop");
@@ -137,14 +140,8 @@ const DataUpload = () => {
     xhr.open("POST", `${API_BASE_URL}/api/data/upload`);
 
     // Add Authorization header
-    const userInfo = localStorage.getItem("userInfo");
-    if (userInfo) {
-      try {
-        const { token } = JSON.parse(userInfo);
-        if (token) {
-          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-        }
-      } catch (e) {}
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     }
 
     xhr.send(formData);

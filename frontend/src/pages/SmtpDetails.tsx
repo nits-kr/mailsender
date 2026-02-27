@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../store/authSlice";
 import {
   useGetSmtpDetailsQuery,
   useAddSmtpDetailsMutation,
@@ -17,13 +19,7 @@ const SmtpDetails = () => {
   const [assignTo, setAssignTo] = useState("");
   const [ipData, setIpData] = useState("");
 
-  const userInfo = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("userInfo") || "null");
-    } catch {
-      return null;
-    }
-  })();
+  const userInfo = useSelector(selectCurrentUser);
 
   const isAdmin =
     userInfo?.designation === "Admin" || userInfo?.designation === "admin";

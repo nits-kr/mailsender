@@ -1,5 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../store/authSlice";
 
 interface ProtectedRouteProps {
   children: React.ReactElement;
@@ -10,12 +12,12 @@ const ProtectedRoute = ({
   children,
   requiredDesignation,
 }: ProtectedRouteProps): React.ReactElement | null => {
-  const userInfoStr = localStorage.getItem("userInfo");
-  if (!userInfoStr) {
+  const userInfo = useSelector(selectCurrentUser);
+
+  if (!userInfo) {
     return <Navigate to="/login" replace />;
   }
 
-  const userInfo = JSON.parse(userInfoStr);
   if (requiredDesignation && userInfo.designation !== requiredDesignation) {
     // If user is logged in but doesn't have the required role, redirect to dashboard
     return <Navigate to="/" replace />;
