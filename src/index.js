@@ -49,43 +49,8 @@ const { errorHandler, notFound } = require("./middleware/errorMiddleware");
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-app.use(
-  "/all_tar",
-  (req, res, next) => {
-    console.log(`[DOWNLOAD] Request for: ${req.url}`);
-    next();
-  },
-  express.static(path.join(__dirname, "../all_tar")),
-);
-
-// Routes
-app.use("/api/users", userRoutes);
-app.use("/api/data", dataRoutes);
-app.use("/api/email", emailRoutes);
-app.use("/api/offers", offerRoutes);
-app.use("/api/suppression", suppressionRoutes);
-app.use("/api/complain", complainRoutes);
-app.use("/api/server-setup", serverSetupRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/servers-management", serverRoutes);
-app.use("/api/screens", screenRoutes);
-app.use("/api/links", linkRoutes);
-app.use("/api/images", imageRoutes);
-app.use("/api/testids", testIdsRoutes);
-app.use("/api/mailbox", require("./routes/mailboxRoutes"));
-app.use("/api/imap-screens", require("./routes/imapScreenRoutes"));
-app.use("/api/smtp", smtpRoutes);
-app.use("/api/legacy", require("./routes/legacyRoutes"));
-app.use("/t", trackingRoutes);
-
-app.get("/", (req, res) => {
-  res.send("ESP API is running...");
-});
-
-// Middleware
-app.use(express.json());
-app.use(cors());
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Legacy image portal upload path mapping for remote server parity
+app.use("/image_portal/uploads", express.static(path.join(__dirname, "../uploads/images")));
 app.use(
   "/all_tar",
   (req, res, next) => {

