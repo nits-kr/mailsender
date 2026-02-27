@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   useGetDataCountQuery,
   useDownloadDataMutation,
@@ -44,6 +44,12 @@ const DataDownload = () => {
   const [previewContent, setPreviewContent] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const consoleEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll console to bottom
+  useEffect(() => {
+    consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [consoleLogs]);
 
   const {
     data: allFiles,
@@ -485,11 +491,13 @@ const DataDownload = () => {
               </div>
             </div>
             <div className="console-body">
-              {consoleLogs.map((log, i) => (
-                <div key={i} className="log-line">
+              {consoleLogs.map((log, idx) => (
+                <div key={idx} className="log-line">
                   {log}
                 </div>
               ))}
+              <div ref={consoleEndRef} />
+              <div className="log-line pulse">_</div>
               {isDownloading && (
                 <div className="log-line pulse">
                   Interfacing with SQL master... suppression in progress...
