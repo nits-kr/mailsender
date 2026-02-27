@@ -403,6 +403,68 @@ const getGeneratedFile = async (req, res) => {
   }
 };
 
+// @desc    List all generated (buffer) files
+// @route   GET /api/data/buffer-files
+// @access  Private
+const getBufferFiles = async (req, res) => {
+  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const bufferPath = path.join(dataPath, "buffer");
+
+  if (!fs.existsSync(bufferPath)) {
+    return res.json([]);
+  }
+
+  try {
+    const files = fs.readdirSync(bufferPath).filter((f) => f.endsWith(".txt"));
+    const result = files.map((filename) => {
+      const filePath = path.join(bufferPath, filename);
+      const stats = fs.statSync(filePath);
+      let lineCount = 0;
+      try {
+        const content = fs.readFileSync(filePath, "utf8");
+        lineCount = content.split("\n").filter((l) => l.trim()).length;
+      } catch (_) {}
+      return {
+        filename,
+        size: stats.size,
+        count: lineCount,
+        date: stats.mtime.toLocaleDateString(),
+        time: stats.mtime.toLocaleTimeString(),
+      };
+    });
+    // Sort newest first
+    result.sort(
+      (a, b) =>
+        new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time),
+    );
+    res.json(result);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error listing buffer files", error: error.message });
+  }
+};
+
+// @desc    Delete a generated buffer file
+// @route   DELETE /api/data/buffer-files/:filename
+// @access  Private
+const deleteBufferFile = async (req, res) => {
+  const { filename } = req.params;
+  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const filePath = path.join(dataPath, "buffer", filename);
+
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ message: "File deleted successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error deleting buffer file", error: error.message });
+  }
+};
+
 module.exports = {
   getDataCount,
   downloadData,
@@ -414,4 +476,6 @@ module.exports = {
   getAnalytics,
   deleteData,
   getGeneratedFile,
+  getBufferFiles,
+  deleteBufferFile,
 };

@@ -125,6 +125,14 @@ export const apiSlice = createApi({
     getGeneratedFile: builder.mutation({
       query: (body) => ({ url: '/data/get-generated', method: 'POST', body }),
     }),
+    getBufferFiles: builder.query<any[], void>({
+      query: () => '/data/buffer-files',
+      providesTags: ['DataCount'],
+    }),
+    deleteBufferFile: builder.mutation<void, string>({
+      query: (filename) => ({ url: `/data/buffer-files/${filename}`, method: 'DELETE' }),
+      invalidatesTags: ['DataCount'],
+    }),
     splitData: builder.mutation({
       query: (body) => ({ url: '/data/split', method: 'POST', body }),
       invalidatesTags: ['DataCount'],
@@ -403,6 +411,8 @@ export const {
   useGetDataCountQuery,
   useDownloadDataMutation,
   useGetGeneratedFileMutation,
+  useGetBufferFilesQuery,
+  useDeleteBufferFileMutation,
   useUploadDataMutation,
   useSplitDataMutation,
   useMergeDataMutation,

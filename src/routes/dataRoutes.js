@@ -14,6 +14,8 @@ const {
   getAnalytics,
   deleteData,
   getGeneratedFile,
+  getBufferFiles,
+  deleteBufferFile,
 } = require("../controllers/dataController");
 
 const router = express.Router();
@@ -42,6 +44,8 @@ router.post("/status-update", updateStatus);
 router.post("/fetch-bounce", fetchBounce);
 router.post("/analytics", getAnalytics);
 router.post("/get-generated", getGeneratedFile);
+router.get("/buffer-files", getBufferFiles);
+router.delete("/buffer-files/:filename", deleteBufferFile);
 router.delete("/:filename", deleteData);
 
 module.exports = router;

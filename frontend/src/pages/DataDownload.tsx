@@ -4,6 +4,8 @@ import {
   useDownloadDataMutation,
   useGetGeneratedFileMutation,
   useDeleteDataMutation,
+  useGetBufferFilesQuery,
+  useDeleteBufferFileMutation,
 } from "../store/apiSlice";
 import {
   Download,
@@ -52,6 +54,9 @@ const DataDownload = () => {
   const [getGeneratedFile, { isLoading: isReading }] =
     useGetGeneratedFileMutation();
   const [deleteDataFile] = useDeleteDataMutation();
+  const { data: bufferFiles = [], refetch: refetchBuffer } =
+    useGetBufferFilesQuery();
+  const [deleteBufferFile] = useDeleteBufferFileMutation();
 
   const addLog = (msg: string) => {
     setConsoleLogs((prev) => [
@@ -480,6 +485,220 @@ const DataDownload = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* GENERATED FILES HISTORY */}
+        <div className="settings-card" style={{ marginTop: "20px" }}>
+          <div
+            className="card-header"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <FileText size={18} /> Generated Files
+            </span>
+            <button
+              onClick={() => refetchBuffer()}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#94a3b8",
+              }}
+              title="Refresh"
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            {bufferFiles.length === 0 ? (
+              <div
+                style={{
+                  padding: "20px",
+                  textAlign: "center",
+                  color: "#94a3b8",
+                  fontSize: "13px",
+                }}
+              >
+                No extraction files yet. Run an extraction to see results here.
+              </div>
+            ) : (
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: "13px",
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      background: "#f8fafc",
+                      borderBottom: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <th
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "left",
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Filename
+                    </th>
+                    <th
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "right",
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Records
+                    </th>
+                    <th
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "right",
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Size
+                    </th>
+                    <th
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "left",
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Date
+                    </th>
+                    <th
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "center",
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bufferFiles.map((bf: any) => (
+                    <tr
+                      key={bf.filename}
+                      style={{ borderBottom: "1px solid #f1f5f9" }}
+                    >
+                      <td
+                        style={{
+                          padding: "10px 14px",
+                          fontFamily: "monospace",
+                          color: "#334155",
+                          maxWidth: "240px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {bf.filename}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 14px",
+                          textAlign: "right",
+                          fontWeight: 600,
+                          color: "#10b981",
+                        }}
+                      >
+                        {bf.count.toLocaleString()}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 14px",
+                          textAlign: "right",
+                          color: "#64748b",
+                        }}
+                      >
+                        {bf.size < 1024
+                          ? `${bf.size}B`
+                          : `${(bf.size / 1024).toFixed(1)}KB`}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 14px",
+                          textAlign: "left",
+                          color: "#64748b",
+                        }}
+                      >
+                        {bf.date} {bf.time}
+                      </td>
+                      <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <button
+                            onClick={async () => {
+                              addLog(`Reading ${bf.filename}...`);
+                              try {
+                                const res = await getGeneratedFile({
+                                  filename: bf.filename,
+                                }).unwrap();
+                                setPreviewContent(res.content);
+                                setGeneratedFilename(bf.filename);
+                                setShowPreview(true);
+                              } catch {
+                                addLog("ERROR: Could not read file.");
+                              }
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "#3b82f6",
+                            }}
+                            title="Preview"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm(`Delete ${bf.filename}?`))
+                                return;
+                              await deleteBufferFile(bf.filename);
+                              refetchBuffer();
+                              addLog(`Deleted: ${bf.filename}`);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "#ef4444",
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
