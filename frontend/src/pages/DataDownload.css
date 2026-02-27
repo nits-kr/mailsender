@@ -567,6 +567,10 @@
   background: #253a85;
 }
 
+.copy-btn.copied {
+  background: #10b981;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

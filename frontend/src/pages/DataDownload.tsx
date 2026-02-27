@@ -43,6 +43,7 @@ const DataDownload = () => {
   const [generatedFilename, setGeneratedFilename] = useState("");
   const [previewContent, setPreviewContent] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const {
     data: allFiles,
@@ -209,13 +210,42 @@ const DataDownload = () => {
             <div className="preview-footer">
               <span>Showing raw data sample (head stream)</span>
               <button
-                className="copy-btn"
+                className={`copy-btn ${isCopied ? "copied" : ""}`}
                 onClick={() => {
-                  navigator.clipboard.writeText(generatedFilename);
-                  alert("Filename copied!");
+                  const copyText = (text: string) => {
+                    if (navigator.clipboard) {
+                      navigator.clipboard
+                        .writeText(text)
+                        .then(() => {
+                          setIsCopied(true);
+                          setTimeout(() => setIsCopied(false), 2000);
+                        })
+                        .catch(() => {
+                          // Fallback
+                          const textArea = document.createElement("textarea");
+                          textArea.value = text;
+                          document.body.appendChild(textArea);
+                          textArea.select();
+                          document.execCommand("copy");
+                          textArea.remove();
+                          setIsCopied(true);
+                          setTimeout(() => setIsCopied(false), 2000);
+                        });
+                    } else {
+                      const textArea = document.createElement("textarea");
+                      textArea.value = text;
+                      document.body.appendChild(textArea);
+                      textArea.select();
+                      document.execCommand("copy");
+                      textArea.remove();
+                      setIsCopied(true);
+                      setTimeout(() => setIsCopied(false), 2000);
+                    }
+                  };
+                  copyText(generatedFilename);
                 }}
               >
-                Copy Filename
+                {isCopied ? "Copied!" : "Copy Filename"}
               </button>
             </div>
           </div>
