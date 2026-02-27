@@ -330,15 +330,12 @@ const Suppression = () => {
               onChange={(e) => setScheduleOffer(e.target.value)}
             >
               <option value="">Select Any</option>
-              {(Array.isArray(mappings) ? mappings : []).map((m: any) => (
-                <option
-                  key={m.offer_id?._id || m._id}
-                  value={m.offer_id?._id || m.offer_id}
-                >
-                  {m.offer_id?.id || "N/A"} | {m.offer_id?.affiliate || "N/A"} |{" "}
-                  {m.offer_id?.name || "N/A"}
-                </option>
-              ))}
+              {Array.isArray(offers) &&
+                offers.map((o: any) => (
+                  <option key={o._id} value={o._id}>
+                    {o.id} | {o.affiliate} | {o.name}
+                  </option>
+                ))}
             </select>
           </div>
           <div

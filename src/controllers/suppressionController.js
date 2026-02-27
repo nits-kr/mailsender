@@ -75,20 +75,14 @@ const queueSuppression = async (req, res) => {
       return res.status(404).json({ message: "Offer not found" });
     }
 
+    // Mapping is optional — if no vendor suppression file, worker skips filtering
     const mapping = await OfferSuppMapping.findOne({ offer_id });
-    if (!mapping) {
-      return res
-        .status(400)
-        .json({ message: "No suppression file mapped for this offer" });
-    }
-
-    const sourcePath = `/var/www/data/${filename}`;
 
     const queueItem = await OfferSuppQueue.create({
       offer_id,
       filename,
       new_filename,
-      vendor_supp_filename: mapping.filename,
+      vendor_supp_filename: mapping ? mapping.filename : null,
       status: 0, // Queued
       log: "Queued Successfully",
     });
