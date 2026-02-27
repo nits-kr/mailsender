@@ -50,6 +50,10 @@ const Suppression = () => {
     id: "",
   });
   const [logQueryId, setLogQueryId] = useState<string | null>(null);
+  const [deletingQueueId, setDeletingQueueId] = useState<string | null>(null);
+  const [deletingMappingId, setDeletingMappingId] = useState<string | null>(
+    null,
+  );
 
   // RTK Query hooks
   const { data: offers = [] } = useGetOffersQuery();
@@ -69,10 +73,8 @@ const Suppression = () => {
     useCreateSuppressionMappingMutation();
   const [createQueue, { isLoading: isScheduling }] =
     useCreateSuppressionQueueMutation();
-  const [deleteMapping, { isLoading: isDeletingMapping }] =
-    useDeleteSuppressionMappingMutation();
-  const [deleteQueue, { isLoading: isDeletingQueue }] =
-    useDeleteSuppressionQueueMutation();
+  const [deleteMapping] = useDeleteSuppressionMappingMutation();
+  const [deleteQueue] = useDeleteSuppressionQueueMutation();
 
   const handleUpload = async () => {
     if (!uploadOffer) {
@@ -135,11 +137,14 @@ const Suppression = () => {
   const handleDeleteMapping = async (id: string, offerId: string) => {
     if (window.confirm("Heads Up.. Sure to Delete ..?")) {
       try {
+        setDeletingMappingId(id);
         await deleteMapping(id).unwrap();
         alert("Mapping deleted successfully.");
         refetchMappings();
       } catch {
         alert("Delete failed.");
+      } finally {
+        setDeletingMappingId(null);
       }
     }
   };
@@ -147,11 +152,13 @@ const Suppression = () => {
   const handleDeleteQueue = async (id: string) => {
     if (window.confirm("Heads Up.. Sure to Delete ..?")) {
       try {
+        setDeletingQueueId(id);
         await deleteQueue(id).unwrap();
-        alert("Queue item deleted successfully.");
         refetchQueue();
       } catch {
         alert("Delete failed.");
+      } finally {
+        setDeletingQueueId(null);
       }
     }
   };
@@ -457,9 +464,9 @@ const Suppression = () => {
                             m.offer_id?._id || m.offer_id,
                           )
                         }
-                        disabled={isDeletingMapping}
+                        disabled={deletingMappingId === m._id}
                       >
-                        {isDeletingMapping ? (
+                        {deletingMappingId === m._id ? (
                           <Loader2 size={10} className="animate-spin" />
                         ) : (
                           <Trash2 size={11} />
@@ -535,9 +542,9 @@ const Suppression = () => {
                         <button
                           className="supp-delete-btn"
                           onClick={() => handleDeleteQueue(q._id)}
-                          disabled={isDeletingQueue}
+                          disabled={deletingQueueId === q._id}
                         >
-                          {isDeletingQueue ? (
+                          {deletingQueueId === q._id ? (
                             <Loader2 size={10} className="animate-spin" />
                           ) : (
                             <Trash2 size={11} />
@@ -566,9 +573,9 @@ const Suppression = () => {
                           <button
                             className="supp-delete-btn"
                             onClick={() => handleDeleteQueue(q._id)}
-                            disabled={isDeletingQueue}
+                            disabled={deletingQueueId === q._id}
                           >
-                            {isDeletingQueue ? (
+                            {deletingQueueId === q._id ? (
                               <Loader2 size={10} className="animate-spin" />
                             ) : (
                               <Trash2 size={11} />
