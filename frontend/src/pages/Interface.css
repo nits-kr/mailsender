@@ -7,6 +7,10 @@
     Arial, sans-serif;
 }
 
+.interface-page * {
+  box-sizing: border-box;
+}
+
 .interface-top-navbar {
   display: flex;
   justify-content: space-between;
@@ -122,9 +126,10 @@
   display: flex;
   background-color: #3944bc; /* Sidebar color */
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible; /* Fix clipping of floating panels */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   min-height: 800px;
+  min-width: 1100px; /* Prevent total collapse on narrow windows */
 }
 
 .sidebar-left {
@@ -156,11 +161,13 @@
   width: 75%;
   background-color: white;
   padding: 40px 60px;
-  padding-right: 340px; /* Increased to accommodate wider panel and margin */
+  padding-right: 320px; /* Precise space for the 280px panel + 40px buffer */
   position: relative;
-  /* Reduced border radius to prevent clipping */
+  /* Maintain standard radii */
+  border-radius: 0 8px 8px 0;
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
+  overflow: visible;
 }
 
 /* Form Groups */
@@ -247,18 +254,19 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 13px;
-  min-width: 150px;
 }
 
 /* Floating Right Panel (Settings & Space Sending) */
 .floating-right-panel {
   position: absolute;
   top: 40px;
-  right: 20px; /* Moved closer to edge */
-  width: 300px; /* Increased to fit buttons */
+  right: 15px; /* Closer to edge but within safety */
+  width: 280px; 
   display: flex;
   flex-direction: column;
   gap: 15px;
+  z-index: 10;
+  overflow: visible;
 }
 
 .toggle-group {
@@ -305,6 +313,8 @@
 .legacy-details {
   width: 100%;
   margin-bottom: 10px;
+  display: block;
+  overflow: visible;
 }
 
 .menu-btn {
@@ -329,16 +339,20 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  overflow: visible;
 }
 
 .settings-row {
   display: flex;
   gap: 8px;
+  width: 100%; /* Force each row to take full panel width */
 }
 
 .settings-row input,
 .settings-row select {
   flex: 1;
+  min-width: 0; 
   padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
