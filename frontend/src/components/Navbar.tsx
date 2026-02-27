@@ -34,6 +34,9 @@ const Navbar = () => {
     return [serverIp, ...additionalIps];
   });
 
+  const isSender = userInfo?.designation === "Sender";
+  const isAdmin = userInfo?.designation === "Admin";
+
   const navItems = [
     { name: "SMTP", path: "/smtp", icon: Mail, isAdmin: true },
     {
@@ -47,6 +50,7 @@ const Navbar = () => {
       path: "#",
       icon: LogIn,
       dropdown: [{ name: "CREATE CREDENTIALS", path: "/credentials" }],
+      isAdmin: true,
     },
     { name: "SCREEN", path: "/screen", icon: Monitor },
     {
@@ -61,10 +65,11 @@ const Navbar = () => {
         { name: "NEW INTERFACE AUTO", path: "/interface-new" },
         { name: "FSOCK SEND SMTP", path: "/fsock-send-smtp" },
         { name: "FSOCK SEND SMTP AUTO", path: "/fsock-send-smtp-auto" },
-        { type: "divider" },
-        { type: "header", name: "SENDING IP" },
+        { type: "divider", isAdmin: true },
+        { type: "header", name: "SENDING IP", isAdmin: true },
         {
           name: "NEW INTERFACE",
+          isAdmin: true,
           submenu: allIps.map((ip) => ({
             name: ip.name,
             path: `http://${ip.path}/interface/header.php`,
@@ -73,6 +78,7 @@ const Navbar = () => {
         },
         {
           name: "SMTP TESTER",
+          isAdmin: true,
           submenu: allIps.map((ip) => ({
             name: ip.name,
             path: `http://${ip.path}/smtp_tester/`,
@@ -81,6 +87,7 @@ const Navbar = () => {
         },
         {
           name: "FSOCK MANUAL INTERFACE",
+          isAdmin: true,
           submenu: allIps.map((ip) => ({
             name: ip.name,
             path: `http://${ip.path}/ESP_Module_fsock/`,
@@ -89,6 +96,7 @@ const Navbar = () => {
         },
         {
           name: "NEW INTERFACE AUTO",
+          isAdmin: true,
           submenu: allIps.map((ip) => ({
             name: ip.name,
             path: `http://${ip.path}/interface_new/header.php`,
@@ -97,6 +105,7 @@ const Navbar = () => {
         },
         {
           name: "FSOCK SEND SMTP",
+          isAdmin: true,
           submenu: allIps.map((ip) => ({
             name: ip.name,
             path: `http://${ip.path}/ESP_Module_fsock_send_smtp/`,
@@ -105,6 +114,7 @@ const Navbar = () => {
         },
         {
           name: "FSOCK SEND SMTP AUTO",
+          isAdmin: true,
           submenu: allIps.map((ip) => ({
             name: ip.name,
             path: `http://${ip.path}/ESP_Module_fsock_send_smtp_auto/`,
@@ -129,18 +139,25 @@ const Navbar = () => {
       path: "#",
       icon: Database,
       dropdown: [
-        { name: "DATA DOWNLOAD PORTAL", path: "/data-download" },
-        { name: "DATA UPLOAD PORTAL", path: "/data-upload" },
+        { name: "DATA DOWNLOAD PORTAL", path: "/data-download", isAdmin: true },
+        { name: "DATA UPLOAD PORTAL", path: "/data-upload", isAdmin: true },
         { name: "DATA SPLIT PORTAL", path: "/data-split" },
-        { name: "DATA MERGE PORTAL", path: "/data-merge" },
-        { name: "BOUNCE FETCH", path: "/bounce-fetch" },
-        { name: "COMPLAIN FETCH", path: "/complain-fetch" },
-        { name: "BOUNCE UPDATE", path: "/bounce-update" },
-        { name: "COMPLAIN UPDATE", path: "/complain-update" },
-        { name: "Fetch Opener & Clicker Data", path: "/fetch-opener-clicker" },
-        { name: "DELETE DATAFILE FROM DB", path: "/delete-datafile" },
+        { name: "DATA MERGE PORTAL", path: "/data-merge", isAdmin: true },
+        { name: "BOUNCE FETCH", path: "/bounce-fetch", isAdmin: true },
+        { name: "COMPLAIN FETCH", path: "/complain-fetch", isAdmin: true },
+        { name: "BOUNCE UPDATE", path: "/bounce-update", isAdmin: true },
+        { name: "COMPLAIN UPDATE", path: "/complain-update", isAdmin: true },
+        {
+          name: "Fetch Opener & Clicker Data",
+          path: "/fetch-opener-clicker",
+          isAdmin: true,
+        },
+        {
+          name: "DELETE DATAFILE FROM DB",
+          path: "/delete-datafile",
+          isAdmin: true,
+        },
       ],
-      isAdmin: true,
     },
     {
       name: "OFFER",
@@ -152,6 +169,7 @@ const Navbar = () => {
         { name: "ALL LINKS PORTAL", path: "/all-links" },
         { name: "IMAGE TRANSFER", path: "/image-portal" },
       ],
+      isAdmin: true,
     },
     {
       name: "SUPPRESSION",
@@ -176,6 +194,11 @@ const Navbar = () => {
     },
   ];
 
+  // Filter items based on isAdmin
+  const filteredNavItems = navItems.filter((item) => {
+    if (item.isAdmin && !isAdmin) return false;
+    return true;
+  });
   return (
     <nav className="legacy-navbar navbar-icon-top">
       <NavLink to="/" className="navbar-brand">
@@ -187,7 +210,7 @@ const Navbar = () => {
       </NavLink>
 
       <div className="flex items-center gap-1 flex-1">
-        {navItems.map((item) => (
+        {filteredNavItems.map((item) => (
           <div
             key={item.name}
             className={`dropdown ${item.dropdown ? "has-dropdown" : ""}`}
@@ -205,53 +228,55 @@ const Navbar = () => {
 
             {item.dropdown && (
               <div className="dropdown-menu">
-                {item.dropdown.map((sub: any, idx) => {
-                  if (sub.type === "header")
+                {item.dropdown
+                  .filter((sub: any) => !sub.isAdmin || isAdmin)
+                  .map((sub: any, idx) => {
+                    if (sub.type === "header")
+                      return (
+                        <div key={idx} className="dropdown-header">
+                          {sub.name}
+                        </div>
+                      );
+                    if (sub.type === "divider")
+                      return <div key={idx} className="dropdown-divider"></div>;
+                    if (sub.submenu) {
+                      return (
+                        <div key={idx} className="dropdown-submenu">
+                          <div className="dropdown-item">
+                            {sub.name} <ChevronRight size={12} />
+                          </div>
+                          <div className="dropdown-menu">
+                            {sub.submenu.length > 0 ? (
+                              sub.submenu.map((ipItem: any, i: number) => (
+                                <a
+                                  key={i}
+                                  href={ipItem.path}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="dropdown-item"
+                                >
+                                  {ipItem.name}
+                                </a>
+                              ))
+                            ) : (
+                              <div className="dropdown-item text-gray-400 italic">
+                                No IPs found
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
-                      <div key={idx} className="dropdown-header">
+                      <NavLink
+                        key={idx}
+                        to={sub.path || "#"}
+                        className="dropdown-item"
+                      >
                         {sub.name}
-                      </div>
+                      </NavLink>
                     );
-                  if (sub.type === "divider")
-                    return <div key={idx} className="dropdown-divider"></div>;
-                  if (sub.submenu) {
-                    return (
-                      <div key={idx} className="dropdown-submenu">
-                        <div className="dropdown-item">
-                          {sub.name} <ChevronRight size={12} />
-                        </div>
-                        <div className="dropdown-menu">
-                          {sub.submenu.length > 0 ? (
-                            sub.submenu.map((ipItem: any, i: number) => (
-                              <a
-                                key={i}
-                                href={ipItem.path}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="dropdown-item"
-                              >
-                                {ipItem.name}
-                              </a>
-                            ))
-                          ) : (
-                            <div className="dropdown-item text-gray-400 italic">
-                              No IPs found
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <NavLink
-                      key={idx}
-                      to={sub.path || "#"}
-                      className="dropdown-item"
-                    >
-                      {sub.name}
-                    </NavLink>
-                  );
-                })}
+                  })}
               </div>
             )}
           </div>
@@ -260,7 +285,7 @@ const Navbar = () => {
 
       {userInfo && (
         <div className="flex items-center gap-4 ml-4">
-          <span className="text-dark font-bold text-lg uppercase hidden sm:block">
+          <span className="text-light font-bold text-lg uppercase sm:block">
             {userInfo.name || userInfo.email}
           </span>
           <button
@@ -268,7 +293,7 @@ const Navbar = () => {
               localStorage.removeItem("userInfo");
               window.location.href = "/login?action=logout";
             }}
-            className="bg-red-600 hover:bg-red-700 text-dark text-10px font-bold px-3 py-1-5 rounded border border-light flex items-center gap-1 transition-colors"
+            className="bg-red-600 hover:bg-red-700 text-white text-10px font-bold px-3 py-1-5 rounded border border-light flex items-center gap-1 transition-colors"
           >
             <LogOut size={12} />
             Logout

@@ -59,7 +59,7 @@ function App() {
               <Route
                 path="/credentials"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <Credentials />
                   </ProtectedRoute>
                 }
@@ -83,7 +83,7 @@ function App() {
               <Route
                 path="/offers"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <Offers />
                   </ProtectedRoute>
                 }
@@ -91,7 +91,7 @@ function App() {
               <Route
                 path="/suppression"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <Suppression />
                   </ProtectedRoute>
                 }
@@ -99,7 +99,7 @@ function App() {
               <Route
                 path="/complainer-suppression"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <ComplainerSuppression />
                   </ProtectedRoute>
                 }
@@ -107,7 +107,7 @@ function App() {
               <Route
                 path="/all-offers"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <AllOffers />
                   </ProtectedRoute>
                 }
@@ -115,7 +115,7 @@ function App() {
               <Route
                 path="/all-links"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <AllLinks />
                   </ProtectedRoute>
                 }
@@ -123,7 +123,7 @@ function App() {
               <Route
                 path="/image-portal"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <ImagePortal />
                   </ProtectedRoute>
                 }
@@ -131,7 +131,7 @@ function App() {
               <Route
                 path="/server-setup"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <ServerSetup />
                   </ProtectedRoute>
                 }
@@ -139,7 +139,7 @@ function App() {
               <Route
                 path="/server-setup-ubuntu"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <ServerSetupUbuntu />
                   </ProtectedRoute>
                 }
@@ -147,7 +147,7 @@ function App() {
               <Route
                 path="/sending-ip-setup"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <SendingIpSetup />
                   </ProtectedRoute>
                 }
@@ -171,7 +171,7 @@ function App() {
               <Route
                 path="/data-download"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <DataDownload />
                   </ProtectedRoute>
                 }
@@ -179,7 +179,7 @@ function App() {
               <Route
                 path="/data-upload"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <DataUpload />
                   </ProtectedRoute>
                 }
@@ -195,7 +195,7 @@ function App() {
               <Route
                 path="/data-merge"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <DataMerge />
                   </ProtectedRoute>
                 }
@@ -203,7 +203,7 @@ function App() {
               <Route
                 path="/bounce-fetch"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <BounceFetch />
                   </ProtectedRoute>
                 }
@@ -211,7 +211,7 @@ function App() {
               <Route
                 path="/bounce-update"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <BounceUpdate />
                   </ProtectedRoute>
                 }
@@ -219,7 +219,7 @@ function App() {
               <Route
                 path="/complain-update"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <ComplainUpdate />
                   </ProtectedRoute>
                 }
@@ -227,7 +227,7 @@ function App() {
               <Route
                 path="/complain-fetch"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <ComplainFetch />
                   </ProtectedRoute>
                 }
@@ -235,7 +235,7 @@ function App() {
               <Route
                 path="/fetch-opener-clicker"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <DataAnalytics />
                   </ProtectedRoute>
                 }
@@ -259,7 +259,7 @@ function App() {
               <Route
                 path="/testids-man"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <TestIdsManagement />
                   </ProtectedRoute>
                 }
@@ -275,7 +275,7 @@ function App() {
               <Route
                 path="/smtp"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <SmtpDetails />
                   </ProtectedRoute>
                 }
@@ -283,7 +283,7 @@ function App() {
               <Route
                 path="/delete-datafile"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredDesignation="Admin">
                     <DataDelete />
                   </ProtectedRoute>
                 }
