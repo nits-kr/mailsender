@@ -16,6 +16,7 @@ const {
   getGeneratedFile,
   getBufferFiles,
   deleteBufferFile,
+  getFileInfo,
 } = require("../controllers/dataController");
 
 const { DATA_PATH } = require("../config/paths");
@@ -47,6 +48,7 @@ router.post("/analytics", getAnalytics);
 router.post("/get-generated", getGeneratedFile);
 router.get("/buffer-files", getBufferFiles);
 router.delete("/buffer-files/:filename", deleteBufferFile);
+router.get("/file-info/:filename", getFileInfo);
 router.delete("/:filename", deleteData);
 
 module.exports = router;

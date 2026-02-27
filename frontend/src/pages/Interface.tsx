@@ -7,6 +7,7 @@ import {
   useGetDefaultIpsQuery,
   useSendEmailMutation,
   useGetCampaignLogsQuery,
+  useLazyGetFileInfoQuery,
 } from "../store/apiSlice";
 
 const Interface = () => {
@@ -65,6 +66,10 @@ const Interface = () => {
   const [status, setStatus] = useState<string>("");
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [pollLogs, setPollLogs] = useState(false);
+  const [dataFileCount, setDataFileCount] = useState<number | null>(null);
+
+  const [triggerGetFileInfo, { isFetching: isFetchingFileInfo }] =
+    useLazyGetFileInfoQuery();
 
   // Polling for logs when a campaign is active
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
@@ -183,7 +188,41 @@ const Interface = () => {
     // Start tracking logs for this campaign
     setActiveCampaignId(selectedCampaignId);
     setPollLogs(false);
+
+    // Auto fetch file count if data_file is present
+    if (campaignDetail.data_file) {
+      handleFetchFileInfo(campaignDetail.data_file);
+    }
   };
+
+  const handleFetchFileInfo = async (filename: string) => {
+    if (!filename) {
+      setDataFileCount(null);
+      return;
+    }
+    try {
+      const res = await triggerGetFileInfo(filename).unwrap();
+      if (res.found) {
+        setDataFileCount(res.count);
+      } else {
+        setDataFileCount(0);
+      }
+    } catch {
+      setDataFileCount(0);
+    }
+  };
+
+  // Debounced effect for manual typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.data_file) {
+        handleFetchFileInfo(formData.data_file);
+      } else {
+        setDataFileCount(null);
+      }
+    }, 400); // Faster response
+    return () => clearTimeout(timer);
+  }, [formData.data_file]);
 
   const [sendEmailMutation] = useSendEmailMutation();
 
@@ -338,13 +377,35 @@ const Interface = () => {
               <summary className="menu-btn">▼ Settings</summary>
               <div className="settings-grid">
                 <div className="settings-row">
-                  <input
-                    name="data_file"
-                    placeholder="Data File"
-                    title="Data File"
-                    value={formData.data_file}
-                    onChange={handleInput}
-                  />
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <input
+                      name="data_file"
+                      placeholder="Data File"
+                      title="Data File"
+                      value={formData.data_file}
+                      onChange={handleInput}
+                      style={{
+                        width: "100%",
+                        paddingRight: dataFileCount !== null ? "60px" : "8px",
+                      }}
+                    />
+                    {dataFileCount !== null && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: "10px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                          color: dataFileCount > 0 ? "#10b981" : "#ef4444",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {dataFileCount.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                   <input
                     name="total_send"
                     placeholder="Total Send"

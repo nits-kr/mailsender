@@ -500,6 +500,57 @@ const deleteBufferFile = async (req, res) => {
   }
 };
 
+// @desc    Get info for a single file (used for auto-count in Interface)
+// @route   GET /api/data/file-info/:filename
+// @access  Private
+const getFileInfo = async (req, res) => {
+  const { filename } = req.params;
+  const primaryPath = path.join(DATA_PATH, filename);
+  const bufferFallbackPath = path.join(BUFFER_PATH, filename);
+
+  let filePath = null;
+  if (fs.existsSync(primaryPath)) {
+    filePath = primaryPath;
+  } else if (fs.existsSync(bufferFallbackPath)) {
+    filePath = bufferFallbackPath;
+  }
+
+  if (!filePath) {
+    return res.json({ found: false, count: 0 });
+  }
+
+  try {
+    const stats = fs.statSync(filePath);
+    const dbFile = await DataFile.findOne({ filename });
+
+    // Use wc -l for performance on large files
+    const countCommand = `wc -l "${filePath}" | awk '{print $1}'`;
+    exec(countCommand, (error, stdout) => {
+      let count = 0;
+      if (!error) {
+        count = parseInt(stdout.trim()) || 0;
+      } else {
+        // Fallback for non-linux or errors
+        const content = fs.readFileSync(filePath, "utf8");
+        count = content.split("\n").filter((l) => l.trim()).length;
+      }
+
+      res.json({
+        found: true,
+        filename,
+        display_name: dbFile?.display_name || filename,
+        count,
+        size: stats.size,
+        mtime: stats.mtime,
+      });
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error reading file info", error: error.message });
+  }
+};
+
 module.exports = {
   getDataCount,
   downloadData,
@@ -513,4 +564,5 @@ module.exports = {
   getGeneratedFile,
   getBufferFiles,
   deleteBufferFile,
+  getFileInfo,
 };

@@ -145,6 +145,9 @@ export const apiSlice = createApi({
       query: (filename) => ({ url: `/data/${filename}`, method: 'DELETE' }),
       invalidatesTags: ['DataCount'],
     }),
+    getFileInfo: builder.query<any, string>({
+      query: (filename) => `/data/file-info/${filename}`,
+    }),
     getDataAnalytics: builder.mutation({
       query: (body) => ({ url: '/data/analytics', method: 'POST', body }),
     }),
@@ -417,6 +420,8 @@ export const {
   useSplitDataMutation,
   useMergeDataMutation,
   useDeleteDataMutation,
+  useGetFileInfoQuery,
+  useLazyGetFileInfoQuery,
   useGetDataAnalyticsMutation,
   useUpdateDataStatusMutation,
   useFetchDataBounceMutation,
