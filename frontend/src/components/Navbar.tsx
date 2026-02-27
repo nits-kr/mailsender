@@ -14,6 +14,22 @@ import {
 } from "lucide-react";
 import { useGetServersManagementQuery } from "../store/apiSlice";
 
+interface NavSubItem {
+  name?: string;
+  path?: string;
+  type?: "header" | "divider";
+  isAdmin?: boolean;
+  submenu?: any[];
+}
+
+interface NavItem {
+  name: string;
+  path: string;
+  icon: any;
+  isAdmin?: boolean;
+  dropdown?: NavSubItem[];
+}
+
 const Navbar = () => {
   const { data: servers = [] } = useGetServersManagementQuery();
   const userInfo = (() => {
@@ -37,7 +53,7 @@ const Navbar = () => {
   const isSender = userInfo?.designation === "Sender";
   const isAdmin = userInfo?.designation === "Admin";
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { name: "SMTP", path: "/smtp", icon: Mail, isAdmin: true },
     {
       name: "TOOLS",
@@ -228,9 +244,9 @@ const Navbar = () => {
 
             {item.dropdown && (
               <div className="dropdown-menu">
-                {item.dropdown
-                  .filter((sub: any) => !sub.isAdmin || isAdmin)
-                  .map((sub: any, idx) => {
+                {(item.dropdown as NavSubItem[])
+                  .filter((sub) => !sub.isAdmin || isAdmin)
+                  .map((sub, idx: number) => {
                     if (sub.type === "header")
                       return (
                         <div key={idx} className="dropdown-header">
@@ -293,7 +309,7 @@ const Navbar = () => {
               localStorage.removeItem("userInfo");
               window.location.href = "/login?action=logout";
             }}
-            className="bg-red-600 hover:bg-red-700 text-white text-10px font-bold px-3 py-1-5 rounded border border-light flex items-center gap-1 transition-colors"
+            className="bg-red-600 hover:bg-red-700 text-dark text-10px font-bold px-3 py-1-5 rounded border border-light flex items-center gap-1 transition-colors"
           >
             <LogOut size={12} />
             Logout
