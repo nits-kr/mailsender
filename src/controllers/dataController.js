@@ -103,10 +103,9 @@ const getDataCount = async (req, res) => {
 const downloadData = async (req, res) => {
   const { filenames, count, type, times, ip, offer_id, selector } = req.body;
 
-  // Placeholder for suppression logic (FBL, Supp, Unsub)
-  // In a real scenario, this would involve complex SQL/Mongo queries
-  // For now, we'll simulate the file generation
-  // use a robust unique ID (MD5 style) for professional enterprise naming
+  const extractCount = parseInt(count) || 10000;
+  const loopTimes = parseInt(times) || 1;
+  const isRandom = type !== "Not Random";
   const downloadId = require("crypto").randomBytes(16).toString("hex");
   const resultFilename = `${downloadId}.txt`;
   const dataPath = process.env.DATA_PATH || "/var/www/data/";
@@ -117,14 +116,64 @@ const downloadData = async (req, res) => {
   }
 
   try {
-    // Simulate data extraction
-    const mockContent = "email1@example.com\nemail2@example.com\n";
-    fs.writeFileSync(path.join(bufferPath, resultFilename), mockContent);
+    // 1. Read all lines from the selected files
+    let allLines = [];
+    for (const filename of filenames) {
+      const filePath = path.join(dataPath, filename);
+      if (!fs.existsSync(filePath)) {
+        console.warn(`File not found: ${filePath}`);
+        continue;
+      }
+      const content = fs.readFileSync(filePath, "utf8");
+      const lines = content
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+      allLines = allLines.concat(lines);
+    }
+
+    if (allLines.length === 0) {
+      return res.status(400).json({
+        message: "No data found in selected files",
+        filename: null,
+        finalCount: 0,
+        suppCount: 0,
+      });
+    }
+
+    // 2. Shuffle if Random mode
+    if (isRandom) {
+      for (let i = allLines.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allLines[i], allLines[j]] = [allLines[j], allLines[i]];
+      }
+    }
+
+    // 3. Extract 'count' lines, repeated 'times' times
+    const extracted = [];
+    for (let t = 0; t < loopTimes; t++) {
+      const slice = allLines.slice(0, extractCount);
+      extracted.push(...slice);
+    }
+
+    // 4. Format output based on selector
+    const outputLines = extracted.map((line) => {
+      if (selector === "both") {
+        const crypto = require("crypto");
+        const md5 = crypto.createHash("md5").update(line).digest("hex");
+        return `${line}|${md5}`;
+      }
+      return line;
+    });
+
+    // 5. Write to buffer file
+    const outputPath = path.join(bufferPath, resultFilename);
+    fs.writeFileSync(outputPath, outputLines.join("\n") + "\n", "utf8");
 
     res.json({
       message: "Data extraction started",
       filename: resultFilename,
-      finalCount: 2, // Mock count
+      finalCount: outputLines.length,
       suppCount: 0,
     });
   } catch (error) {
