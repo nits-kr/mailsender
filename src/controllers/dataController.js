@@ -149,6 +149,17 @@ const uploadData = async (req, res) => {
   }
 
   try {
+    // Count the actual number of non-empty lines in the uploaded file
+    let lineCount = 0;
+    try {
+      const content = fs.readFileSync(file.path, "utf8");
+      lineCount = content
+        .split("\n")
+        .filter((line) => line.trim().length > 0).length;
+    } catch (readErr) {
+      console.warn("Could not count lines for uploaded file:", readErr.message);
+    }
+
     // Use upsert so re-uploading a file with the same name updates it instead of throwing a duplicate key error
     const updatedFile = await DataFile.findOneAndUpdate(
       { filename: file.originalname },
@@ -157,7 +168,7 @@ const uploadData = async (req, res) => {
           filename: file.originalname,
           display_name: displayName,
           type: "data",
-          count: 0,
+          count: lineCount,
         },
       },
       { upsert: true, new: true },
