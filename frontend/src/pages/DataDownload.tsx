@@ -26,6 +26,7 @@ import {
   Eye,
   XCircle,
   X,
+  Copy,
 } from "lucide-react";
 import "./DataDownload.css";
 
@@ -104,6 +105,37 @@ const DataDownload = () => {
     }
   };
 
+  const handleCopyFilename = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        })
+        .catch(() => {
+          // Fallback
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand("copy");
+          textArea.remove();
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        });
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
   // Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, file: any) => {
     e.dataTransfer.setData("file", JSON.stringify(file));
@@ -151,6 +183,7 @@ const DataDownload = () => {
       addLog(
         `Report: Records: ${res.finalCount} | Suppressed: ${res.suppCount}`,
       );
+      refetchBuffer(); // Auto refresh the list
     } catch (error: any) {
       addLog(
         `CRITICAL: Pipeline failure - ${error?.data?.message || "Connection timeout"}`,
@@ -218,37 +251,7 @@ const DataDownload = () => {
               <button
                 className={`copy-btn ${isCopied ? "copied" : ""}`}
                 onClick={() => {
-                  const copyText = (text: string) => {
-                    if (navigator.clipboard) {
-                      navigator.clipboard
-                        .writeText(text)
-                        .then(() => {
-                          setIsCopied(true);
-                          setTimeout(() => setIsCopied(false), 2000);
-                        })
-                        .catch(() => {
-                          // Fallback
-                          const textArea = document.createElement("textarea");
-                          textArea.value = text;
-                          document.body.appendChild(textArea);
-                          textArea.select();
-                          document.execCommand("copy");
-                          textArea.remove();
-                          setIsCopied(true);
-                          setTimeout(() => setIsCopied(false), 2000);
-                        });
-                    } else {
-                      const textArea = document.createElement("textarea");
-                      textArea.value = text;
-                      document.body.appendChild(textArea);
-                      textArea.select();
-                      document.execCommand("copy");
-                      textArea.remove();
-                      setIsCopied(true);
-                      setTimeout(() => setIsCopied(false), 2000);
-                    }
-                  };
-                  copyText(generatedFilename);
+                  handleCopyFilename(generatedFilename);
                 }}
               >
                 {isCopied ? "Copied!" : "Copy Filename"}
@@ -688,6 +691,21 @@ const DataDownload = () => {
                             justifyContent: "center",
                           }}
                         >
+                          <button
+                            onClick={() => {
+                              handleCopyFilename(bf.filename);
+                              addLog(`Copied to clipboard: ${bf.filename}`);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "#64748b",
+                            }}
+                            title="Copy Filename"
+                          >
+                            <Copy size={16} />
+                          </button>
                           <button
                             onClick={async () => {
                               addLog(`Reading ${bf.filename}...`);
