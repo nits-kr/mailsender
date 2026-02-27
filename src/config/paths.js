@@ -11,9 +11,13 @@ if (!DATA_PATH) {
   const fs = require("fs");
   if (fs.existsSync(linuxPath)) {
     DATA_PATH = linuxPath;
+    console.log("Paths: Using Linux path /var/www/data");
   } else {
     DATA_PATH = path.join(__dirname, "../../data");
+    console.log("Paths: Using project path:", DATA_PATH);
   }
+} else {
+  console.log("Paths: Using process.env.DATA_PATH:", DATA_PATH);
 }
 
 const BUFFER_PATH = path.join(DATA_PATH, "buffer");

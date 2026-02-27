@@ -138,12 +138,17 @@ const downloadData = async (req, res) => {
     for (const filename of filenames) {
       const primaryPath = path.join(dataPath, filename);
       const bufferFallbackPath = path.join(bufferPath, filename);
+      console.log(`Checking for file: ${filename}`);
+      console.log(`  - Primary: ${primaryPath}`);
+      console.log(`  - Fallback: ${bufferFallbackPath}`);
 
       let filePath = null;
       if (fs.existsSync(primaryPath)) {
         filePath = primaryPath;
+        console.log(`  - Found at Primary`);
       } else if (fs.existsSync(bufferFallbackPath)) {
         filePath = bufferFallbackPath;
+        console.log(`  - Found at Fallback`);
       }
 
       if (!filePath) {
@@ -225,6 +230,10 @@ const uploadData = async (req, res) => {
       .status(400)
       .json({ message: "File and display name are required" });
   }
+
+  console.log(`Uploading file: ${file.originalname}`);
+  console.log(`  - Multer path: ${file.path}`);
+  console.log(`  - Target DATA_PATH: ${DATA_PATH}`);
 
   try {
     // Count the actual number of non-empty lines in the uploaded file
