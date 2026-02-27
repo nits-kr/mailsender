@@ -131,8 +131,7 @@ const FsockManual = () => {
   };
 
   const handleHelpClick = () => {
-    const helpUrl = `${window.location.protocol}//${window.location.hostname}:5000/ESP_Module_fsock_send_smtp_auto/Example.html`;
-    window.open(helpUrl, "_blank");
+    window.open("/fsock-help", "_blank");
   };
 
   return (

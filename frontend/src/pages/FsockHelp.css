@@ -1,0 +1,155 @@
+/* FsockHelp.css */
+.fsock-help-container {
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.fsock-help-header {
+  text-align: center;
+  margin-bottom: 50px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 30px;
+}
+
+.fsock-help-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 10px;
+}
+
+.fsock-help-header p {
+  font-size: 1.125rem;
+  color: #94a3b8;
+}
+
+.fsock-help-section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.fsock-help-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-left: 4px solid #3b82f6;
+  padding-left: 15px;
+}
+
+.fsock-help-subtitle {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-top: -15px;
+  margin-bottom: 20px;
+}
+
+.fsock-help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 15px;
+}
+
+.fsock-help-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.fsock-help-code {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-weight: 600;
+  color: #ec4899;
+  background: #fdf2f8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.fsock-help-desc {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.fsock-help-row {
+  display: flex;
+  gap: 30px;
+}
+
+.fsock-help-section.half {
+  flex: 1;
+}
+
+.fsock-help-list {
+  list-style: none;
+  padding: 0;
+}
+
+.fsock-help-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.fsock-help-list li:last-child {
+  border-bottom: none;
+}
+
+.fsock-example-card {
+  margin-top: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.fsock-example-card h3 {
+  background: #f1f5f9;
+  padding: 12px 20px;
+  margin: 0;
+  font-size: 1rem;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fsock-example-pre {
+  margin: 0;
+  padding: 20px;
+  background: #0f172a;
+  color: #f8fafc;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.fsock-help-info-card {
+  margin-top: 20px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 15px 20px;
+  color: #0369a1;
+}
+
+.fsock-help-info-card code {
+  color: #0284c7;
+  font-weight: 600;
+  background: white;
+  padding: 2px 4px;
+  border-radius: 4px;
+}

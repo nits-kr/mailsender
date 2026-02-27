@@ -40,6 +40,7 @@ import TestIdsManagement from "./pages/TestIdsManagement";
 import SmtpTester from "./pages/SmtpTester";
 import SmtpDetails from "./pages/SmtpDetails";
 import FsockManual from "./pages/FsockManual";
+import FsockHelp from "./pages/FsockHelp";
 import { InterfaceNewPage } from "./pages/InterfaceNewPage";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -79,6 +80,7 @@ const TitleUpdater = () => {
       "/smtp-tester": "SMTP Connectivity Tester",
       "/smtp": "SMTP Configuration",
       "/fsock-manual": "FSock Manual Send",
+      "/fsock-help": "FSock Help Documentation",
       "/fsock-send-smtp": "ESP SMTP",
       "/fsock-send-smtp-auto": "Mail Interface (Auto)",
       "/interface-new": "Advanced Mailer",
@@ -369,6 +371,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <FsockManual />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/fsock-help"
+                element={
+                  <ProtectedRoute>
+                    <FsockHelp />
                   </ProtectedRoute>
                 }
               />

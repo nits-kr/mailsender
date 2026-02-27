@@ -206,9 +206,17 @@
   font-weight: 700;
   background: #f0f9ff;
   color: #0369a1;
-  list-style: none;
   text-align: left;
   border-bottom: 1px solid #bae6fd;
+  transition: background-color 0.2s;
+}
+
+.fsock-space-summary:hover {
+  background-color: #e0f2fe;
+}
+
+.fsock-space-summary::marker {
+  color: #0369a1;
 }
 
 .fsock-space-body {
