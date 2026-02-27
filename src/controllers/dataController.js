@@ -144,9 +144,31 @@ const uploadData = async (req, res) => {
 // @access  Private
 const splitData = async (req, res) => {
   const { filename, count } = req.body;
-  // Implement shell command: split -l count filename
-  res.json({
-    message: `Split initiated for ${filename} with ${count} records per file`,
+  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const filePath = path.join(dataPath, filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "Source file not found" });
+  }
+
+  // Create a sub-folder for shards to keep things clean
+  const shardFolder = `${filename}_shards`;
+  const shardPath = path.join(dataPath, shardFolder);
+  if (!fs.existsSync(shardPath)) {
+    fs.mkdirSync(shardPath, { recursive: true });
+  }
+
+  // Use Linux 'split' command for maximum performance
+  const command = `split -l ${count} ${filePath} ${shardPath}/shard_`;
+
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ message: "Split failed", error: stderr });
+    }
+    res.json({
+      message: `File split successfully. Shards generated in ${shardFolder}/`,
+      directory: shardFolder,
+    });
   });
 };
 
@@ -155,19 +177,66 @@ const splitData = async (req, res) => {
 // @access  Private
 const mergeData = async (req, res) => {
   const { filenames } = req.body;
-  // Implement shell command: cat filenames > merged.txt
-  res.json({
-    message: "Files merged successfully",
-    output_file: "merged_output.txt",
+  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+
+  if (!filenames || filenames.length === 0) {
+    return res.status(400).json({ message: "No files selected for merge" });
+  }
+
+  // Professional unique naming for merged output
+  const mergeId = require("crypto").randomBytes(8).toString("hex");
+  const outputFilename = `merged_${mergeId}.txt`;
+  const outputPath = path.join(dataPath, outputFilename);
+
+  // Construct files string: file1 file2 file3
+  const filesString = filenames.map((f) => path.join(dataPath, f)).join(" ");
+
+  // Use 'cat' for high-speed merge
+  const command = `cat ${filesString} > ${outputPath}`;
+
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ message: "Merge failed", error: stderr });
+    }
+    res.json({
+      message: "Files merged successfully",
+      output_file: outputFilename,
+      mergedCount: filenames.length,
+    });
   });
 };
+
+const EmailMaster = require("../models/EmailMaster");
 
 // @desc    Bounce/Complain update
 // @route   POST /api/data/status-update
 // @access  Private
 const updateStatus = async (req, res) => {
   const { ids, type } = req.body; // type: 'bounce' or 'complain'
-  res.json({ message: `${type} update successful for ${ids.length} records` });
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "No email identifiers provided" });
+  }
+
+  const statusChar = type === "bounce" ? "B" : "C";
+
+  try {
+    const result = await EmailMaster.updateMany(
+      { email: { $in: ids.map((id) => id.toLowerCase()) } },
+      { $set: { status: statusChar } },
+    );
+
+    res.json({
+      message: `${type.toUpperCase()} update completed`,
+      totalCount: ids.length,
+      updatedCount: result.modifiedCount || 0,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: `Error updating ${type} status`,
+      error: error.message,
+    });
+  }
 };
 
 // @desc    Fetch bounce from server

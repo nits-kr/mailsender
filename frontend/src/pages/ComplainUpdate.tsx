@@ -1,92 +1,152 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useUpdateDataStatusMutation } from "../store/apiSlice";
+import {
+  Mail,
+  Play,
+  Terminal,
+  Loader2,
+  Activity,
+  DatabaseZap,
+  ShieldAlert,
+} from "lucide-react";
+import "./BounceUpdate.css"; // Reusing the shared update portal styles
 
 const ComplainUpdate = () => {
   const [ids, setIds] = useState("");
-  const [status, setStatus] = useState({ type: "", message: "" });
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    "Complainer update pipeline standby.",
+  ]);
+  const consoleRef = useRef<HTMLDivElement>(null);
 
-  const [updateDataStatus, { isLoading: loading }] =
+  const [updateDataStatus, { isLoading: isUpdating }] =
     useUpdateDataStatusMutation();
 
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [consoleLogs]);
+
+  const addLog = (msg: string) => {
+    setConsoleLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] ${msg}`,
+    ]);
+  };
+
   const handleUpdate = async () => {
-    if (!ids.trim()) {
-      setStatus({ type: "error", message: "Email IDs are required!" });
+    const trimmedIds = ids.trim();
+    if (!trimmedIds) {
+      addLog("ERROR: Data stream empty. Please paste complaint identifiers.");
       return;
     }
 
-    setStatus({ type: "info", message: "Updating records..." });
+    addLog("INIT: Preparing batch complaint update...");
 
     try {
-      const idArray = ids
+      const idArray = trimmedIds
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => l);
-      await updateDataStatus({
+
+      addLog(
+        `INFO: Payload construction complete. ${idArray.length} records in queue.`,
+      );
+
+      const res = await updateDataStatus({
         ids: idArray,
         type: "complain",
       }).unwrap();
-      setStatus({ type: "success", message: "Done" });
+
+      addLog(`SUCCESS: ${res.message || "Update completed"}`);
+      addLog(`STAT: Total Processed: ${res.totalCount || 0}`);
+      addLog(`STAT: Updated in DB: ${res.updatedCount || 0}`);
       setIds("");
     } catch (error: any) {
-      setStatus({
-        type: "error",
-        message: error?.data?.message || error?.message || "Update failed",
-      });
+      addLog(
+        `CRITICAL: Pipeline disruption - ${error?.data?.message || error?.message || "Source node unreachable"}`,
+      );
     }
   };
 
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1000px] mx-auto">
-        <h2 className="text-center text-xl font-bold mb-8 pt-4 uppercase tracking-tighter">
-          COMPLAIN UPDATE PORTAL
-        </h2>
+    <div className="bounce-update-wrapper">
+      <div className="bounce-update-container">
+        <h2 className="bounce-update-title">Complain Upload Portal</h2>
 
-        <div className="flex flex-col items-center gap-4 text-[12px] font-bold">
-          <div className="flex flex-col items-center gap-2 w-full max-w-[600px]">
-            <label>Ids (One Per Line) = </label>
-            <textarea
-              value={ids}
-              onChange={(e) => setIds(e.target.value)}
-              className="w-full h-48 border border-gray-400 px-2 py-1 outline-none text-gray-700 font-mono text-[11px] resize-none"
-            />
+        <div className="config-panel">
+          <div className="config-header">
+            <ShieldAlert size={18} className="text-emerald-400" />
+            <span>Complaint Data Parameters</span>
           </div>
 
-          <div className="mt-4">
+          <div className="config-body">
+            <div className="full-width-field">
+              <label className="field-label mb-2">
+                <Activity size={12} /> Identifiers (One per line)
+              </label>
+              <textarea
+                className="config-textarea w-full"
+                placeholder="Paste complaint email addresses here..."
+                value={ids}
+                onChange={(e) => setIds(e.target.value)}
+                spellCheck={false}
+                style={{ height: "300px" }}
+              />
+            </div>
+          </div>
+
+          <div className="action-bar pb-6">
             <button
+              className="update-btn"
               onClick={handleUpdate}
-              disabled={loading}
-              className={`bg-[#5cb85c] border border-[#4cae4c] text-white px-8 py-1 font-bold shadow-sm hover:bg-[#449d44] transition-colors uppercase text-[11px]`}
+              disabled={isUpdating || !ids.trim()}
             >
-              {loading ? "Updating..." : "UPDATE COMPLAIN"}
+              {isUpdating ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} /> PROCESSING...
+                </>
+              ) : (
+                <>
+                  <DatabaseZap size={18} /> INSERT INTO DB
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        <div className="mt-8 px-4">
-          <div className="w-full bg-[#5F9EA0] border border-gray-400 p-2 h-[300px] overflow-y-auto font-mono text-[11px] leading-tight">
-            <p className="text-green-900 font-bold mb-1">
-              Complain Process Status...
-            </p>
-            {status.message && (
-              <p
-                className={
-                  status.type === "error" ? "text-red-900" : "text-green-900"
-                }
+        {/* Diagnostic Console */}
+        <div className="console-card">
+          <div className="console-head">
+            <div className="dots">
+              <span className="dot red"></span>
+              <span className="dot yellow"></span>
+              <span className="dot green"></span>
+            </div>
+            <div className="console-title text-emerald-400">
+              <Terminal size={12} /> complain_daemon_v2.0
+            </div>
+          </div>
+          <div className="console-body" ref={consoleRef}>
+            {consoleLogs.map((log, i) => (
+              <div
+                key={i}
+                className={`log-entry ${
+                  log.includes("SUCCESS")
+                    ? "success"
+                    : log.includes("ERROR") || log.includes("CRITICAL")
+                      ? "error"
+                      : log.includes("INIT") || log.includes("INFO")
+                        ? "info"
+                        : ""
+                }`}
               >
-                [{status.type.toUpperCase()}]{" "}
-                {status.message === "Done"
-                  ? "Records updated in complain database."
-                  : status.message}
-              </p>
-            )}
-            {loading && (
-              <div className="text-white mt-2">
-                <p>Processing complaint IDs...</p>
-                <p className="animate-pulse">Updating suppression tables...</p>
+                {log}
+              </div>
+            ))}
+            {isUpdating && (
+              <div className="log-entry info animate-pulse">
+                Iterating identifier stack... mapping suppression vectors...
               </div>
             )}
           </div>

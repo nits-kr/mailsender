@@ -1,0 +1,261 @@
+/* Complainer Suppression Portal Styles */
+
+.cs-container {
+    background-color: #f0f9ff;
+    min-height: 100vh;
+    padding: 20px;
+    color: #1e293b;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cs-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.cs-header h1 {
+    font-weight: 800;
+    font-size: 20px;
+    color: #0f172a;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.cs-main-content {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Section Common Styles */
+.cs-section {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.cs-section h2 {
+    font-weight: 700;
+    font-size: 15px;
+    color: #334155;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Form Styles */
+.cs-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cs-form-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.cs-label {
+    font-weight: 600;
+    width: 160px;
+    text-align: right;
+    padding-top: 8px;
+    color: #475569;
+}
+
+.cs-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background-color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cs-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cs-textarea {
+    flex: 1;
+    height: 120px;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cs-textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cs-submit-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.cs-submit-btn {
+    background: linear-gradient(to bottom, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 700;
+    padding: 10px 40px;
+    border: 1px solid #1d4ed8;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.cs-submit-btn:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #2563eb, #1d4ed8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.cs-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Table Styles */
+.cs-table-wrapper {
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.cs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cs-table thead th {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-bottom: 2px solid #bae6fd;
+}
+
+.cs-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.cs-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.cs-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.cs-expand-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.cs-expand-btn:hover {
+    background-color: #eff6ff;
+}
+
+.cs-email-row {
+    background-color: #fbfcfe;
+}
+
+.cs-nested-content {
+    padding: 15px 45px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.cs-email-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cs-email-item {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.cs-email-item:last-child {
+    border-bottom: none;
+}
+
+.cs-email-item td {
+    padding: 8px 0;
+    font-size: 13px;
+}
+
+.cs-delete-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.cs-delete-btn:hover {
+    color: #ef4444;
+    background-color: #fee2e2;
+}
+
+.cs-loader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 15px;
+    color: #64748b;
+    font-style: italic;
+}
+
+.cs-empty {
+    padding: 30px;
+    text-align: center;
+    color: #94a3b8;
+    font-style: italic;
+}

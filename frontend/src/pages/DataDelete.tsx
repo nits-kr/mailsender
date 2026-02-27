@@ -1,44 +1,77 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useGetDataCountQuery, useDeleteDataMutation } from "../store/apiSlice";
+import {
+  Trash2,
+  FileX2,
+  Search,
+  Terminal,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  FileText,
+  AlertTriangle,
+  Flame,
+  Eraser,
+} from "lucide-react";
+import "./DataDelete.css";
 
 const DataDelete = () => {
   const [filename, setFilename] = useState("");
-  const [status, setStatus] = useState({ type: "", message: "" });
   const [searchTerm, setSearchTerm] = useState("");
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    "Destruction engine initialized. Standing by for target selection...",
+  ]);
+  const consoleRef = useRef<HTMLDivElement>(null);
 
-  const { data: files } = useGetDataCountQuery();
-  const [deleteData, { isLoading: loading }] = useDeleteDataMutation();
+  const {
+    data: files,
+    isLoading: isFetching,
+    refetch,
+  } = useGetDataCountQuery();
+  const [deleteData, { isLoading: isDeleting }] = useDeleteDataMutation();
+
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [consoleLogs]);
+
+  const addLog = (msg: string) => {
+    setConsoleLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] ${msg}`,
+    ]);
+  };
 
   const handleDelete = async (targetFilename?: string) => {
     const fileToDelete = targetFilename || filename;
 
     if (!fileToDelete) {
-      setStatus({
-        type: "error",
-        message: "Enter or select a filename to delete!",
-      });
+      addLog("ERROR: Target vector missing. Select or input filename.");
       return;
     }
 
     if (
       !window.confirm(
-        `Are you absolutely sure you want to PERMANENTLY delete ${fileToDelete}?`,
+        `Are you absolutely sure you want to PERMANENTLY purge ${fileToDelete}? This action is irreversible.`,
       )
     ) {
+      addLog(`CANCEL: Destruction sequence aborted for ${fileToDelete}`);
       return;
     }
 
-    setStatus({ type: "info", message: "Deleting file..." });
+    addLog(`INIT: PURGE command sent for ${fileToDelete}...`);
 
     try {
       await deleteData(fileToDelete).unwrap();
-      setStatus({ type: "success", message: "Done" });
+      addLog(`SUCCESS: ${fileToDelete} has been completely erased from disk.`);
       setFilename("");
+      refetch();
     } catch (error: any) {
-      setStatus({
-        type: "error",
-        message: error?.data?.message || "Delete failed",
-      });
+      addLog(
+        `CRITICAL: Purge failed - ${error?.data?.message || "Internal system error"}`,
+      );
     }
   };
 
@@ -49,112 +82,151 @@ const DataDelete = () => {
     : [];
 
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1200px] mx-auto">
-        <h2 className="text-center text-xl font-bold mb-8 pt-4 uppercase tracking-tighter">
-          DATA DELETE PORTAL
-        </h2>
+    <div className="delete-wrapper">
+      <div className="delete-container">
+        {/* Header */}
+        <div className="delete-header">
+          <div className="header-left">
+            <div className="icon-box">
+              <FileX2 size={24} />
+            </div>
+            <div>
+              <h1>Data Destruction Portal</h1>
+              <p className="subtitle">L0 System purge & cleanup utility</p>
+            </div>
+          </div>
+          <button className="refresh-btn" onClick={() => refetch()}>
+            <RefreshCw size={18} className={isFetching ? "animate-spin" : ""} />
+          </button>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Side: Actions & Status */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2 text-[12px] font-bold">
-              <label>Filename To Erase = </label>
+        {/* Stacked Layout Wrapper */}
+        <div className="delete-content">
+          {/* Top Section: Action (Centered) */}
+          <div className="action-section">
+            <div className="input-row">
+              <span className="input-label">Filename To Erase = </span>
               <input
                 type="text"
+                placeholder="Enter cluster name..."
                 value={filename}
                 onChange={(e) => setFilename(e.target.value)}
-                className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono"
               />
             </div>
-
             <button
+              className="big-delete-btn"
               onClick={() => handleDelete()}
-              disabled={loading}
-              className="bg-[#d9534f] border border-[#d43f3a] text-white px-8 py-1 font-bold shadow-sm hover:bg-[#c9302c] transition-colors uppercase text-[11px]"
+              disabled={isDeleting || (!filename && !isDeleting)}
             >
-              {loading ? "Erasing..." : "Delete File"}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} /> Erasing...
+                </>
+              ) : (
+                <>
+                  <Eraser size={18} /> Delete File
+                </>
+              )}
             </button>
+          </div>
 
-            <div className="w-full mt-4">
-              <div className="w-full bg-[#5F9EA0] border border-gray-400 p-2 h-[250px] overflow-y-auto font-mono text-[11px] leading-tight">
-                <p className="text-green-900 font-bold mb-1">
-                  Delete Process Status...
-                </p>
-                {status.message && (
-                  <p
-                    className={
-                      status.type === "error"
-                        ? "text-red-900"
-                        : "text-green-900"
-                    }
-                  >
-                    [{status.type.toUpperCase()}]{" "}
-                    {status.message === "Done"
-                      ? "File erased from system."
-                      : status.message}
-                  </p>
-                )}
-                {loading && (
-                  <div className="text-white mt-2">
-                    <p>Searching for {filename}...</p>
-                    <p className="animate-pulse text-red-100">
-                      Wiping data records...
-                    </p>
-                  </div>
-                )}
+          {/* Middle Section: Console (Status Wide) */}
+          <div className="console-card">
+            <div className="console-head">
+              <div className="dots">
+                <span className="dot red"></span>
+                <span className="dot yellow"></span>
+                <span className="dot green"></span>
               </div>
+              <div className="console-title">
+                <Terminal size={12} /> wipe_daemon_v9.0
+              </div>
+            </div>
+            <div className="console-body" ref={consoleRef}>
+              <div className="log-entry font-bold text-red-400 mb-2">
+                Delete Process Status...
+              </div>
+              {consoleLogs.map((log, i) => (
+                <div
+                  key={i}
+                  className={`log-entry ${
+                    log.includes("SUCCESS")
+                      ? "success"
+                      : log.includes("ERROR") || log.includes("CRITICAL")
+                        ? "error"
+                        : log.includes("INIT")
+                          ? "info"
+                          : ""
+                  }`}
+                >
+                  {log}
+                </div>
+              ))}
+              {isDeleting && (
+                <div className="log-entry info animate-pulse">
+                  Wiping data records... zeroing binary stream...
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right Side: File Browser */}
-          <div className="border border-gray-400 p-4 bg-gray-50 flex flex-col h-[500px]">
-            <div className="flex justify-between items-center mb-4 text-[10px] font-bold uppercase tracking-widest border-b border-gray-300 pb-2">
-              <span>File Name</span>
-              <div className="flex items-center gap-2">
-                <span className="italic">Search:</span>
+          {/* Bottom Section: Browser (Table Wide) */}
+          <div className="browser-card">
+            <div className="browser-head">
+              <div className="meta-text text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                <FileText size={14} className="inline mr-2" /> File Name
+              </div>
+              <div className="search-field">
+                <Search size={16} />
                 <input
                   type="text"
-                  className="border border-gray-400 px-2 py-0.5 w-32 font-mono bg-white outline-none"
+                  placeholder="SEARCH AVAILABLE DATA..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="flex-grow overflow-y-auto font-mono text-[11px]">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-gray-50 border-b border-gray-300">
+            <div className="table-wrapper">
+              <table className="delete-table">
+                <thead>
                   <tr>
-                    <th className="py-1">Filename</th>
-                    <th className="py-1 text-right">Count</th>
-                    <th className="py-1 text-right">Action</th>
+                    <th>Filename</th>
+                    <th className="text-right">Count</th>
+                    <th className="text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(filteredFiles) &&
-                    filteredFiles.map((file) => (
-                      <tr
-                        key={file.filename}
-                        className="hover:bg-red-50 border-b border-gray-200"
+                  {filteredFiles.map((file) => (
+                    <tr key={file.filename}>
+                      <td>
+                        <div className="filename-cell">{file.filename}</div>
+                      </td>
+                      <td className="text-right">
+                        <span className="count-badge">
+                          {file.count.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <button
+                          onClick={() => handleDelete(file.filename)}
+                          className="text-red-500 font-bold hover:underline text-[11px]"
+                        >
+                          [DELETE]
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredFiles.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="text-center py-20 text-slate-400 italic"
                       >
-                        <td className="py-2 pr-2 truncate max-w-[200px]">
-                          {file.filename}
-                        </td>
-                        <td className="py-2 text-right">{file.count}</td>
-                        <td className="py-2 text-right">
-                          <button
-                            onClick={() => handleDelete(file.filename)}
-                            className="text-red-600 font-bold hover:underline"
-                          >
-                            [DELETE]
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                        No targets found matching synchronization logs.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

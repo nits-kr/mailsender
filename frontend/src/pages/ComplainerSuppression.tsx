@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   useGetOffersQuery,
   useGetSuppressionComplainersGroupedQuery,
-  useGetSuppressionComplainersByOfferQuery,
+  useUploadSuppressionMutation, // Assuming these might be needed if shared
   useCreateSuppressionComplainerMutation,
   useDeleteSuppressionComplainerMutation,
 } from "../store/apiSlice";
 import API_BASE_URL from "../config/api";
+import "./ComplainerSuppression.css";
 import {
   Loader2,
   Trash2,
@@ -14,6 +15,13 @@ import {
   ChevronRight,
   Mail,
   PlusCircle,
+  ShieldAlert,
+  UserPlus,
+  Database,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Activity,
 } from "lucide-react";
 
 interface Offer {
@@ -134,366 +142,209 @@ const ComplainerSuppression: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        backgroundColor: "#f0f8ff",
-        minHeight: "100vh",
-        padding: "20px",
-        color: "black",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "11px",
-      }}
-    >
-      <center>
-        <h1
-          style={{
-            fontWeight: "bold",
-            fontSize: "18px",
-            color: "#333",
-            marginBottom: "20px",
-          }}
-        >
+    <div className="cs-container">
+      <div className="cs-header">
+        <h1>
+          <ShieldAlert size={28} className="text-blue-600" />
           Complainer Suppression Email Management Portal
         </h1>
-      </center>
+      </div>
 
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <div className="cs-main-content">
         {/* ADD COMPLAINER FORM */}
-        <div
-          style={{
-            backgroundColor: "white",
-            border: "1px solid black",
-            padding: "15px",
-            borderRadius: "4px",
-            marginBottom: "30px",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-          }}
-        >
-          <form onSubmit={handleAddComplainers}>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "15px" }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "15px" }}
+        <div className="cs-section">
+          <h2>
+            <UserPlus size={18} />
+            Add New Complainers
+          </h2>
+          <form onSubmit={handleAddComplainers} className="cs-form">
+            <div className="cs-form-group">
+              <label className="cs-label">Select Offer :</label>
+              <select
+                value={selectedOffer}
+                onChange={(e) => setSelectedOffer(e.target.value)}
+                required
+                className="cs-select"
               >
-                <label
-                  style={{
-                    fontWeight: "bold",
-                    width: "150px",
-                    textAlign: "right",
-                  }}
-                >
-                  Select Offer :
-                </label>
-                <select
-                  value={selectedOffer}
-                  onChange={(e) => setSelectedOffer(e.target.value)}
-                  required
-                  style={{
-                    flex: 1,
-                    padding: "5px",
-                    border: "1px solid #767676",
-                    borderRadius: "2px",
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <option value="">-- Select Offer --</option>
-                  {Array.isArray(offers) &&
-                    offers.map((o) => (
-                      <option key={o._id} value={o._id}>
-                        {o.affiliate} | {o.offer_id} | {o.offer_name}
-                      </option>
-                    ))}
-                </select>
-              </div>
+                <option value="">-- Select Offer --</option>
+                {Array.isArray(offers) &&
+                  offers.map((o) => (
+                    <option key={o._id} value={o._id}>
+                      {o.affiliate} | {o.offer_id} | {o.offer_name}
+                    </option>
+                  ))}
+              </select>
+            </div>
 
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "5px" }}
-              >
-                <label style={{ fontWeight: "bold", marginLeft: "165px" }}>
-                  Complainer Email ID(s):
-                </label>
-                <div
-                  style={{ display: "flex", gap: "15px", alignItems: "start" }}
-                >
-                  <div style={{ width: "150px" }} />
-                  <textarea
-                    value={emailsRaw}
-                    onChange={(e) => setEmailsRaw(e.target.value)}
-                    placeholder="Enter one or more email addresses, separated by comma or new line"
-                    required
-                    style={{
-                      flex: 1,
-                      height: "100px",
-                      padding: "8px",
-                      border: "1px solid #767676",
-                      borderRadius: "2px",
-                      fontFamily: "monospace",
-                      fontSize: "12px",
-                    }}
-                  />
-                </div>
-              </div>
+            <div className="cs-form-group">
+              <label className="cs-label">Complainer Email ID(s):</label>
+              <textarea
+                value={emailsRaw}
+                onChange={(e) => setEmailsRaw(e.target.value)}
+                placeholder="Enter one or more email addresses, separated by comma or new line"
+                required
+                className="cs-textarea"
+              />
+            </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  marginTop: "10px",
-                }}
+            <div className="cs-submit-container">
+              <button
+                type="submit"
+                disabled={loading}
+                className="cs-submit-btn"
               >
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    backgroundColor: "#007bff",
-                    color: "white",
-                    fontWeight: "bold",
-                    padding: "8px 40px",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                  }}
-                >
-                  {loading && <Loader2 size={14} className="animate-spin" />}
-                  Add to Suppression List
-                </button>
-              </div>
+                {loading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Activity size={18} />
+                )}
+                {loading ? "Adding to List..." : "Add to Suppression List"}
+              </button>
             </div>
           </form>
         </div>
 
         {/* SUPPRESSION LIST TABLE */}
-        <div
-          style={{
-            backgroundColor: "white",
-            border: "1px solid black",
-            padding: "15px",
-            borderRadius: "4px",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-          }}
-        >
-          <h2
-            style={{
-              fontWeight: "bold",
-              fontSize: "14px",
-              marginBottom: "15px",
-              borderBottom: "1px solid #eee",
-              paddingBottom: "5px",
-            }}
-          >
-            Suppression List
+        <div className="cs-section">
+          <h2>
+            <Database size={18} />
+            Suppression History
           </h2>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ backgroundColor: "#add8e6", color: "black" }}>
-                <th
-                  style={{
-                    border: "1px solid black",
-                    padding: "8px",
-                    width: "40px",
-                  }}
-                ></th>
-                <th
-                  style={{
-                    border: "1px solid black",
-                    padding: "8px",
-                    textAlign: "left",
-                  }}
-                >
-                  Affiliate
-                </th>
-                <th
-                  style={{
-                    border: "1px solid black",
-                    padding: "8px",
-                    textAlign: "left",
-                  }}
-                >
-                  Offer Name
-                </th>
-                <th
-                  style={{
-                    border: "1px solid black",
-                    padding: "8px",
-                    textAlign: "center",
-                    width: "100px",
-                  }}
-                >
-                  Email Count
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(Array.isArray(groupedData) ? groupedData : []).map((row) => (
-                <React.Fragment key={row.offer_id}>
-                  <tr>
-                    <td
-                      style={{
-                        border: "1px solid black",
-                        padding: "8px",
-                        textAlign: "center",
-                      }}
-                    >
-                      <button
-                        onClick={() => toggleRow(row.offer_id)}
-                        style={{
-                          border: "none",
-                          background: "none",
-                          cursor: "pointer",
-                          color: "#007bff",
-                        }}
-                      >
-                        {expandedRows[row.offer_id] ? (
-                          <ChevronDown size={14} />
-                        ) : (
-                          <ChevronRight size={14} />
-                        )}
-                      </button>
-                    </td>
-                    <td style={{ border: "1px solid black", padding: "8px" }}>
-                      {row.affiliate}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid black",
-                        padding: "8px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {row.offer_name}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid black",
-                        padding: "8px",
-                        textAlign: "center",
-                      }}
-                    >
-                      {row.count}
-                    </td>
-                  </tr>
-                  {expandedRows[row.offer_id] && (
+          <div className="cs-table-wrapper">
+            <table className="cs-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "50px", textAlign: "center" }}></th>
+                  <th>Affiliate</th>
+                  <th>Offer Name</th>
+                  <th style={{ width: "120px", textAlign: "center" }}>
+                    Email Count
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(Array.isArray(groupedData) ? groupedData : []).map((row) => (
+                  <React.Fragment key={row.offer_id}>
                     <tr>
-                      <td
-                        colSpan={4}
-                        style={{
-                          border: "1px solid black",
-                          padding: "0",
-                          backgroundColor: "#f9f9f9",
-                        }}
-                      >
-                        <div style={{ padding: "10px 40px" }}>
-                          {fetchingEmails[row.offer_id] ? (
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "5px",
-                                padding: "10px",
-                              }}
-                            >
-                              <Loader2 size={12} className="animate-spin" />{" "}
-                              Loading emails...
-                            </div>
+                      <td style={{ textAlign: "center" }}>
+                        <button
+                          onClick={() => toggleRow(row.offer_id)}
+                          className="cs-expand-btn"
+                        >
+                          {expandedRows[row.offer_id] ? (
+                            <ChevronDown size={18} />
                           ) : (
-                            <div
-                              style={{ maxHeight: "200px", overflowY: "auto" }}
-                            >
-                              <table
-                                style={{
-                                  width: "100%",
-                                  borderCollapse: "collapse",
-                                }}
-                              >
-                                <tbody>
-                                  {(Array.isArray(offerEmails[row.offer_id])
-                                    ? offerEmails[row.offer_id]
-                                    : []
-                                  ).map((email) => (
-                                    <tr
-                                      key={email._id}
-                                      style={{ borderBottom: "1px solid #eee" }}
-                                    >
-                                      <td
-                                        style={{
-                                          padding: "5px 0",
-                                          fontSize: "12px",
-                                        }}
-                                      >
-                                        {email.email_id}
-                                      </td>
-                                      <td
-                                        style={{
-                                          padding: "5px 0",
-                                          textAlign: "right",
-                                        }}
-                                      >
-                                        <button
-                                          onClick={() =>
-                                            handleDeleteEmail(
-                                              row.offer_id,
-                                              email._id,
-                                            )
-                                          }
-                                          style={{
-                                            border: "none",
-                                            background: "none",
-                                            cursor: "pointer",
-                                            color: "#dc3545",
-                                          }}
-                                        >
-                                          <Trash2 size={12} />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                  {(!offerEmails[row.offer_id] ||
-                                    offerEmails[row.offer_id].length === 0) && (
-                                    <tr>
-                                      <td
-                                        colSpan={2}
-                                        style={{
-                                          padding: "10px",
-                                          textAlign: "center",
-                                          color: "#666",
-                                        }}
-                                      >
-                                        No emails found
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
+                            <ChevronRight size={18} />
                           )}
-                        </div>
+                        </button>
+                      </td>
+                      <td>
+                        <span style={{ color: "#64748b", fontWeight: "600" }}>
+                          {row.affiliate}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: "700", color: "#0f172a" }}>
+                        {row.offer_name}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <span
+                          style={{
+                            backgroundColor: "#f1f5f9",
+                            padding: "4px 10px",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            color: "#334155",
+                          }}
+                        >
+                          {row.count}
+                        </span>
                       </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
-              {(Array.isArray(groupedData)
-                ? groupedData.length === 0
-                : true) && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    style={{
-                      padding: "20px",
-                      textAlign: "center",
-                      color: "#666",
-                    }}
-                  >
-                    No suppression data found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    {expandedRows[row.offer_id] && (
+                      <tr className="cs-email-row">
+                        <td colSpan={4}>
+                          <div className="cs-nested-content">
+                            {fetchingEmails[row.offer_id] ? (
+                              <div className="cs-loader">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Fetching emails...</span>
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  maxHeight: "300px",
+                                  overflowY: "auto",
+                                }}
+                              >
+                                <table className="cs-email-table">
+                                  <tbody>
+                                    {(Array.isArray(offerEmails[row.offer_id])
+                                      ? offerEmails[row.offer_id]
+                                      : []
+                                    ).map((email, idx) => (
+                                      <tr
+                                        key={email._id}
+                                        className="cs-email-item"
+                                      >
+                                        <td>
+                                          <Mail
+                                            size={14}
+                                            style={{
+                                              marginRight: "10px",
+                                              verticalAlign: "middle",
+                                              color: "#94a3b8",
+                                            }}
+                                          />
+                                          {email.email_id}
+                                        </td>
+                                        <td style={{ textAlign: "right" }}>
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteEmail(
+                                                row.offer_id,
+                                                email._id,
+                                              )
+                                            }
+                                            className="cs-delete-btn"
+                                            title="Delete email"
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    {(!offerEmails[row.offer_id] ||
+                                      offerEmails[row.offer_id].length ===
+                                        0) && (
+                                      <tr>
+                                        <td colSpan={2} className="cs-empty">
+                                          No emails found for this offer
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+                {(Array.isArray(groupedData)
+                  ? groupedData.length === 0
+                  : true) && (
+                  <tr>
+                    <td colSpan={4} className="cs-empty">
+                      No suppression data found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

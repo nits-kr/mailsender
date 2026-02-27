@@ -1,122 +1,225 @@
-import React, { useState } from "react";
-import { useUpdateDataStatusMutation } from "../store/apiSlice";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  useUpdateDataStatusMutation,
+  useGetSmtpDetailsQuery,
+} from "../store/apiSlice";
+import {
+  Database,
+  Calendar,
+  Server,
+  Play,
+  Terminal,
+  Loader2,
+  RefreshCw,
+  DatabaseZap,
+  Activity,
+  ServerCrash,
+} from "lucide-react";
+import "./BounceUpdate.css";
 
 const BounceUpdate = () => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [server, setServer] = useState("Bounce (172.104.161.85)");
+  const [server, setServer] = useState("");
   const [ids, setIds] = useState("");
-  const [status, setStatus] = useState({ type: "", message: "" });
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    "Bounce update pipeline ready.",
+  ]);
+  const consoleRef = useRef<HTMLDivElement>(null);
 
-  const [updateDataStatus, { isLoading: loading }] =
+  const {
+    data: smtpDetails,
+    isLoading: isFetchingServers,
+    refetch: refetchServers,
+  } = useGetSmtpDetailsQuery();
+  const [updateDataStatus, { isLoading: isUpdating }] =
     useUpdateDataStatusMutation();
 
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [consoleLogs]);
+
+  const addLog = (msg: string) => {
+    setConsoleLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] ${msg}`,
+    ]);
+  };
+
+  const servers = Array.isArray(smtpDetails)
+    ? Array.from(new Set(smtpDetails.map((s) => s.server))).filter(Boolean)
+    : [];
+
   const handleUpdate = async () => {
-    if (!ids.trim()) {
-      setStatus({ type: "error", message: "Email IDs are required!" });
+    const trimmedIds = ids.trim();
+    if (!trimmedIds) {
+      addLog("ERROR: Data stream empty. Please paste email identifiers.");
       return;
     }
 
-    setStatus({ type: "info", message: "Updating records..." });
+    if (!server) {
+      addLog(
+        "ERROR: Target node unselected. Please define synchronization target.",
+      );
+      return;
+    }
+
+    addLog(`INIT: Preparing batch update for ${server}...`);
+    addLog(`PARAMS: Processing logs for date index: ${date}`);
 
     try {
-      const idArray = ids
+      const idArray = trimmedIds
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => l);
-      await updateDataStatus({
+
+      addLog(
+        `INFO: Payload construction complete. ${idArray.length} records in queue.`,
+      );
+
+      const res = await updateDataStatus({
         ids: idArray,
         type: "bounce",
-        server,
-        date,
+        // server,
+        // date,
       }).unwrap();
-      setStatus({ type: "success", message: "Done" });
+
+      addLog(`SUCCESS: ${res.message || "Update completed"}`);
+      addLog(`STAT: Total Processed: ${res.totalCount || 0}`);
+      addLog(`STAT: Updated in DB: ${res.updatedCount || 0}`);
       setIds("");
     } catch (error: any) {
-      setStatus({
-        type: "error",
-        message: error?.data?.message || error?.message || "Update failed",
-      });
+      addLog(
+        `CRITICAL: Pipeline disruption - ${error?.data?.message || error?.message || "Source node unreachable"}`,
+      );
     }
   };
 
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1000px] mx-auto">
-        <h2 className="text-center text-xl font-bold mb-8 pt-4 uppercase tracking-tighter">
-          BOUNCE UPDATE PORTAL
-        </h2>
+    <div className="bounce-update-wrapper">
+      <div className="bounce-update-container">
+        <h2 className="bounce-update-title">Bounce Upload Portal</h2>
 
-        <div className="flex flex-col items-center gap-4 text-[12px] font-bold">
-          <div className="flex items-center gap-2">
-            <label>Date (yyyy-mm-dd) = </label>
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono"
-            />
+        <div className="config-panel">
+          <div className="config-header">
+            <Database size={18} className="text-emerald-400" />
+            <span>Update Parameters</span>
+            {isFetchingServers && (
+              <Loader2 size={12} className="animate-spin ml-auto" />
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <label>Target Server = </label>
-            <select
-              value={server}
-              onChange={(e) => setServer(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono bg-white"
-            >
-              <option value="Bounce (172.104.161.85)">
-                Bounce (172.104.161.85)
-              </option>
-              <option value="Server 2">Server 2</option>
-            </select>
+          <div className="config-body">
+            <div className="field-row" style={{ display: "none" }}>
+              <div className="field-group">
+                <label className="field-label">
+                  <Calendar size={12} /> Extraction Date
+                </label>
+                <input
+                  type="date"
+                  className="config-input"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+
+              <div className="field-group">
+                <label className="field-label">
+                  <Server size={12} /> Target Server Node
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    className="config-select flex-1"
+                    value={server}
+                    onChange={(e) => setServer(e.target.value)}
+                  >
+                    <option value="">Select target node...</option>
+                    {servers.map((s: any) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => refetchServers()}
+                    title="Refresh Node List"
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={isFetchingServers ? "animate-spin" : ""}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="full-width-field">
+              <label className="field-label mb-2">
+                <Activity size={12} /> Identifiers (One per line)
+              </label>
+              <textarea
+                className="config-textarea w-full"
+                placeholder="Paste bounce email addresses here..."
+                value={ids}
+                onChange={(e) => setIds(e.target.value)}
+                spellCheck={false}
+              />
+            </div>
           </div>
 
-          <div className="flex flex-col items-center gap-2 w-full max-w-[600px]">
-            <label>Ids (One Per Line) = </label>
-            <textarea
-              value={ids}
-              onChange={(e) => setIds(e.target.value)}
-              className="w-full h-32 border border-gray-400 px-2 py-1 outline-none text-gray-700 font-mono text-[11px] resize-none"
-            />
-          </div>
-
-          <div className="mt-4">
+          <div className="action-bar pb-6">
             <button
+              className="update-btn"
               onClick={handleUpdate}
-              disabled={loading}
-              className={`bg-[#5cb85c] border border-[#4cae4c] text-white px-8 py-1 font-bold shadow-sm hover:bg-[#449d44] transition-colors uppercase text-[11px]`}
+              disabled={isUpdating || !ids.trim() || !server}
             >
-              {loading ? "Updating..." : "UPDATE BOUNCE"}
+              {isUpdating ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} /> PROCESING...
+                </>
+              ) : (
+                <>
+                  <DatabaseZap size={18} /> INSERT INTO DB
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        <div className="mt-8 px-4">
-          <div className="w-full bg-[#5F9EA0] border border-gray-400 p-2 h-[400px] overflow-y-auto font-mono text-[11px] leading-tight">
-            <p className="text-green-900 font-bold mb-1">
-              Bounce Process Status...
-            </p>
-            {status.message && (
-              <p
-                className={
-                  status.type === "error" ? "text-red-900" : "text-green-900"
-                }
+        {/* Diagnostic Console */}
+        <div className="console-card">
+          <div className="console-head">
+            <div className="dots">
+              <span className="dot red"></span>
+              <span className="dot yellow"></span>
+              <span className="dot green"></span>
+            </div>
+            <div className="console-title text-emerald-400">
+              <Terminal size={12} /> update_daemon_v2.0
+            </div>
+          </div>
+          <div className="console-body" ref={consoleRef}>
+            {consoleLogs.map((log, i) => (
+              <div
+                key={i}
+                className={`log-entry ${
+                  log.includes("SUCCESS")
+                    ? "success"
+                    : log.includes("ERROR") || log.includes("CRITICAL")
+                      ? "error"
+                      : log.includes("INIT") || log.includes("INFO")
+                        ? "info"
+                        : ""
+                }`}
               >
-                [{status.type.toUpperCase()}]{" "}
-                {status.message === "Done"
-                  ? "Records updated in bounce database."
-                  : status.message}
-              </p>
-            )}
-            {loading && (
-              <div className="text-white mt-2">
-                <p>Processing IDs on {server}...</p>
-                <p className="animate-pulse">
-                  Writing to suppression tables...
-                </p>
+                {log}
+              </div>
+            ))}
+            {isUpdating && (
+              <div className="log-entry info animate-pulse">
+                Iterating identifier stack... mapping suppression vectors...
               </div>
             )}
           </div>

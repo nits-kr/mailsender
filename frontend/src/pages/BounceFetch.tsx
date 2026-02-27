@@ -1,125 +1,191 @@
-import React, { useState, useEffect } from "react";
-import { useFetchDataBounceMutation } from "../store/apiSlice";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  useFetchDataBounceMutation,
+  useGetSmtpDetailsQuery,
+} from "../store/apiSlice";
+import {
+  CloudDownload,
+  Calendar,
+  Server,
+  Play,
+  Terminal,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCw,
+  Zap,
+} from "lucide-react";
+import "./BounceFetch.css";
 
 const BounceFetch = () => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [server, setServer] = useState("");
-  const [servers, setServers] = useState<any[]>([]);
-  const [response, setResponse] = useState("");
-  const [statusMsg, setStatusMsg] = useState("");
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    "Bounce collector daemon standing by...",
+  ]);
+  const consoleRef = useRef<HTMLDivElement>(null);
 
-  const [fetchDataBounce, { isLoading: loading }] =
+  const {
+    data: smtpDetails,
+    isLoading: isFetchingServers,
+    refetch: refetchServers,
+  } = useGetSmtpDetailsQuery();
+  const [fetchDataBounce, { isLoading: isFetching }] =
     useFetchDataBounceMutation();
 
   useEffect(() => {
-    fetchServers();
-  }, []);
-
-  const fetchServers = async () => {
-    try {
-      // Mocking server list for now
-      setServers(["Bounce (172.104.161.85)", "Server 2", "Server 3"]);
-    } catch (error) {
-      console.error("Error fetching servers:", error);
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
     }
+  }, [consoleLogs]);
+
+  const addLog = (msg: string) => {
+    setConsoleLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] ${msg}`,
+    ]);
   };
+
+  const servers = Array.isArray(smtpDetails)
+    ? Array.from(new Set(smtpDetails.map((s) => s.server))).filter(Boolean)
+    : [];
 
   const handleFetch = async () => {
     if (!date || !server) {
-      setStatusMsg("Choose date and server!");
+      addLog("ERROR: Data parameters missing. Select target date and server.");
       return;
     }
 
-    setResponse("Processing... Request sent to remote server.");
+    addLog(`INIT: Synchronizing with ${server}...`);
+    addLog(`CONFIG: Fetching logs for period: ${date}`);
 
     try {
       const res = await fetchDataBounce({
         server,
         date,
       }).unwrap();
-      setResponse(res.message || "Bounce data retrieved.");
-      setStatusMsg("Done");
+      addLog(
+        `SUCCESS: ${res.message || "Bulk records synchronized successfully."}`,
+      );
     } catch (error: any) {
-      setResponse(`Error: ${error?.data?.message || error.message}`);
-      setStatusMsg("Failed");
+      addLog(
+        `CRITICAL: External pipe error - ${error?.data?.message || "Remote connection timed out."}`,
+      );
     }
   };
 
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1000px] mx-auto">
-        <h2 className="text-center text-xl font-bold mb-8 pt-4 uppercase tracking-tighter">
-          BOUNCE FETCH PORTAL
-        </h2>
-
-        <div className="flex flex-col items-center gap-4 text-[12px] font-bold">
-          <div className="flex items-center gap-2">
-            <label>Date (yyyy-mm-dd) = </label>
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono"
-            />
+    <div className="bounce-wrapper">
+      <div className="bounce-container">
+        {/* Header */}
+        <div className="bounce-header">
+          <div className="header-left">
+            <div className="icon-box">
+              <CloudDownload size={24} />
+            </div>
+            <div>
+              <h1>Bounce Fetch Portal</h1>
+              <p className="subtitle">
+                Remote suppression synchronization bridge
+              </p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <label>Target Server = </label>
-            <select
-              value={server}
-              onChange={(e) => setServer(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono bg-white"
-            >
-              <option value="">Choose Server</option>
-              {servers.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4">
-            <button
-              onClick={handleFetch}
-              disabled={loading}
-              className={`bg-[#5cb85c] border border-[#4cae4c] text-white px-8 py-1 font-bold shadow-sm hover:bg-[#449d44] transition-colors uppercase text-[11px]`}
-            >
-              {loading ? "Fetching..." : "GET BOUNCE"}
-            </button>
-          </div>
+          <button className="refresh-btn" onClick={() => refetchServers()}>
+            <RefreshCw size={18} />
+          </button>
         </div>
 
-        <div className="mt-8 px-4">
-          <div className="w-full bg-[#5F9EA0] border border-gray-400 p-2 h-[400px] overflow-y-auto font-mono text-[11px] leading-tight">
-            <p className="text-green-900 font-bold mb-1">
-              Bounce Process Status...
-            </p>
-            {statusMsg && (
-              <p
-                className={
-                  statusMsg === "Failed" ? "text-red-900" : "text-green-900"
-                }
+        <div className="bounce-grid">
+          {/* Configuration Panel */}
+          <div className="config-card">
+            <div className="field-group">
+              <label>
+                <Calendar size={14} /> Extraction Date
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+
+            <div className="field-group">
+              <label>
+                <Server size={14} /> Target Server Node (Select Server:)
+              </label>
+              <select
+                value={server}
+                onChange={(e) => setServer(e.target.value)}
               >
-                [{statusMsg.toUpperCase()}]{" "}
-                {statusMsg === "Done" ? "Bounce data retrieval completed." : ""}
-              </p>
-            )}
-            <pre className="whitespace-pre-wrap text-[#003300] font-bold">
-              {response || "Waiting for request..."}
-            </pre>
-            {loading && (
-              <div className="text-white mt-2">
-                <p>Connecting to {server}...</p>
-                <p>Fetching bounces for date {date}...</p>
-                <p className="animate-pulse">
-                  Retrieving records from MySQL remote server...
-                </p>
+                <option value="">Select synchronization target...</option>
+                {servers.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              className="fetch-btn"
+              onClick={handleFetch}
+              disabled={isFetching}
+            >
+              {isFetching ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />{" "}
+                  Synchronizing...
+                </>
+              ) : (
+                <>
+                  <Play size={18} /> Get Bounce Logs
+                </>
+              )}
+            </button>
+
+            {isFetching && (
+              <div className="status-shimmer">
+                <Zap size={14} className="animate-pulse" />
+                <span>Interfacing with MySQL remote buffer...</span>
               </div>
             )}
+          </div>
+
+          {/* Terminal Console */}
+          <div className="console-card">
+            <div className="console-head">
+              <div className="dots">
+                <span className="dot red"></span>
+                <span className="dot yellow"></span>
+                <span className="dot green"></span>
+              </div>
+              <div className="console-title">
+                <Terminal size={12} /> fetch_bridge_v1.2
+              </div>
+            </div>
+            <div className="console-body" ref={consoleRef}>
+              {consoleLogs.map((log, i) => (
+                <div
+                  key={i}
+                  className={`log-entry ${
+                    log.includes("SUCCESS")
+                      ? "success"
+                      : log.includes("ERROR") || log.includes("CRITICAL")
+                        ? "error"
+                        : log.includes("INIT")
+                          ? "info"
+                          : ""
+                  }`}
+                >
+                  {log}
+                </div>
+              ))}
+              {isFetching && (
+                <div className="log-entry info animate-pulse">
+                  Requesting records for {date}... encrypting tunnel...
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -1,125 +1,182 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useGetDataCountQuery, useSplitDataMutation } from "../store/apiSlice";
+import {
+  Scissors,
+  FileText,
+  Hash,
+  ArrowRightLeft,
+  Terminal,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Play,
+  RefreshCw,
+} from "lucide-react";
+import "./DataSplit.css";
 
 const DataSplit = () => {
   const [filename, setFilename] = useState("");
   const [count, setCount] = useState("50000");
-  const [status, setStatus] = useState({ type: "", message: "" });
-  const [log, setLog] = useState("");
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    "Split daemon initialized. Awaiting source target...",
+  ]);
+  const consoleRef = useRef<HTMLDivElement>(null);
 
-  const { data: files } = useGetDataCountQuery();
-  const [splitData, { isLoading: loading }] = useSplitDataMutation();
+  const {
+    data: files,
+    refetch,
+    isLoading: isFetching,
+  } = useGetDataCountQuery();
+  const [splitData, { isLoading: isProcessing }] = useSplitDataMutation();
+
+  const addLog = (msg: string) => {
+    setConsoleLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] ${msg}`,
+    ]);
+  };
+
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [consoleLogs]);
 
   const handleSplit = async () => {
     if (!filename || !count) {
-      setStatus({
-        type: "error",
-        message: "Provide filename and split count!",
-      });
+      addLog("ERROR: Extraction target or limit missing.");
       return;
     }
 
-    setStatus({ type: "info", message: "Processing split..." });
-    setLog(
-      `[INFO] Starting split operation for ${filename}...\n[INFO] Target records per file: ${count}`,
-    );
+    addLog(`INIT: Sharding sequence triggered for ${filename}`);
+    addLog(`CONFIG: records_per_file = ${count}`);
 
     try {
       const res = await splitData({ filename, count }).unwrap();
-      setStatus({ type: "success", message: "Done" });
-      setLog(
-        (prev) =>
-          prev +
-          `\n[SUCCESS] File split completed.\n[INFO] Result: ${res.message || "Files generated in data directory."}`,
-      );
+      addLog(`SUCCESS: ${res.message}`);
+      if (res.directory) {
+        addLog(`PATH: Master shards located in /${res.directory}`);
+      }
+      refetch();
     } catch (error: any) {
-      setStatus({
-        type: "error",
-        message: error?.data?.message || "Split failed",
-      });
-      setLog(
-        (prev) =>
-          prev +
-          `\n[ERROR] Split operation failed: ${error?.data?.message || "Unknown error"}`,
+      addLog(
+        `CRITICAL: Operation failed - ${error?.data?.message || "Interrupted pipe"}`,
       );
     }
   };
 
   return (
-    <div
-      className="min-h-screen bg-white text-black p-4"
-      style={{ fontFamily: '"Lucida Console", Monaco, monospace' }}
-    >
-      <div className="max-w-[1000px] mx-auto">
-        <h2 className="text-center text-xl font-bold mb-8 pt-4 uppercase tracking-tighter">
-          DATA SPLIT PORTAL
-        </h2>
-
-        <div className="flex flex-col items-center gap-4 text-[12px] font-bold">
-          <div className="flex items-center gap-2">
-            <label>Filename = </label>
-            <select
-              value={filename}
-              onChange={(e) => setFilename(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono bg-white"
-            >
-              <option value="">Select File</option>
-              {Array.isArray(files) &&
-                files.map((f) => (
-                  <option key={f.filename} value={f.filename}>
-                    {f.filename}
-                  </option>
-                ))}
-            </select>
+    <div className="split-wrapper">
+      <div className="split-container">
+        {/* Header */}
+        <div className="split-header">
+          <div className="header-left">
+            <div className="icon-box">
+              <Scissors size={24} />
+            </div>
+            <div>
+              <h1>Data Sharding Portal</h1>
+              <p className="subtitle">High-speed file segmentation utility</p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <label>Records Per File = </label>
-            <input
-              type="text"
-              value={count}
-              onChange={(e) => setCount(e.target.value)}
-              className="border border-gray-400 px-2 py-0.5 w-64 outline-none font-mono"
-            />
-          </div>
-
-          <div className="mt-4">
-            <button
-              onClick={handleSplit}
-              disabled={loading}
-              className={`bg-[#5cb85c] border border-[#4cae4c] text-white px-8 py-1 font-bold shadow-sm hover:bg-[#449d44] transition-colors uppercase text-[11px]`}
-            >
-              {loading ? "Processing..." : "SUBMIT"}
-            </button>
-          </div>
+          <button className="refresh-btn" onClick={() => refetch()}>
+            <RefreshCw size={18} className={isFetching ? "animate-spin" : ""} />
+          </button>
         </div>
 
-        <div className="mt-8 px-4">
-          <div className="w-full bg-[#5F9EA0] border border-gray-400 p-2 h-[400px] overflow-y-auto font-mono text-[11px] leading-tight">
-            <p className="text-green-900 font-bold mb-1">
-              Split Process Status Log...
-            </p>
-            <pre className="whitespace-pre-wrap text-[#003300] font-bold italic">
-              {log || "Waiting for split command..."}
-            </pre>
-            {status.message && (
-              <p
-                className={
-                  status.type === "error" ? "text-red-900" : "text-green-900"
-                }
+        <div className="split-grid">
+          {/* Configuration Panel */}
+          <div className="config-card">
+            <div className="field-group">
+              <label>
+                <FileText size={14} /> Source Cluster (File Name)
+              </label>
+              <select
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                autoFocus
               >
-                [{status.type.toUpperCase()}]{" "}
-                {status.message === "Done"
-                  ? "Split operation finished."
-                  : status.message}
-              </p>
-            )}
-            {loading && (
-              <div className="text-white mt-2">
-                <p>Calculating shards for {filename}...</p>
-                <p className="animate-pulse">Reading master file stream...</p>
+                <option value="">Select master file...</option>
+                {Array.isArray(files) &&
+                  files.map((f) => (
+                    <option key={f.filename} value={f.filename}>
+                      {f.filename} ({f.count.toLocaleString()})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="field-group">
+              <label>
+                <Hash size={14} /> Records Per Shard (How Many Count? )
+              </label>
+              <input
+                type="text"
+                value={count}
+                onChange={(e) => setCount(e.target.value)}
+                placeholder="e.g. 50000"
+              />
+            </div>
+
+            <button
+              className="submit-btn"
+              onClick={handleSplit}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} /> Segmenting...
+                </>
+              ) : (
+                <>
+                  <Play size={18} /> Execute Sharding
+                </>
+              )}
+            </button>
+
+            {isProcessing && (
+              <div className="status-shimmer">
+                <ArrowRightLeft size={14} className="animate-bounce" />
+                <span>Hashing master stream & writing buffers...</span>
               </div>
             )}
+          </div>
+
+          {/* Terminal Console */}
+          <div className="console-card">
+            <div className="console-head">
+              <div className="dots">
+                <span className="dot red"></span>
+                <span className="dot yellow"></span>
+                <span className="dot green"></span>
+              </div>
+              <div className="console-title">
+                <Terminal size={12} /> shard_engine_v2.1
+              </div>
+            </div>
+            <div className="console-body" ref={consoleRef}>
+              {consoleLogs.map((log, i) => (
+                <div
+                  key={i}
+                  className={`log-entry ${
+                    log.includes("SUCCESS")
+                      ? "success"
+                      : log.includes("ERROR") || log.includes("CRITICAL")
+                        ? "error"
+                        : log.includes("INIT")
+                          ? "info"
+                          : ""
+                  }`}
+                >
+                  {log}
+                </div>
+              ))}
+              {isProcessing && (
+                <div className="log-entry info animate-pulse">
+                  Interfacing with filesystem... generating shards...
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

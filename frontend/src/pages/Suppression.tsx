@@ -11,6 +11,24 @@ import {
   useDeleteSuppressionQueueMutation,
   useGetSuppressionLogQuery,
 } from "../store/apiSlice";
+import {
+  UploadCloud,
+  Calendar,
+  Database,
+  Trash2,
+  FileText,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  PlusCircle,
+  Info,
+  Clock,
+  PlayCircle,
+  XCircle,
+  History,
+  Activity,
+} from "lucide-react";
 
 const Suppression = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -45,11 +63,16 @@ const Suppression = () => {
     skip: !logQueryId,
   });
 
-  const [uploadSuppression] = useUploadSuppressionMutation();
-  const [createMapping] = useCreateSuppressionMappingMutation();
-  const [createQueue] = useCreateSuppressionQueueMutation();
-  const [deleteMapping] = useDeleteSuppressionMappingMutation();
-  const [deleteQueue] = useDeleteSuppressionQueueMutation();
+  const [uploadSuppression, { isLoading: isUploading }] =
+    useUploadSuppressionMutation();
+  const [createMapping, { isLoading: isMapping }] =
+    useCreateSuppressionMappingMutation();
+  const [createQueue, { isLoading: isScheduling }] =
+    useCreateSuppressionQueueMutation();
+  const [deleteMapping, { isLoading: isDeletingMapping }] =
+    useDeleteSuppressionMappingMutation();
+  const [deleteQueue, { isLoading: isDeletingQueue }] =
+    useDeleteSuppressionQueueMutation();
 
   const handleUpload = async () => {
     if (!uploadOffer) {
@@ -181,13 +204,29 @@ const Suppression = () => {
   const getStatusDisplay = (status: number) => {
     switch (status) {
       case 0:
-        return <span className="supp-status-queued">Queued</span>;
+        return (
+          <span className="supp-status-queued">
+            <Clock size={12} /> Queued
+          </span>
+        );
       case 1:
-        return <span className="supp-status-completed">Completed</span>;
+        return (
+          <span className="supp-status-completed">
+            <CheckCircle2 size={12} /> Completed
+          </span>
+        );
       case 2:
-        return <span className="supp-status-running">Running</span>;
+        return (
+          <span className="supp-status-running">
+            <PlayCircle size={12} /> Running
+          </span>
+        );
       case 3:
-        return <span className="supp-status-error">Error</span>;
+        return (
+          <span className="supp-status-error">
+            <XCircle size={12} /> Error
+          </span>
+        );
       default:
         return <span>Unknown</span>;
     }
@@ -200,6 +239,7 @@ const Suppression = () => {
         {/* Upload Section */}
         <div className="supp-section">
           <h2>
+            <UploadCloud size={20} className="text-blue-500" />
             <u>UPLOAD SUPPRESSION SECTION</u>
           </h2>
           <div className="supp-form-group">
@@ -223,22 +263,52 @@ const Suppression = () => {
           >
             <b>Vendor Suppression File :</b>{" "}
             <label className="supp-upload-btn" style={{ marginLeft: "10px" }}>
-              Upload File
+              <UploadCloud size={14} /> Upload File
               <input
                 type="file"
                 style={{ display: "none" }}
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               />
             </label>
-            <span style={{ marginLeft: "10px" }}>
+            <span
+              style={{
+                marginLeft: "10px",
+                fontWeight: "600",
+                color: "#64748b",
+              }}
+            >
               {selectedFile ? `${selectedFile.name} (100%)` : ""}
             </span>
           </div>
-          <button className="supp-save-btn" onClick={handleUpload}>
-            Save Data
+          <button
+            className="supp-save-btn"
+            onClick={handleUpload}
+            disabled={isUploading || isMapping}
+          >
+            {isUploading || isMapping ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <PlusCircle size={18} />
+            )}
+            {isUploading || isMapping ? "Saving..." : "Save Data"}
           </button>
-          <div style={{ textAlign: "center", marginTop: "5px" }}>
-            <span style={{ color: "black", fontWeight: "bold" }}>
+          <div style={{ textAlign: "center", marginTop: "10px" }}>
+            <span
+              style={{
+                color: statusMessage.includes("Error") ? "#dc2626" : "#059669",
+                fontWeight: "700",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              {statusMessage &&
+                (statusMessage.includes("Error") ? (
+                  <AlertCircle size={14} />
+                ) : (
+                  <CheckCircle2 size={14} />
+                ))}
               {statusMessage}
             </span>
           </div>
@@ -247,6 +317,7 @@ const Suppression = () => {
         {/* Schedule Section */}
         <div className="supp-section">
           <h2>
+            <Calendar size={20} className="text-orange-500" />
             <u>SUPPRESSION SCHEDULER</u>
           </h2>
           <div className="supp-form-group">
@@ -267,10 +338,19 @@ const Suppression = () => {
               ))}
             </select>
           </div>
-          <div style={{ textAlign: "center", marginBottom: "10px" }}>
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: "20px",
+              display: "flex",
+              gap: "10px",
+              padding: "0 20px",
+            }}
+          >
             <input
               type="text"
               className="supp-data-input"
+              style={{ flex: 1 }}
               placeholder="DATAFILE NAME"
               value={datafileName}
               onChange={(e) => setDatafileName(e.target.value)}
@@ -278,17 +358,41 @@ const Suppression = () => {
             <input
               type="text"
               className="supp-data-input"
+              style={{ flex: 1 }}
               placeholder="NEW DATAFILE NAME"
-              style={{ marginLeft: "10px" }}
               value={newDatafileName}
               onChange={(e) => setNewDatafileName(e.target.value)}
             />
           </div>
-          <button className="supp-schedule-btn" onClick={handleSchedule}>
-            Schedule
+          <button
+            className="supp-schedule-btn"
+            onClick={handleSchedule}
+            disabled={isScheduling}
+          >
+            {isScheduling ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Clock size={18} />
+            )}
+            {isScheduling ? "Processing..." : "Schedule"}
           </button>
-          <div style={{ textAlign: "center", marginTop: "5px" }}>
-            <span style={{ color: "black", fontWeight: "bold" }}>
+          <div style={{ textAlign: "center", marginTop: "10px" }}>
+            <span
+              style={{
+                color: queueMessage.includes("failed") ? "#dc2626" : "#059669",
+                fontWeight: "700",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              {queueMessage &&
+                (queueMessage.includes("failed") ? (
+                  <AlertCircle size={14} />
+                ) : (
+                  <CheckCircle2 size={14} />
+                ))}
               {queueMessage}
             </span>
           </div>
@@ -298,16 +402,31 @@ const Suppression = () => {
       {/* Row 2: Mappings and Queue */}
       <div className="supp-row2">
         {/* Mappings Table */}
-        <div className="supp-section" style={{ flex: 1 }}>
+        <div className="supp-section">
           <h2>
+            <Database size={18} className="text-slate-600" />
             <u>OFFER WISE SUPPRESSION DETAILS</u>
-            <input
-              type="text"
-              className="supp-search-input"
-              placeholder="Search.."
-              value={searchMappings}
-              onChange={(e) => setSearchMappings(e.target.value)}
-            />
+            <div style={{ flex: 1 }}></div>
+            <div style={{ position: "relative" }}>
+              <Search
+                size={14}
+                style={{
+                  position: "absolute",
+                  left: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#64748b",
+                }}
+              />
+              <input
+                type="text"
+                className="supp-search-input"
+                style={{ paddingLeft: "28px" }}
+                placeholder="Search.."
+                value={searchMappings}
+                onChange={(e) => setSearchMappings(e.target.value)}
+              />
+            </div>
           </h2>
           <div className="supp-table-container">
             <table className="supp-table">
@@ -317,7 +436,7 @@ const Suppression = () => {
                   <th>Offer Name</th>
                   <th>Supp File Name</th>
                   <th>Uploaded At</th>
-                  <th>Action</th>
+                  <th style={{ textAlign: "center" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -338,8 +457,14 @@ const Suppression = () => {
                             m.offer_id?._id || m.offer_id,
                           )
                         }
+                        disabled={isDeletingMapping}
                       >
-                        Delete
+                        {isDeletingMapping ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={11} />
+                        )}
+                        <span style={{ marginLeft: "4px" }}>Delete</span>
                       </button>
                     </td>
                   </tr>
@@ -350,16 +475,31 @@ const Suppression = () => {
         </div>
 
         {/* Queue Table */}
-        <div className="supp-section" style={{ flex: 1.5 }}>
+        <div className="supp-section">
           <h2>
+            <History size={18} className="text-slate-600" />
             <u>SUPPRESSION QUEUE</u>
-            <input
-              type="text"
-              className="supp-search-input"
-              placeholder="Search.."
-              value={searchQueue}
-              onChange={(e) => setSearchQueue(e.target.value)}
-            />
+            <div style={{ flex: 1 }}></div>
+            <div style={{ position: "relative" }}>
+              <Search
+                size={14}
+                style={{
+                  position: "absolute",
+                  left: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#64748b",
+                }}
+              />
+              <input
+                type="text"
+                className="supp-search-input"
+                style={{ paddingLeft: "28px" }}
+                placeholder="Search.."
+                value={searchQueue}
+                onChange={(e) => setSearchQueue(e.target.value)}
+              />
+            </div>
           </h2>
           <div className="supp-table-container">
             <table className="supp-table">
@@ -373,7 +513,7 @@ const Suppression = () => {
                   <th>F.C.</th>
                   <th>S.C.</th>
                   <th>Date Queued</th>
-                  <th>Action</th>
+                  <th style={{ textAlign: "center" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -394,15 +534,22 @@ const Suppression = () => {
                         <button
                           className="supp-delete-btn"
                           onClick={() => handleDeleteQueue(q._id)}
+                          disabled={isDeletingQueue}
                         >
-                          Delete
+                          {isDeletingQueue ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={11} />
+                          )}
+                          <span style={{ marginLeft: "4px" }}>Delete</span>
                         </button>
                       ) : (
                         <button
                           className="supp-log-btn"
                           onClick={() => showLog(q._id)}
                         >
-                          Log
+                          <Activity size={11} />
+                          <span style={{ marginLeft: "4px" }}>Log</span>
                         </button>
                       )}
                     </td>
@@ -422,6 +569,7 @@ const Suppression = () => {
               className="supp-modal-close"
               onClick={() => setLogModal({ ...logModal, open: false })}
             >
+              <Info size={20} style={{ float: "left", marginTop: "10px" }} />
               &times;
             </span>
             <div className="supp-log-content">

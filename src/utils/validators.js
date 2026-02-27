@@ -36,12 +36,18 @@ const sendEmailSchema = z.object({
 });
 
 const addOfferSchema = z.object({
-  aff: z.string().min(1),
+  affiliate: z.string().min(1),
   offer_name: z.string().min(1),
   offer_id: z.string().min(1),
   payout: z.string().optional(),
-  sub_url: z.string().url().optional().or(z.literal("")),
-  unsub_url: z.string().url().optional().or(z.literal("")),
+  sub_url: z.string().optional().or(z.literal("")),
+  unsub_url: z.string().optional().or(z.literal("")),
+  open_url: z.string().optional().or(z.literal("")),
+  opt_out_url: z.string().optional().or(z.literal("")),
+  sensitive: z.string().optional().or(z.literal("")),
+  from_name: z.string().optional().or(z.literal("")),
+  subject: z.string().optional().or(z.literal("")),
+  restrictions: z.string().optional().or(z.literal("")),
 });
 
 const serverSetupSchema = z.object({

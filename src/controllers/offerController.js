@@ -13,7 +13,7 @@ const addOffer = async (req, res) => {
       .json({ message: "Validation failed", errors: error.errors });
   }
   const {
-    aff,
+    affiliate,
     offer_name,
     offer_id,
     payout,
@@ -29,7 +29,7 @@ const addOffer = async (req, res) => {
 
   try {
     const offer = await Offer.create({
-      affiliate: aff,
+      affiliate,
       offer_name,
       offer_id,
       payout,
