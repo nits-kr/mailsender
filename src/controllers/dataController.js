@@ -12,9 +12,9 @@ const axios = require("axios");
 // @access  Private
 const getDataCount = async (req, res) => {
   const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const bufferPath = path.join(dataPath, "buffer");
 
-  // Always fetch DB-tracked files for display names and to ensure uploaded
-  // files appear even if the filesystem scan misses them
+  // Always fetch DB-tracked files for display names
   const dbFiles = await DataFile.find({ type: "data" });
   const dbMap = {};
   dbFiles.forEach((f) => {
@@ -34,65 +34,80 @@ const getDataCount = async (req, res) => {
     );
   }
 
-  const command = `find ${dataPath} -maxdepth 1 -type f`;
+  // Scan both dataPath root AND buffer subdir for source files
+  // Exclude hex-only filenames (those are extraction outputs, not source data)
+  const hexOnlyPattern = /^[a-f0-9]{32}\.txt$/i;
+  const scanDirs = [dataPath, bufferPath].filter((d) => fs.existsSync(d));
+  let allFsFiles = [];
 
-  exec(command, async (error, stdout, stderr) => {
-    if (error) {
-      return res
-        .status(500)
-        .json({ message: "Error fetching data files", error: stderr });
-    }
-
-    const fsFiles = stdout
-      .trim()
-      .split("\n")
-      .filter((f) => f && !f.includes("/buffer"));
-
-    // Build a set of filenames found on disk
-    const fsFilenameSet = new Set(fsFiles.map((f) => path.basename(f)));
-
-    // Also include DB files that may not be on disk yet (or path mismatch)
-    const extraDbFiles = dbFiles
-      .filter((f) => !fsFilenameSet.has(f.filename))
-      .map((f) => ({
-        date: f.createdAt.toLocaleDateString(),
-        time: f.createdAt.toLocaleTimeString(),
-        filename: f.filename,
-        display_name: f.display_name || f.filename,
-        count: f.count,
-      }));
-
-    if (fsFiles.length === 0) {
-      return res.json(extraDbFiles);
-    }
-
-    const results = [];
-    let processed = 0;
-
-    fsFiles.forEach((file) => {
-      const countCommand = `wc -l ${file} | awk '{print $1}'`;
-      const stats = fs.statSync(file);
-      const date = stats.mtime.toLocaleDateString();
-      const time = stats.mtime.toLocaleTimeString();
-      const basename = path.basename(file);
-      const dbRecord = dbMap[basename];
-
-      exec(countCommand, (cError, cStdout) => {
-        processed++;
-        if (!cError) {
-          results.push({
-            date,
-            time,
-            filename: basename,
-            display_name: dbRecord?.display_name || basename,
-            count: parseInt(cStdout.trim()) || 0,
-          });
-        }
-
-        if (processed === fsFiles.length) {
-          res.json([...results, ...extraDbFiles]);
+  for (const dir of scanDirs) {
+    try {
+      const entries = fs.readdirSync(dir);
+      entries.forEach((entry) => {
+        const fullPath = path.join(dir, entry);
+        if (
+          fs.statSync(fullPath).isFile() &&
+          entry.endsWith(".txt") &&
+          !hexOnlyPattern.test(entry)
+        ) {
+          allFsFiles.push(fullPath);
         }
       });
+    } catch (_) {}
+  }
+
+  // Deduplicate by basename (root takes priority over buffer for same name)
+  const seen = new Set();
+  const fsFiles = allFsFiles.filter((f) => {
+    const base = path.basename(f);
+    if (seen.has(base)) return false;
+    seen.add(base);
+    return true;
+  });
+
+  const fsFilenameSet = new Set(fsFiles.map((f) => path.basename(f)));
+
+  // Include DB files not found on disk (e.g. upload metadata without physical file)
+  const extraDbFiles = dbFiles
+    .filter((f) => !fsFilenameSet.has(f.filename))
+    .map((f) => ({
+      date: f.createdAt.toLocaleDateString(),
+      time: f.createdAt.toLocaleTimeString(),
+      filename: f.filename,
+      display_name: f.display_name || f.filename,
+      count: f.count,
+    }));
+
+  if (fsFiles.length === 0) {
+    return res.json(extraDbFiles);
+  }
+
+  const results = [];
+  let processed = 0;
+
+  fsFiles.forEach((file) => {
+    const countCommand = `wc -l "${file}" | awk '{print $1}'`;
+    const stats = fs.statSync(file);
+    const date = stats.mtime.toLocaleDateString();
+    const time = stats.mtime.toLocaleTimeString();
+    const basename = path.basename(file);
+    const dbRecord = dbMap[basename];
+
+    exec(countCommand, (cError, cStdout) => {
+      processed++;
+      if (!cError) {
+        results.push({
+          date,
+          time,
+          filename: basename,
+          display_name: dbRecord?.display_name || basename,
+          count: parseInt(cStdout.trim()) || 0,
+        });
+      }
+
+      if (processed === fsFiles.length) {
+        res.json([...results, ...extraDbFiles]);
+      }
     });
   });
 };
@@ -117,13 +132,26 @@ const downloadData = async (req, res) => {
 
   try {
     // 1. Read all lines from the selected files
+    // Files may be in DATA_PATH root OR DATA_PATH/buffer (depends on how they were uploaded/placed)
     let allLines = [];
     for (const filename of filenames) {
-      const filePath = path.join(dataPath, filename);
-      if (!fs.existsSync(filePath)) {
-        console.warn(`File not found: ${filePath}`);
+      const primaryPath = path.join(dataPath, filename);
+      const bufferFallbackPath = path.join(bufferPath, filename);
+
+      let filePath = null;
+      if (fs.existsSync(primaryPath)) {
+        filePath = primaryPath;
+      } else if (fs.existsSync(bufferFallbackPath)) {
+        filePath = bufferFallbackPath;
+      }
+
+      if (!filePath) {
+        console.warn(
+          `File not found in either location: ${primaryPath} or ${bufferFallbackPath}`,
+        );
         continue;
       }
+
       const content = fs.readFileSync(filePath, "utf8");
       const lines = content
         .split("\n")
