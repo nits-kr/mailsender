@@ -8,9 +8,9 @@ const {
 } = require("../controllers/linkController");
 const { protect, admin } = require("../middleware/authMiddleware");
 
-router.route("/").post(createLink).get(getLinks);
+router.route("/").post(protect, createLink).get(protect, getLinks);
 
-router.patch("/:id/toggle", toggleLinkStatus);
-router.patch("/:id/main_link", updateMainLink);
+router.patch("/:id/toggle", protect, admin, toggleLinkStatus);
+router.patch("/:id/main_link", protect, admin, updateMainLink);
 
 module.exports = router;

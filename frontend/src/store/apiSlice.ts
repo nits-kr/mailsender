@@ -204,6 +204,10 @@ export const apiSlice = createApi({
       query: () => '/links',
       providesTags: ['Legacy'],
     }),
+    createLink: builder.mutation({
+      query: (body) => ({ url: '/links', method: 'POST', body }),
+      invalidatesTags: ['Legacy'],
+    }),
     toggleLinkStatus: builder.mutation({
       query: (id) => ({ url: `/links/${id}/toggle`, method: 'PATCH' }),
       invalidatesTags: ['Legacy'],
@@ -424,6 +428,7 @@ export const {
   useUpdateOfferMutation,
   // Links
   useGetLinksQuery,
+  useCreateLinkMutation,
   useToggleLinkStatusMutation,
   useUpdateMainLinkMutation,
   // Images
