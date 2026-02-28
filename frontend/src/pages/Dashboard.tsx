@@ -1,5 +1,14 @@
 import React, { useState } from "react";
-import { RefreshCw, Calendar, Filter } from "lucide-react";
+import {
+  RefreshCw,
+  Calendar,
+  Filter,
+  Search,
+  Activity,
+  BarChart3,
+  TrendingUp,
+  LogOut,
+} from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -12,8 +21,6 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  LineChart,
-  Line,
   AreaChart,
   Area,
 } from "recharts";
@@ -21,6 +28,7 @@ import {
   useGetDashboardLogsQuery,
   useGetDashboardStatsQuery,
 } from "../store/apiSlice";
+import "./Dashboard.css";
 
 const Dashboard = () => {
   const [dateTo, setDateTo] = useState(new Date().toISOString().split("T")[0]);
@@ -57,7 +65,6 @@ const Dashboard = () => {
     { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 },
   );
 
-  // Group logs by date for the Line Chart
   const dailyHistory = filteredLogs
     .reduce((acc: any[], log) => {
       const date = new Date(log.sent_on).toLocaleDateString();
@@ -73,73 +80,63 @@ const Dashboard = () => {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <div className="dashboard-container">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl premium-title uppercase tracking-tighter">
-          Sending Report
-        </h1>
-        <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-2xl">
-          <div className="flex items-center gap-3 group ml-2">
-            <span className="text-gray-400 text-[10px] font-extrabold uppercase tracking-[0.2em]">
-              From
-            </span>
+    <div className="dashboard-container-new">
+      <header className="dashboard-header-new">
+        <h1>Sending Report</h1>
+        <div className="filter-bar-new">
+          <div className="filter-item-new">
+            <span className="filter-label-new">From</span>
             <input
               type="date"
-              className="bg-dark-3 text-white text-xs px-3 py-1.5 rounded-lg outline-none font-bold border border-white/5 focus:border-indigo-500 transition-all w-36 cursor-pointer"
-              style={{ colorScheme: "dark" }}
+              className="filter-input-new"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
             />
           </div>
-
-          <div className="flex items-center gap-3 group">
-            <span className="text-gray-400 text-[10px] font-extrabold uppercase tracking-[0.2em]">
-              To
-            </span>
+          <div className="filter-item-new">
+            <span className="filter-label-new">To</span>
             <input
               type="date"
-              className="bg-dark-3 text-white text-xs px-3 py-1.5 rounded-lg outline-none font-bold border border-white/5 focus:border-indigo-500 transition-all w-36 cursor-pointer"
-              style={{ colorScheme: "dark" }}
+              className="filter-input-new"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
-
-          <button
-            onClick={handleApply}
-            className="bg-indigo-600 hover:bg-indigo-500 text-dark text-xs font-black px-6 py-2 rounded-lg ml-1 shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] active:scale-95 transition-all flex items-center gap-2"
-          >
+          <button onClick={handleApply} className="btn-sync-new">
             <RefreshCw
-              size={13}
+              size={16}
               className={logsFetching ? "animate-spin" : ""}
             />
             SYNC REPORT
           </button>
         </div>
-      </div>
+      </header>
 
       {/* ── Charts Row ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg-grid-cols-2 gap-8 mb-10">
-        {/* Pie Chart – Bulk Analysis by SMTP */}
-        <div className="dash-card">
-          <h3 className="text-gray-400 font-extrabold text-[10px] mb-6 text-center uppercase tracking-[0.2em] opacity-80">
-            Bulk Analysis by SMTP
-          </h3>
+      <div
+        className="grid grid-cols-1 lg-grid-cols-2 gap-8 mb-8"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(45%, 1fr))",
+          gap: "24px",
+        }}
+      >
+        {/* Pie Chart */}
+        <div className="card-new">
+          <h3 className="card-title-new">Bulk Analysis by SMTP</h3>
           {stats.pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={(Array.isArray(stats.pieData) ? stats.pieData : []).map(
-                    (d: any) => ({
-                      name: d._id,
-                      value: d.count,
-                    }),
+                    (d: any) => ({ name: d._id, value: d.count }),
                   )}
                   cx="50%"
                   cy="45%"
                   innerRadius={65}
                   outerRadius={100}
-                  stroke="none"
+                  stroke="#fff"
+                  strokeWidth={2}
                   minAngle={15}
                   label={({ name, percent }) =>
                     (percent ?? 0) > 0.05
@@ -154,12 +151,12 @@ const Dashboard = () => {
                         key={i}
                         fill={
                           [
-                            "#6366f1",
-                            "#22d3ee",
+                            "#3b82f6",
+                            "#06b6d4",
                             "#f59e0b",
                             "#10b981",
                             "#ef4444",
-                            "#a855f7",
+                            "#8b5cf6",
                             "#ec4899",
                             "#14b8a6",
                           ][i % 8]
@@ -169,107 +166,84 @@ const Dashboard = () => {
                   )}
                 </Pie>
                 <Tooltip
-                  formatter={(value: any) => [
-                    value.toLocaleString(),
-                    "Emails Sent",
-                  ]}
                   contentStyle={{
-                    backgroundColor: "#1e2125",
-                    borderColor: "rgba(255,255,255,0.1)",
+                    backgroundColor: "#fff",
                     borderRadius: "12px",
-                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.3)",
-                    fontSize: 11,
-                    color: "#fff",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                    border: "1px solid #f1f5f9",
+                    fontSize: 12,
+                    fontWeight: 600,
                   }}
-                  itemStyle={{ color: "#fff" }}
                 />
                 <Legend
                   iconType="circle"
-                  iconSize={6}
+                  iconSize={8}
                   wrapperStyle={{
-                    fontSize: 9,
+                    fontSize: 11,
                     fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
                     paddingTop: "20px",
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-60 flex flex-col items-center justify-center text-gray-500 opacity-50">
-              <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-600 mb-3" />
+            <div className="h-60 flex flex-col items-center justify-center text-gray-400">
+              <Activity size={48} className="opacity-20 mb-4" />
               <div className="italic text-xs">Waiting for data...</div>
             </div>
           )}
         </div>
 
-        {/* Bar Chart – Distribution by Server */}
-        <div className="dash-card">
-          <h3 className="text-gray-400 font-extrabold text-[10px] mb-6 text-center uppercase tracking-[0.2em] opacity-80">
-            Distribution by Server
-          </h3>
+        {/* Bar Chart */}
+        <div className="card-new">
+          <h3 className="card-title-new">Distribution by Server</h3>
           {stats.barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart
                 data={(Array.isArray(stats.barData) ? stats.barData : []).map(
-                  (d: any) => ({
-                    name: d._id,
-                    Sent: d.sent,
-                  }),
+                  (d: any) => ({ name: d._id, Sent: d.sent }),
                 )}
                 margin={{ top: 5, right: 10, left: -10, bottom: 45 }}
               >
-                <defs>
-                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.4} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
+                  stroke="#f1f5f9"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 600 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                  tick={{ fontSize: 10, fill: "#64748b", fontWeight: 600 }}
+                  axisLine={{ stroke: "#e2e8f0" }}
                   tickLine={false}
                   angle={-35}
                   textAnchor="end"
                   interval={0}
                 />
                 <YAxis
-                  tick={{ fontSize: 9, fill: "#64748b" }}
+                  tick={{ fontSize: 10, fill: "#64748b" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                  formatter={(value: any) => [value.toLocaleString(), "Volume"]}
+                  cursor={{ fill: "#f8fafc" }}
                   contentStyle={{
-                    backgroundColor: "#1e2125",
-                    borderColor: "rgba(255,255,255,0.1)",
+                    backgroundColor: "#fff",
                     borderRadius: "12px",
-                    fontSize: 11,
-                    color: "#fff",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    border: "1px solid #f1f5f9",
+                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
                   }}
-                  itemStyle={{ color: "#fff" }}
                 />
                 <Bar
                   dataKey="Sent"
-                  fill="url(#barGrad)"
+                  fill="#3b82f6"
                   radius={[6, 6, 0, 0]}
                   barSize={24}
                 />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-60 flex flex-col items-center justify-center text-gray-500 opacity-50">
-              <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-600 mb-3" />
+            <div className="h-60 flex flex-col items-center justify-center text-gray-400">
+              <BarChart3 size={48} className="opacity-20 mb-4" />
               <div className="italic text-xs">Waiting for data...</div>
             </div>
           )}
@@ -277,10 +251,8 @@ const Dashboard = () => {
       </div>
 
       {/* ── Daily Trend Chart ────────────────────────────────────── */}
-      <div className="dash-card mb-10 overflow-visible">
-        <h3 className="text-gray-400 font-extrabold text-[10px] mb-8 text-center uppercase tracking-[0.2em] opacity-80">
-          Sending Performance Trend
-        </h3>
+      <div className="card-new mb-10">
+        <h3 className="card-title-new">Sending Performance Trend</h3>
         {dailyHistory.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart
@@ -289,172 +261,180 @@ const Dashboard = () => {
             >
               <defs>
                 <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorErr" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
+                stroke="#f1f5f9"
                 vertical={false}
               />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 10, fill: "#64748b" }}
-                axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                tick={{ fontSize: 11, fill: "#64748b" }}
+                axisLine={{ stroke: "#e2e8f0" }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "#64748b" }}
+                tick={{ fontSize: 11, fill: "#64748b" }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#1e2125",
-                  borderColor: "rgba(255,255,255,0.1)",
-                  borderRadius: "14px",
-                  boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)",
-                  fontSize: 12,
-                  padding: "12px",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  backgroundColor: "#fff",
+                  borderRadius: "12px",
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
                 }}
               />
               <Area
                 type="monotone"
                 dataKey="sent"
                 name="Volume"
-                stroke="#818cf8"
-                strokeWidth={4}
+                stroke="#3b82f6"
+                strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorSent)"
-                animationBegin={200}
-                animationDuration={1500}
               />
               <Area
                 type="monotone"
                 dataKey="errors"
                 name="Fails"
-                stroke="#f43f5e"
+                stroke="#ef4444"
                 strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorErr)"
+                fill="transparent"
                 strokeDasharray="5 5"
-                animationBegin={400}
-                animationDuration={1800}
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-56 flex flex-col items-center justify-center text-gray-500 opacity-50">
-            <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-700 mb-4 animate-pulse" />
-            <div className="italic text-sm tracking-wide">
-              Insufficient behavioral data for current period
+          <div className="h-56 flex flex-col items-center justify-center text-gray-400">
+            <TrendingUp size={48} className="opacity-20 mb-4" />
+            <div className="italic text-sm">
+              Insufficient data for current period
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex justify-between items-center mb-6 mt-4">
-        <h3 className="text-gray-400 font-extrabold text-[12.5px] uppercase tracking-[0.2em] opacity-80">
-          Sending Execution Logs
-        </h3>
-        <div className="flex items-center gap-3 bg-white/5 p-1 px-4 rounded-full border border-white/5 shadow-inner">
-          <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest pt-0.5">
-            Quick Filter:
-          </span>
-          <input
-            type="text"
-            className="bg-transparent text-white text-xs py-1.5 outline-none w-56 font-bold placeholder:text-gray-600"
-            placeholder="Search log entries..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="logs-card-new">
+        <div className="logs-card-header-new">
+          <h3 className="logs-title-new">Sending Execution Logs</h3>
+          <div className="quick-filter-new">
+            <span className="quick-filter-label">Quick Filter:</span>
+            <input
+              type="text"
+              className="quick-filter-input"
+              placeholder="Search log entries..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search size={14} className="text-gray-400" />
+          </div>
         </div>
-      </div>
 
-      <div className="modern-table-container">
-        <table className="modern-table">
-          <thead className="sticky top-0 z-10">
-            <tr>
-              <th>SENT ON</th>
-              <th>MAILER</th>
-              <th>TEMPLATE ID</th>
-              <th>INTERFACE</th>
-              <th>SERVER</th>
-              <th>OFFER ID</th>
-              <th>DOMAIN</th>
-              <th>FROM</th>
-              <th>TEST SENT</th>
-              <th>BULK TEST SENT</th>
-              <th>BULK TEST</th>
-              <th>ERROR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logsFetching && filteredLogs.length === 0 ? (
-              // Skeleton Loading
-              Array.from({ length: 8 }).map((_, i) => (
-                <tr key={`dash-sk-${i}`}>
-                  {Array.from({ length: 12 }).map((_, j) => (
-                    <td key={j}>
-                      <div
-                        className="skeleton-cell sk-cell-inner"
-                        style={{ width: j === 7 ? "120px" : "50px" }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : filteredLogs.length > 0 ? (
-              filteredLogs.map((row, i) => (
-                <tr key={i}>
-                  <td>{new Date(row.sent_on).toLocaleDateString()}</td>
-                  <td>{row.mailer}</td>
-                  <td>{row.template_id}</td>
-                  <td>{row.interface}</td>
-                  <td>{row.server}</td>
-                  <td>{row.offer_id}</td>
-                  <td>{row.domain}</td>
-                  <td className="truncate max-w-[150px]" title={row.from}>
-                    {row.from}
-                  </td>
-                  <td className="highlight-green">{row.test_sent}</td>
-                  <td className="highlight-green">{row.bulk_test_sent}</td>
-                  <td className="highlight-green">{row.bulk_test}</td>
-                  <td className="highlight-red">{row.error}</td>
-                </tr>
-              ))
-            ) : (
+        <div className="table-wrapper-new">
+          <table className="table-new">
+            <thead>
               <tr>
-                <td colSpan={12} className="py-10 text-gray-500 italic">
-                  No sending logs found matching criteria
+                <th>SENT ON</th>
+                <th>MAILER</th>
+                <th>TEMPLATE ID</th>
+                <th>INTERFACE</th>
+                <th>SERVER</th>
+                <th>OFFER ID</th>
+                <th>DOMAIN</th>
+                <th>FROM</th>
+                <th>TEST SENT</th>
+                <th>BULK TEST SENT</th>
+                <th>BULK TEST</th>
+                <th>ERROR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logsFetching && filteredLogs.length === 0 ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 12 }).map((_, j) => (
+                      <td key={j}>
+                        <div
+                          style={{
+                            height: "12px",
+                            background: "#f1f5f9",
+                            borderRadius: "4px",
+                            width: "80%",
+                          }}
+                        ></div>
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : filteredLogs.length > 0 ? (
+                filteredLogs.map((row, i) => (
+                  <tr key={i}>
+                    <td>{new Date(row.sent_on).toLocaleDateString()}</td>
+                    <td>{row.mailer}</td>
+                    <td>{row.template_id}</td>
+                    <td>{row.interface}</td>
+                    <td>{row.server}</td>
+                    <td>{row.offer_id}</td>
+                    <td>{row.domain}</td>
+                    <td
+                      title={row.from}
+                      style={{
+                        maxWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {row.from}
+                    </td>
+                    <td className="val-green">{row.test_sent}</td>
+                    <td className="val-green">{row.bulk_test_sent}</td>
+                    <td className="val-green">{row.bulk_test}</td>
+                    <td className="val-red">{row.error}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={12}
+                    style={{
+                      textAlign: "center",
+                      padding: "40px",
+                      color: "#94a3b8",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    No sending logs found matching criteria
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot className="table-footer-new">
+              <tr>
+                <td colSpan={8} className="total-label">
+                  Totals:
+                </td>
+                <td className="total-cell">
+                  {totals.test_sent.toLocaleString()}
+                </td>
+                <td className="total-cell">
+                  {totals.bulk_test_sent.toLocaleString()}
+                </td>
+                <td className="total-cell">
+                  {totals.bulk_test.toLocaleString()}
+                </td>
+                <td className="total-cell-red">
+                  {totals.error.toLocaleString()}
                 </td>
               </tr>
-            )}
-          </tbody>
-          <tfoot className="sticky bottom-0 z-10 uppercase tracking-tighter">
-            <tr>
-              <td colSpan={8} className="text-right pr-4">
-                Totals:
-              </td>
-              <td className="bg-indigo-600/20">
-                {totals.test_sent.toLocaleString()}
-              </td>
-              <td className="bg-indigo-600/20">
-                {totals.bulk_test_sent.toLocaleString()}
-              </td>
-              <td className="bg-indigo-600/20">
-                {totals.bulk_test.toLocaleString()}
-              </td>
-              <td className="bg-red-600/20">{totals.error.toLocaleString()}</td>
-            </tr>
-          </tfoot>
-        </table>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   );

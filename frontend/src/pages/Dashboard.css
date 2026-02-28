@@ -1,0 +1,236 @@
+.dashboard-container-new {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+  color: #1e293b;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.dashboard-header-new {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.dashboard-header-new h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.filter-bar-new {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+}
+
+.filter-item-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label-new {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-input-new {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.filter-input-new:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-sync-new {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-sync-new:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-sync-new:active {
+  transform: translateY(0);
+}
+
+.card-new {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+}
+
+.card-title-new {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.logs-card-new {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+  margin-top: 48px;
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+
+.logs-card-header-new {
+  padding: 24px 24px 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logs-title-new {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.quick-filter-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.quick-filter-new:focus-within {
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.quick-filter-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.quick-filter-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  width: 200px;
+}
+
+.table-wrapper-new {
+  border-top: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.table-new {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-new th {
+  background: #f8fafc;
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table-new td {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table-new tr:last-child td {
+  border-bottom: none;
+}
+
+.table-new tr:hover td {
+  background: #fbfcfe;
+}
+
+.val-green {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.val-red {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.table-footer-new {
+  background: #f1f5f9;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.table-footer-new td {
+  padding: 16px;
+  color: #0f172a;
+}
+
+.total-label {
+  text-align: right;
+  padding-right: 24px !important;
+}
+
+.total-cell {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.total-cell-red {
+  background: rgba(220, 38, 38, 0.05);
+}
