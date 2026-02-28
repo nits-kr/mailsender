@@ -74,6 +74,7 @@ const emailWorker = async (job) => {
           assignedip: new RegExp(`^${ipKey}$`, "i"),
         })) ||
         (await SmtpDetail.findOne({ server: new RegExp(`^${ipKey}$`, "i") }));
+
       if (smtpDetail && smtpDetail.hostname) {
         const normalizedTls = String(smtpDetail.tls || "").toLowerCase();
         const isSecure =
@@ -85,9 +86,10 @@ const emailWorker = async (job) => {
           host: smtpDetail.hostname,
           port: Number(smtpDetail.port) || (isSecure ? 465 : 587),
           secure: isSecure,
-          auth: smtpDetail.user
-            ? { user: smtpDetail.user, pass: smtpDetail.pass }
-            : null,
+          auth:
+            smtpDetail.user && smtpDetail.pass
+              ? { user: smtpDetail.user, pass: smtpDetail.pass }
+              : null,
           tls: { rejectUnauthorized: false },
           debug: true,
           logger: true,

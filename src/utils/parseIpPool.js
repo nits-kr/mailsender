@@ -62,19 +62,20 @@ function parseIpPool(raw) {
           !from_name.includes("|")
         ) {
           entry.from_name = from_name;
-          i += 3; // consumed 3 lines
+          i += 3;
         } else {
-          i += 2; // consumed 2 lines (no from_name, next line is a new entry)
+          i += 2;
         }
         pool.push(entry);
       } else {
-        console.warn(
-          `[parseIpPool] Skipping invalid Format 2 group starting at line ${i}: "${line}"`,
-        );
         i++;
       }
     } else {
-      // Not an IP, not pipe-separated — skip (could be a stray name/email line)
+      // ── Format 3: Custom Alias / SMTP Name (e.g. "AliUSA10") ──────────
+      // If it's a single word/string without special chars, allow it
+      if (line.length > 0 && !line.includes("|") && !line.includes(" ")) {
+        pool.push({ ip: line, from_email: "" });
+      }
       i++;
     }
   }
