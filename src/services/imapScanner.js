@@ -5,11 +5,44 @@ const CampaignLog = require("../models/CampaignLog");
 const TestId = require("../models/TestId");
 const crypto = require("crypto");
 const { evaluate: guardianEvaluate } = require("./guardianService");
+const IntelligenceLog = require("../models/IntelligenceLog");
+const ReputationScore = require("../models/ReputationScore");
 
 /**
  * Modern IMAP Scanner Service
  * Scans TestId accounts for campaign fingerprints to detect Inbox/Spam/Promotion placement.
  */
+
+const updateIntelligenceScore = async (campaign, type, value, location) => {
+  if (!value || value === "Unknown") return;
+
+  let rep = await ReputationScore.findOne({
+    assetType: type,
+    assetValue: value,
+  });
+  if (!rep) {
+    rep = new ReputationScore({ assetType: type, assetValue: value });
+  }
+
+  if (location === "inbox" || location === "promo") {
+    rep.inboxCount += 1;
+  } else if (location === "spam") {
+    rep.spamCount += 1;
+  }
+
+  const total = rep.inboxCount + rep.spamCount;
+  if (total > 0) {
+    rep.inboxScore = (rep.inboxCount / total) * 100;
+  }
+
+  // Update status based on score
+  if (rep.inboxScore >= 80) rep.status = "healthy";
+  else if (rep.inboxScore >= 50) rep.status = "risky";
+  else rep.status = "paused";
+
+  rep.lastChecked = new Date();
+  await rep.save();
+};
 
 const scanTestId = async (testIdDoc, activeCampaigns) => {
   return new Promise((resolve, reject) => {
@@ -260,6 +293,50 @@ const runScanner = async () => {
               mail_status: `${res.email} ${res.placement}`,
             },
           });
+
+          // ── Synchronize with Inbox Intelligence Engine ───────────────
+          const providerMatch =
+            res.email.split("@")[1]?.split(".")[0] || "other";
+          const provider = ["gmail", "yahoo", "outlook"].includes(providerMatch)
+            ? providerMatch
+            : "other";
+
+          try {
+            await IntelligenceLog.create({
+              campaignId: res.campaignId,
+              provider,
+              location: res.placement === "promo" ? "inbox" : res.placement,
+              testEmail: res.email,
+              subject: existingLog.log_text || "Automated IMAP Scan",
+            });
+
+            const campaign = activeCampaigns.find(
+              (c) => c._id.toString() === res.campaignId.toString(),
+            );
+            if (campaign) {
+              // Extract IP from recent log since campaign.server isn't always reliable
+              const ipMatch = existingLog.log_text
+                ? existingLog.log_text.match(/\d+\.\d+\.\d+\.\d+/)
+                : null;
+              const ip = ipMatch ? ipMatch[0] : campaign.server;
+              if (ip)
+                await updateIntelligenceScore(
+                  campaign,
+                  "ip",
+                  ip,
+                  res.placement,
+                );
+              if (campaign.domain)
+                await updateIntelligenceScore(
+                  campaign,
+                  "domain",
+                  campaign.domain,
+                  res.placement,
+                );
+            }
+          } catch (intelErr) {
+            console.error("[IMAP] Intelligence Sync Error:", intelErr.message);
+          }
         }
       }
     }
