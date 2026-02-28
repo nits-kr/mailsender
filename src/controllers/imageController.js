@@ -34,7 +34,15 @@ const uploadImage = async (req, res) => {
   }
 
   try {
-    const imageLink = `${domain}${pattern}${file.filename}`;
+    // Inject port 5000 into the domain so it hits the backend express server
+    // instead of the frontend React router which throws a 404.
+    let backendDomain = domain.replace(/\/$/, ""); // strip trailing slash
+    if (!backendDomain.includes(":5000") && backendDomain.includes("http")) {
+      const urlObj = new URL(backendDomain);
+      backendDomain = `${urlObj.protocol}//${urlObj.hostname}:5000`;
+    }
+
+    const imageLink = `${backendDomain}${pattern}${file.filename}`;
 
     // Legacy parity: notify remote server if needed (as seen in upload_action.php)
     // The target server has aiwmaooduwiswmmairuploadfiew.php which connects back
@@ -49,11 +57,13 @@ const uploadImage = async (req, res) => {
         },
         timeout: 5000, // Timeout so we don't hold the request forever if target is offline
       });
-      console.log(`[ImageUpload] Notified remote server successfully: ${domain}`);
+      console.log(
+        `[ImageUpload] Notified remote server successfully: ${domain}`,
+      );
     } catch (e) {
       console.error(
         `[ImageUpload] Failed to notify remote server ${domain}:`,
-        e.message
+        e.message,
       );
       // Proceed with a clean 200 response anyway since the local save succeeded.
     }
