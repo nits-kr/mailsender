@@ -160,7 +160,6 @@ const emailWorker = async (job) => {
       from: `"${encodeHeader(from_name, from_enc)}" <${from_email}>`,
       to: email,
       subject: encodeHeader(subject, subject_enc),
-      messageId: msgId ? msgId.replace(/[<>]/g, "") : undefined, // NodeMailer auto-adds < >, so strip them if present
       headers: {
         "X-Mailer": xmailer === "1" ? "V-Mailer" : undefined,
         "Reply-To": reply_to === "1" ? from_email : undefined,
