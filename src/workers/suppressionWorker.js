@@ -5,7 +5,7 @@ const OfferSuppQueue = require("../models/OfferSuppQueue");
 const EmailMaster = require("../models/EmailMaster");
 const ComplainerSuppression = require("../models/ComplainerSuppression");
 
-const { DATA_PATH, SUPPRESSION_DIR } = require("../config/paths");
+const { DATA_PATH, BUFFER_PATH, SUPPRESSION_DIR } = require("../config/paths");
 
 /**
  * Suppression Worker Logic
