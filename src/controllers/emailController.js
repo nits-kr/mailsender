@@ -239,28 +239,44 @@ const sendEmail = async (req, res) => {
     let rawEmailList = "";
 
     if (data_file && data_file.trim()) {
-      // Read from server-side file in /uploads directory
-      const fse = require("fs-extra");
+      const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
+      const fs = require("fs");
       const nodePath = require("path");
-      const filePath = nodePath.join(
-        __dirname,
-        "../../uploads",
-        data_file.trim(),
+
+      const df = data_file.trim();
+      // Try multiple locations:
+      // 1. Direct path as provided
+      // 2. DATA_PATH + filename
+      // 3. BUFFER_PATH + filename (basename)
+
+      const primaryPath = nodePath.isAbsolute(df)
+        ? df
+        : nodePath.join(DATA_PATH, df);
+      const bufferFallbackPath = nodePath.join(
+        BUFFER_PATH,
+        nodePath.basename(df),
       );
-      try {
-        if (await fse.pathExists(filePath)) {
-          rawEmailList = await fse.readFile(filePath, "utf-8");
-        } else {
-          // file not found — fall back to textarea emails
-          console.warn(
-            `[emailController] data_file "${data_file}" not found on disk. Falling back to emails field.`,
+
+      let finalPath = null;
+      if (fs.existsSync(primaryPath)) {
+        finalPath = primaryPath;
+      } else if (fs.existsSync(bufferFallbackPath)) {
+        finalPath = bufferFallbackPath;
+      }
+
+      if (finalPath) {
+        try {
+          rawEmailList = fs.readFileSync(finalPath, "utf-8");
+        } catch (fileErr) {
+          console.error(
+            `[emailController] Error reading file "${finalPath}":`,
+            fileErr.message,
           );
           rawEmailList = emails || "";
         }
-      } catch (fileErr) {
-        console.error(
-          `[emailController] Error reading data_file "${data_file}":`,
-          fileErr.message,
+      } else {
+        console.warn(
+          `[emailController] data_file "${df}" not found in ${DATA_PATH} or ${BUFFER_PATH}. Fallback to textarea.`,
         );
         rawEmailList = emails || "";
       }

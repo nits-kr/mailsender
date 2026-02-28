@@ -23,17 +23,32 @@ const processSuppression = async (queueId) => {
       log: "Processing...",
     });
 
-    const sourcePath = path.join(DATA_PATH, queueItem.filename);
+    const df = queueItem.filename;
+    const primaryPath = path.isAbsolute(df) ? df : path.join(DATA_PATH, df);
+    const bufferFallbackPath = path.join(BUFFER_PATH, path.basename(df));
+    const rootFallbackPath = path.join(DATA_PATH, path.basename(df));
+
+    let sourcePath = null;
+    if (fs.existsSync(primaryPath)) {
+      sourcePath = primaryPath;
+    } else if (fs.existsSync(bufferFallbackPath)) {
+      sourcePath = bufferFallbackPath;
+    } else if (fs.existsSync(rootFallbackPath)) {
+      sourcePath = rootFallbackPath;
+    }
+
     const vendorPath = queueItem.vendor_supp_filename
       ? path.join(SUPPRESSION_DIR, queueItem.vendor_supp_filename)
       : null;
     const outputPath = path.join(
       DATA_PATH,
-      queueItem.new_filename || `suppressed_${queueItem.filename}`,
+      queueItem.new_filename || `suppressed_${path.basename(df)}`,
     );
 
-    if (!fs.existsSync(sourcePath)) {
-      throw new Error(`Source file missing: ${sourcePath}`);
+    if (!sourcePath || !fs.existsSync(sourcePath)) {
+      throw new Error(
+        `Source file missing: ${primaryPath} (also checked fallbacks)`,
+      );
     }
 
     // 2. Load Suppression Data (MD5s or Emails)
