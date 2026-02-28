@@ -37,7 +37,7 @@ class ImagePolymorphismService {
         image.setPixelColor(newColor, x, y);
       }
 
-      await image.writeAsync(targetPath);
+      await image.write(targetPath);
       logger.info(
         `Image Polymorphism: Mutated ${path.basename(sourcePath)} -> ${path.basename(targetPath)}`,
       );

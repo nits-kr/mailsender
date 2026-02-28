@@ -110,15 +110,21 @@ const sendEmail = async (req, res) => {
       mailer: "Admin",
       template_id: template_name || "Manual",
       interface: mode === "bulk" ? "FSOCK SEND SMTP AUTO" : "NEW INTERFACE",
-      server: ipLines[0] || "Unknown",
+      server: primaryIp || "Unknown",
       offer_id: offer_id || "Manual",
-      domain: domain || from_email.split("@")[1] || "Unknown",
-      from: from_email,
+      domain:
+        domain ||
+        (from_email && from_email.includes("@")
+          ? from_email.split("@")[1]
+          : "Unknown"),
+      from: from_email || "unknown@domain.com",
       test_sent: mode === "test" ? targetEmails.length : 0,
       bulk_test_sent: mode === "bulk" ? targetEmails.length : 0,
       bulk_test: mode === "bulk" ? targetEmails.length : 0,
       error: 0,
-    });
+    }).catch((err) =>
+      console.error("Dashboard Log Creation Failed:", err.message),
+    );
 
     let ipIndex = 0;
     for (const email of targetEmails) {
