@@ -325,8 +325,9 @@ const sendEmail = async (req, res) => {
       wait_time: Number(wait_time) || 0,
     };
 
-    // ── Create Campaign Record ────────────────────────────────────────────
-    const campaign = await Campaign.create({
+    const { campaign_id: existingCampaignId } = req.body;
+
+    const campaignData = {
       template_name: template_name || "Manual Sending",
       offer_id: offer_id || "Manual",
       server: primaryIp || "Unknown",
@@ -343,6 +344,15 @@ const sendEmail = async (req, res) => {
       limit_to_send: Number(limit_to_send) || 500,
       ip_list: ipPool.map((e) => e.ip),
       total_queued: 0,
+      // Reset progress stats for re-runs/updates
+      success_count: 0,
+      error_count: 0,
+      bounce_count: 0,
+      inbox_count: 0,
+      spam_count: 0,
+      promo_count: 0,
+      guardian_logs: [],
+      start_time: new Date(),
       // Configuration snapshot
       accs: accs || mailing_ip || "",
       headers: headers || "",
@@ -364,7 +374,21 @@ const sendEmail = async (req, res) => {
       encoding: encoding || "8bit",
       charset_alt: charset_alt || "UTF-8",
       encoding_alt: encoding_alt || "8bit",
-    });
+    };
+
+    let campaign;
+    if (existingCampaignId) {
+      campaign = await Campaign.findByIdAndUpdate(
+        existingCampaignId,
+        campaignData,
+        { new: true },
+      );
+      if (!campaign) {
+        campaign = await Campaign.create(campaignData);
+      }
+    } else {
+      campaign = await Campaign.create(campaignData);
+    }
 
     const campaignId = campaign._id;
 

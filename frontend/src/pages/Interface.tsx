@@ -324,6 +324,7 @@ const Interface = () => {
     try {
       const payload = {
         ...data,
+        campaign_id: activeCampaignId || undefined,
         mailing_ip: data.accs,
       };
 
