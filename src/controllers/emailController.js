@@ -111,6 +111,7 @@ const queueEmail = async (email, currentIp, campaignId, opts) => {
     offer_id,
     search_replace,
     wait_time,
+    dashboardLogId,
   } = opts;
 
   const replaceTags = buildReplaceTags(email.trim(), {
@@ -143,6 +144,7 @@ const queueEmail = async (email, currentIp, campaignId, opts) => {
     xmailer,
     offer_id,
     wait_time: Number(wait_time) || 0,
+    dashboardLogId,
   });
 };
 
@@ -331,8 +333,8 @@ const sendEmail = async (req, res) => {
       type: "info",
     });
 
-    // ── Dashboard Log ─────────────────────────────────────────────────────
-    await Log.create({
+    // ── Dashboard Log (Initialize with 0, update in worker) ───────────────
+    const dashLog = await Log.create({
       mailer: "Admin",
       template_id: template_name || "Manual",
       interface: mode === "bulk" ? "BULK SEND" : "TEST SEND",
@@ -344,13 +346,13 @@ const sendEmail = async (req, res) => {
           ? from_email.split("@")[1]
           : "Unknown"),
       from: from_email || "unknown@domain.com",
-      test_sent: mode === "test" ? targetEmails.length : 0,
-      bulk_test_sent: mode === "bulk" ? targetEmails.length : 0,
-      bulk_test: mode === "bulk" ? targetEmails.length : 0,
+      test_sent: 0,
+      bulk_test_sent: 0,
+      bulk_test: 0,
       error: 0,
-    }).catch((err) =>
-      console.error("Dashboard Log Creation Failed:", err.message),
-    );
+    });
+
+    const dashboardLogId = dashLog ? dashLog._id : null;
 
     // ════════════════════════════════════════════════════════════════════════
     //  MODE BRANCHES
@@ -366,6 +368,7 @@ const sendEmail = async (req, res) => {
           ...emailOpts,
           from_name: entry.from_name || from_name,
           from_email: entry.from_email || from_email,
+          dashboardLogId,
         });
       }
 
@@ -399,6 +402,7 @@ const sendEmail = async (req, res) => {
             ...emailOpts,
             from_name: entry.from_name || from_name,
             from_email: entry.from_email || from_email,
+            dashboardLogId,
           });
         }
         await CampaignLog.create({
@@ -414,6 +418,7 @@ const sendEmail = async (req, res) => {
               ...emailOpts,
               from_name: entry.from_name || from_name,
               from_email: entry.from_email || from_email,
+              dashboardLogId,
             });
           }
         }
@@ -448,6 +453,7 @@ const sendEmail = async (req, res) => {
           ...emailOpts,
           from_name: entry.from_name || from_name,
           from_email: entry.from_email || from_email,
+          dashboardLogId,
         });
         queued++;
       }
@@ -493,7 +499,7 @@ const sendEmail = async (req, res) => {
         campaignId,
         emailsList: targetEmails.slice(batchSize),
         ipPool,
-        emailOpts,
+        emailOpts: { ...emailOpts, dashboardLogId },
         batchSize,
         sleepSeconds: Number(sleep_time) || 5,
         inboxPercentThreshold: Number(inbox_percent) || 50,

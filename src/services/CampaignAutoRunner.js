@@ -216,6 +216,7 @@ class CampaignAutoRunner {
           reply_to: emailOpts.reply_to,
           xmailer: emailOpts.xmailer,
           offer_id: emailOpts.offer_id,
+          dashboardLogId: emailOpts.dashboardLogId,
         });
       }
 

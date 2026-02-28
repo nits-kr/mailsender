@@ -40,12 +40,23 @@ const Dashboard = () => {
   const [queryDates, setQueryDates] = useState({ from: dateFrom, to: dateTo });
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: logs = [], isFetching: logsFetching } =
-    useGetDashboardLogsQuery(queryDates);
-  const { data: stats = { pieData: [], barData: [] } } =
-    useGetDashboardStatsQuery();
+  const {
+    data: logs = [],
+    isFetching: logsFetching,
+    refetch: refetchLogs,
+  } = useGetDashboardLogsQuery(queryDates);
 
-  const handleApply = () => setQueryDates({ from: dateFrom, to: dateTo });
+  const {
+    data: stats = { pieData: [], barData: [] },
+    isFetching: statsFetching,
+    refetch: refetchStats,
+  } = useGetDashboardStatsQuery();
+
+  const handleApply = () => {
+    setQueryDates({ from: dateFrom, to: dateTo });
+    refetchLogs();
+    refetchStats();
+  };
 
   const filteredLogs = Array.isArray(logs)
     ? logs.filter((log) =>

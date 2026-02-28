@@ -3,6 +3,7 @@ const IP = require("../models/IP");
 const SmtpDetail = require("../models/SmtpDetail");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
+const Log = require("../models/Log");
 const { evaluate: guardianEvaluate } = require("../services/guardianService");
 const imagePolymorphismService = require("../services/intelligence/ImagePolymorphismService");
 const path = require("path");
@@ -31,6 +32,7 @@ const emailWorker = async (job) => {
     reply_to,
     xmailer,
     wait_time,
+    dashboardLogId,
   } = job.data;
 
   try {
@@ -273,6 +275,19 @@ const emailWorker = async (job) => {
       }
     }
 
+    // ── Update Dashboard Log (Incremental) ──────────────────────────────
+    if (dashboardLogId) {
+      if (mode === "bulk") {
+        await Log.findByIdAndUpdate(dashboardLogId, {
+          $inc: { bulk_test: 1, bulk_test_sent: 1 },
+        });
+      } else {
+        await Log.findByIdAndUpdate(dashboardLogId, {
+          $inc: { test_sent: 1 },
+        });
+      }
+    }
+
     console.log(`Email sent successfully to ${email} via ${mailing_ip}`);
 
     // ── wait_time: per-email delay to control sending speed ──────────────
@@ -310,6 +325,9 @@ const emailWorker = async (job) => {
           end_time: new Date(),
         });
       }
+    }
+    if (dashboardLogId) {
+      await Log.findByIdAndUpdate(dashboardLogId, { $inc: { error: 1 } });
     }
     throw error;
   }

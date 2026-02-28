@@ -9,7 +9,7 @@ const getStats = async (req, res) => {
       {
         $group: {
           _id: "$server",
-          count: { $sum: "$bulk_test" },
+          count: { $sum: { $add: ["$bulk_test", "$test_sent"] } },
         },
       },
     ]);
@@ -19,7 +19,7 @@ const getStats = async (req, res) => {
       {
         $group: {
           _id: "$server",
-          sent: { $sum: "$bulk_test" },
+          sent: { $sum: { $add: ["$bulk_test", "$test_sent"] } },
         },
       },
     ]);

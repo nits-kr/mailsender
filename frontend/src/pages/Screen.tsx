@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import {
   useGetScreensQuery,
   useStopScreenMutation,
@@ -64,7 +64,10 @@ const Screen = () => {
           <br />
           <div className="text-right-m-0-15-0-0">
             <span onClick={refetchScreens} className="cursor-pointer-black">
-              <RefreshCcw size={24} />
+              <RefreshCw
+                size={36}
+                className={isFetching ? "animate-spin" : ""}
+              />
             </span>
           </div>
           <hr className="screen-hr" />
