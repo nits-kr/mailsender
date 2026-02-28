@@ -328,7 +328,7 @@ const sendEmail = async (req, res) => {
       ip_list: ipPool.map((e) => e.ip),
       total_queued: 0,
       // Configuration snapshot
-      accs: accs || filing_ip || "",
+      accs: accs || mailing_ip || "",
       headers: headers || "",
       subject: subject || "",
       from_name: from_name || "",

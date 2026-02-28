@@ -412,7 +412,7 @@ export const apiSlice = createApi({
 
     // ─── Campaign Live Status ─────────────────────────────────────────────────
     getCampaignStatus: builder.query<any, string>({
-      query: (id) => `/sendEmail/campaign-status/${id}`,
+      query: (id) => `/email/campaign-status/${id}`,
       providesTags: ['Campaign'],
     }),
   }),

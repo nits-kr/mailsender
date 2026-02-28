@@ -42,7 +42,7 @@ function parseIpPool(raw) {
       const ip = parts[0];
       const from_email = parts[1] || "";
 
-      if (IP_REGEX.test(ip) && EMAIL_REGEX.test(from_email)) {
+      if (ip && EMAIL_REGEX.test(from_email)) {
         pool.push({ ip, from_email });
       } else {
         console.warn(`[parseIpPool] Skipping invalid Format 1 line: "${line}"`);
