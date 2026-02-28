@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Loader2, X } from "lucide-react";
 import "./InterfaceNewPage.css";
 import {
   useGetCampaignsQuery,
@@ -10,6 +11,11 @@ import {
   useGetDefaultIpsQuery,
   useSendEmailMutation,
   useGetCampaignLogsQuery,
+  useLazyGetFileInfoQuery,
+  useGetPatternsQuery,
+  useLazyValidateOfferQuery,
+  useGetLegacyCampaignQuery,
+  useSearchLegacyLinkMutation,
 } from "../store/apiSlice";
 
 const interfaceSchema = z.object({
@@ -116,6 +122,9 @@ export const InterfaceNewPage = () => {
     },
   });
 
+  const [searchParams] = useSearchParams();
+  const legacyCampaignId = searchParams.get("c");
+
   const formData = watch();
 
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
@@ -125,6 +134,23 @@ export const InterfaceNewPage = () => {
   const [status, setStatus] = useState<string>("");
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [pollLogs, setPollLogs] = useState(false);
+
+  // States for feature parity
+  const [dataFileCount, setDataFileCount] = useState<number | null>(null);
+  const [offerValid, setOfferValid] = useState<boolean | null>(null);
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+
+  // RTK Query Hooks for feature parity
+  const [triggerGetFileInfo, { isFetching: isFetchingFileInfo }] =
+    useLazyGetFileInfoQuery();
+  const [triggerValidateOffer, { isFetching: isValidatingOffer }] =
+    useLazyValidateOfferQuery();
+  const { data: patterns = [] } = useGetPatternsQuery();
+  const { data: legacyCampaign, isSuccess: isLegacySuccess } =
+    useGetLegacyCampaignQuery(legacyCampaignId || "", {
+      skip: !legacyCampaignId,
+    });
+  const [searchLegacyLink] = useSearchLegacyLinkMutation();
 
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
     activeCampaignId || "",
@@ -158,6 +184,62 @@ export const InterfaceNewPage = () => {
       setValue("accs", defaultIpsData.ips);
     }
   }, [defaultIpsData, setValue, formData.accs]);
+
+  // Handle Legacy Campaign Loading (?c=ID)
+  useEffect(() => {
+    if (isLegacySuccess && legacyCampaign) {
+      reset({
+        ...formData,
+        from_email: legacyCampaign.from_email || "",
+        headers: legacyCampaign.headers || "",
+        subject: legacyCampaign.subject || "",
+        from_name: legacyCampaign.from_name || "",
+        message_html: legacyCampaign.message_html || "",
+        message_plain: legacyCampaign.message_plain || "",
+        offer_id: legacyCampaign.offer_id || "",
+        domain: legacyCampaign.domain || "",
+        mode: legacyCampaign.mode || "test",
+        sleep_time: legacyCampaign.sleep_time || "",
+        wait_time: legacyCampaign.wait_time || "2",
+        inbox_percent: legacyCampaign.inbox_percent || "",
+        mail_after: legacyCampaign.mail_after || "",
+      });
+    }
+  }, [isLegacySuccess, legacyCampaign]);
+
+  // Auto-fetch Data File Info
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (formData.data_file) {
+        try {
+          const res = await triggerGetFileInfo(formData.data_file).unwrap();
+          setDataFileCount(res.found ? res.count : 0);
+        } catch {
+          setDataFileCount(0);
+        }
+      } else {
+        setDataFileCount(null);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [formData.data_file, triggerGetFileInfo]);
+
+  // Auto-validate Offer ID
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (formData.offer_id) {
+        try {
+          const res = await triggerValidateOffer(formData.offer_id).unwrap();
+          setOfferValid(res.valid);
+        } catch {
+          setOfferValid(false);
+        }
+      } else {
+        setOfferValid(null);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.offer_id, triggerValidateOffer]);
 
   const { data: campaigns = [] } = useGetCampaignsQuery();
 
@@ -254,6 +336,52 @@ export const InterfaceNewPage = () => {
     if (win) {
       win.document.write(formData.message_html);
       win.document.close();
+    }
+  };
+
+  const handleEditor = () => {
+    window.open("http://173.249.50.153/edit.php", "_blank");
+  };
+
+  const handleGetLink = async () => {
+    setStatus("Searching for link...");
+    try {
+      const payload = {
+        subject: formData.subject,
+        ip: formData.accs.split("\n")[0]?.split("|")[0] || "",
+        domain: formData.domain,
+        offer: formData.offer_id,
+      };
+      const response = await searchLegacyLink(payload).unwrap();
+      if (response.in_link) {
+        setStatus(`Link found: ${response.in_link}`);
+        alert(`Link found: ${response.in_link}`);
+      } else {
+        setStatus("Link not found");
+      }
+    } catch (error: any) {
+      setStatus("Error fetching link");
+    }
+  };
+
+  const displayStart = () => {
+    if (!formData.interval_time) {
+      alert("Provide Interval Time");
+      return;
+    }
+    const timeInMicroSec = Number(formData.interval_time) * 1000;
+    const id = setInterval(() => {
+      handleSubmit(onSend)();
+    }, timeInMicroSec);
+    setIntervalId(id);
+    setStatus("Space sending started...");
+  };
+
+  const displayStop = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+      setStatus("Space sending stopped");
     }
   };
 
@@ -495,7 +623,11 @@ export const InterfaceNewPage = () => {
                 >
                   Preview
                 </button>
-                <button type="button" className="btn-action-new editor">
+                <button
+                  type="button"
+                  className="btn-action-new editor"
+                  onClick={handleEditor}
+                >
                   EDITOR
                 </button>
               </div>
@@ -617,6 +749,19 @@ export const InterfaceNewPage = () => {
               <label htmlFor="bulk-mode">Bulk</label>
             </div>
 
+            <div
+              className="toggle-group-new"
+              style={{ marginTop: "10px", display: "none" }}
+            >
+              <button
+                type="button"
+                className="btn-get-link-new"
+                onClick={handleGetLink}
+              >
+                Get Track Link
+              </button>
+            </div>
+
             <div className="toggle-group-new">
               <input
                 type="radio"
@@ -642,12 +787,49 @@ export const InterfaceNewPage = () => {
               <summary className="settings-header-new">▼ Settings</summary>
               <div className="settings-grid-new">
                 <div className="settings-row-new">
-                  <input
-                    className={errors.data_file ? "invalid-input" : ""}
-                    placeholder="Data File"
-                    title="Data File"
-                    {...register("data_file")}
-                  />
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <input
+                      className={errors.data_file ? "invalid-input" : ""}
+                      placeholder="Data File"
+                      title="Data File"
+                      {...register("data_file")}
+                      style={{
+                        paddingRight:
+                          dataFileCount !== null || isFetchingFileInfo
+                            ? "45px"
+                            : "8px",
+                      }}
+                    />
+                    {isFetchingFileInfo ? (
+                      <span className="input-indicator-new">
+                        <Loader2 className="animate-spin" size={12} />
+                      </span>
+                    ) : (
+                      dataFileCount !== null && (
+                        <div className="input-indicator-new">
+                          <span
+                            className={`status-badge-new ${dataFileCount > 0 ? "success" : "error"}`}
+                          >
+                            {dataFileCount > 0 ? (
+                              dataFileCount
+                            ) : (
+                              <X size={10} />
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            className="input-clear-btn-new"
+                            onClick={() => {
+                              setValue("data_file", "");
+                              setDataFileCount(null);
+                            }}
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
                   <input
                     className={errors.total_send ? "invalid-input" : ""}
                     placeholder="Total Send"
@@ -670,12 +852,45 @@ export const InterfaceNewPage = () => {
                   />
                 </div>
                 <div className="settings-row-new">
-                  <input
-                    className={errors.offer_id ? "invalid-input" : ""}
-                    placeholder="Offer ID"
-                    title="Offer ID"
-                    {...register("offer_id")}
-                  />
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <input
+                      className={errors.offer_id ? "invalid-input" : ""}
+                      placeholder="Offer ID"
+                      title="Offer ID"
+                      {...register("offer_id")}
+                      style={{
+                        paddingRight:
+                          offerValid !== null || isValidatingOffer
+                            ? "30px"
+                            : "8px",
+                      }}
+                    />
+                    {isValidatingOffer ? (
+                      <span className="input-indicator-new">
+                        <Loader2 className="animate-spin" size={12} />
+                      </span>
+                    ) : (
+                      offerValid !== null && (
+                        <div className="input-indicator-new">
+                          <span
+                            className={`status-badge-new ${offerValid ? "success" : "error"}`}
+                          >
+                            {offerValid ? "✓" : <X size={10} />}
+                          </span>
+                          <button
+                            type="button"
+                            className="input-clear-btn-new"
+                            onClick={() => {
+                              setValue("offer_id", "");
+                              setOfferValid(null);
+                            }}
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
                   <input
                     className={errors.template_name ? "invalid-input" : ""}
                     placeholder="Template"
@@ -713,8 +928,11 @@ export const InterfaceNewPage = () => {
                     {...register("inb_pattern")}
                   >
                     <option value="1">Inbox Pattern</option>
-                    <option value="1">Pattern 1</option>
-                    <option value="2">Pattern 2</option>
+                    {patterns.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="settings-row-new">
@@ -785,10 +1003,20 @@ export const InterfaceNewPage = () => {
                     title="Interval Time"
                     {...register("interval_time")}
                   />
-                  <button type="button" className="btn-start-new">
+                  <button
+                    type="button"
+                    className="btn-start-new"
+                    onClick={displayStart}
+                    disabled={!!intervalId}
+                  >
                     Start
                   </button>
-                  <button type="button" className="btn-stop-new">
+                  <button
+                    type="button"
+                    className="btn-stop-new"
+                    onClick={displayStop}
+                    disabled={!intervalId}
+                  >
                     Stop
                   </button>
                 </div>
