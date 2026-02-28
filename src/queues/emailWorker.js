@@ -35,6 +35,7 @@ const emailWorker = async (job) => {
     dashboardLogId,
   } = job.data;
 
+  let smtpConfig = null;
   try {
     // Check if campaign is stopped
     if (campaign_id) {
@@ -46,9 +47,6 @@ const emailWorker = async (job) => {
         return;
       }
     }
-
-    let smtpConfig = null;
-
     const ipKey = String(mailing_ip.split("|")[0] || "").trim();
     const ipRecord =
       (await IP.findOne({ ip: ipKey })) ||
