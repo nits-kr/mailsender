@@ -326,14 +326,24 @@ const sendEmail = async (req, res) => {
     };
 
     const { campaign_id: existingCampaignId } = req.body;
+    let campaign = null;
+    let startIndex = 0;
 
-    const campaignData = {
+    if (existingCampaignId) {
+      campaign = await Campaign.findById(existingCampaignId);
+    }
+
+    // Only reset stats if the campaign reached "Completed" or if it's a brand new campaign.
+    // If it's "Stopped" or "Running", we consider this a continuation of the same job.
+    const shouldReset = !campaign || campaign.status === "Completed";
+
+    const updateData = {
       template_name: template_name || "Manual Sending",
       offer_id: offer_id || "Manual",
       server: primaryIp || "Unknown",
       data_file: data_file || "emails_field",
       total_emails: targetEmails.length,
-      status: "Running",
+      status: "Running", // Always set to running when a send is initiated
       mode,
       sen_t,
       type: campaignType,
@@ -343,16 +353,7 @@ const sendEmail = async (req, res) => {
       sleep_time: Number(sleep_time) || 5,
       limit_to_send: Number(limit_to_send) || 500,
       ip_list: ipPool.map((e) => e.ip),
-      total_queued: 0,
-      // Reset progress stats for re-runs/updates
-      success_count: 0,
-      error_count: 0,
-      bounce_count: 0,
-      inbox_count: 0,
-      spam_count: 0,
-      promo_count: 0,
-      guardian_logs: [],
-      start_time: new Date(),
+      total_queued: 0, // This will be updated later based on actual queued emails
       // Configuration snapshot
       accs: accs || mailing_ip || "",
       headers: headers || "",
@@ -376,18 +377,32 @@ const sendEmail = async (req, res) => {
       encoding_alt: encoding_alt || "8bit",
     };
 
-    let campaign;
-    if (existingCampaignId) {
-      campaign = await Campaign.findByIdAndUpdate(
-        existingCampaignId,
-        campaignData,
-        { new: true },
-      );
-      if (!campaign) {
-        campaign = await Campaign.create(campaignData);
-      }
+    if (shouldReset) {
+      Object.assign(updateData, {
+        success_count: 0,
+        error_count: 0,
+        bounce_count: 0,
+        inbox_count: 0,
+        spam_count: 0,
+        promo_count: 0,
+        guardian_logs: [],
+        start_time: new Date(),
+      });
     } else {
-      campaign = await Campaign.create(campaignData);
+      // If resuming, calculate startIndex for targetEmails and pIdx for IP round-robin
+      startIndex = (campaign.success_count || 0) + (campaign.error_count || 0);
+      // Ensure startIndex doesn't exceed total_emails
+      startIndex = Math.min(startIndex, targetEmails.length);
+      // Update total_emails if the list changed
+      updateData.total_emails = targetEmails.length;
+    }
+
+    if (campaign) {
+      campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
+        new: true,
+      });
+    } else {
+      campaign = await Campaign.create(updateData);
     }
 
     const campaignId = campaign._id;
@@ -423,10 +438,16 @@ const sendEmail = async (req, res) => {
     //  MODE BRANCHES
     // ════════════════════════════════════════════════════════════════════════
 
-    if (campaignType === "test_manual") {
-      // ── TEST + MANUAL: Round-robin across ip pool to test list ────────────
-      let pIdx = 0;
-      for (const email of targetEmails) {
+    if (
+      campaignType === "test_manual" ||
+      (campaignType === "test_auto" &&
+        (await MonitoringMailbox.countDocuments({ isActive: true })) === 0)
+    ) {
+      // ── TEST + MANUAL (or fallback AUTO): Round-robin across ip pool ──
+      let pIdx = startIndex % ipPool.length;
+      const batchEmails = targetEmails.slice(startIndex);
+
+      for (const email of batchEmails) {
         const entry = ipPool[pIdx % ipPool.length];
         pIdx++;
         await queueEmail(email, entry.ip, campaignId, {
@@ -439,81 +460,62 @@ const sendEmail = async (req, res) => {
 
       await CampaignLog.create({
         campaign_id: campaignId,
-        log_text: `[TEST+MANUAL] Queued ${targetEmails.length} emails. Check inboxes manually.`,
+        log_text: `[${campaignType.toUpperCase()}] Queued ${batchEmails.length} emails (starting from ${startIndex}).`,
         type: "info",
       });
 
       return res.json({
         message: "Test emails queued. Please check inboxes manually.",
         campaign_id: campaignId,
-        count: targetEmails.length,
+        count: batchEmails.length,
         mode: campaignType,
       });
     }
 
     if (campaignType === "test_auto") {
-      // ── TEST + AUTO: Send to monitoring mailboxes + schedule IMAP scan ─
       const monitoringMailboxes = await MonitoringMailbox.find({
         isActive: true,
       });
-
-      if (monitoringMailboxes.length === 0) {
-        // Fall back to target emails if no monitoring mailboxes configured
-        let pIdx = 0;
-        for (const email of targetEmails) {
-          const entry = ipPool[pIdx % ipPool.length];
-          pIdx++;
-          await queueEmail(email, entry.ip, campaignId, {
+      // Test + Auto: send from EACH IP to EACH monitoring mailbox (ignore start index for scoring)
+      for (const entry of ipPool) {
+        for (const mbox of monitoringMailboxes) {
+          await queueEmail(mbox.email, entry.ip, campaignId, {
             ...emailOpts,
             from_name: entry.from_name || from_name,
             from_email: entry.from_email || from_email,
             dashboardLogId,
           });
         }
-        await CampaignLog.create({
-          campaign_id: campaignId,
-          log_text: `[TEST+AUTO] No monitoring mailboxes configured. Sent to ${targetEmails.length} test emails. Add mailboxes in Intelligence settings for auto IMAP scanning.`,
-          type: "info",
-        });
-      } else {
-        // Test + Auto: send from EACH IP to EACH monitoring mailbox for per-IP placement scoring
-        for (const entry of ipPool) {
-          for (const mbox of monitoringMailboxes) {
-            await queueEmail(mbox.email, entry.ip, campaignId, {
-              ...emailOpts,
-              from_name: entry.from_name || from_name,
-              from_email: entry.from_email || from_email,
-              dashboardLogId,
-            });
-          }
-        }
-        await Campaign.findByIdAndUpdate(campaignId, {
-          total_queued: monitoringMailboxes.length * ipPool.length,
-        });
-        await CampaignLog.create({
-          campaign_id: campaignId,
-          log_text: `[TEST+AUTO] Sent to ${monitoringMailboxes.length} monitoring mailboxes from ${ipPool.length} IP(s). IMAP scan will run automatically in 5 min.`,
-          type: "info",
-        });
       }
+      await Campaign.findByIdAndUpdate(campaignId, {
+        total_queued: monitoringMailboxes.length * ipPool.length,
+        total_emails: monitoringMailboxes.length * ipPool.length,
+      });
+      await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[TEST+AUTO] Sent to ${monitoringMailboxes.length} monitoring mailboxes from ${ipPool.length} IP(s).`,
+        type: "info",
+      });
 
       return res.json({
-        message: `Test emails sent to ${monitoringMailboxes.length > 0 ? monitoringMailboxes.length + " monitoring mailboxes" : targetEmails.length + " test emails"}. Auto IMAP scan scheduled.`,
+        message: `Test emails sent to monitoring mailboxes. Auto IMAP scan scheduled.`,
         campaign_id: campaignId,
-        count: monitoringMailboxes.length || targetEmails.length,
+        count: monitoringMailboxes.length * ipPool.length,
         mode: campaignType,
-        monitoring: monitoringMailboxes.length > 0,
       });
     }
 
     if (campaignType === "bulk_manual") {
-      // ── BULK + MANUAL: Round-robin batch using ip pool ─────────────────
+      // ── BULK + MANUAL: Round-robin batch starting from offset ───────────
       const batchSize = Number(limit_to_send) || 500;
+      const batchEmails = targetEmails.slice(
+        startIndex,
+        startIndex + batchSize,
+      );
+      let pIdx = startIndex % ipPool.length;
       let queued = 0;
-      let pIdx = 0;
 
-      for (const email of targetEmails) {
-        if (queued >= batchSize) break;
+      for (const email of batchEmails) {
         const entry = ipPool[pIdx % ipPool.length];
         pIdx++;
         await queueEmail(email, entry.ip, campaignId, {
@@ -528,25 +530,26 @@ const sendEmail = async (req, res) => {
       await Campaign.findByIdAndUpdate(campaignId, { total_queued: queued });
       await CampaignLog.create({
         campaign_id: campaignId,
-        log_text: `[BULK+MANUAL] Queued ${queued} of ${targetEmails.length} emails (limit: ${batchSize}). Press Send again to continue next batch.`,
+        log_text: `[BULK+MANUAL] Queued batch of ${queued} emails (Offset: ${startIndex}, Remaining: ${targetEmails.length - (startIndex + queued)}).`,
         type: "info",
       });
 
       return res.json({
-        message: `Bulk send queued: ${queued} emails dispatched. Monitor logs below.`,
+        message: `Batch queued: ${queued} emails dispatched.`,
         campaign_id: campaignId,
         count: queued,
+        total_sent_so_far: startIndex + queued,
         total: targetEmails.length,
         mode: campaignType,
       });
     }
 
     if (campaignType === "bulk_auto") {
-      // ── BULK + AUTO: First batch + start AutoRunner ───────────────────
+      // ── BULK + AUTO: First batch + start AutoRunner from offset ────────
       const batchSize = Number(mail_after) || 100;
-      const firstBatch = targetEmails.slice(0, batchSize);
+      const firstBatch = targetEmails.slice(startIndex, startIndex + batchSize);
+      let pIdx = startIndex % ipPool.length;
 
-      let pIdx = 0;
       for (const email of firstBatch) {
         const entry = ipPool[pIdx % ipPool.length];
         pIdx++;
@@ -564,22 +567,23 @@ const sendEmail = async (req, res) => {
       const CampaignAutoRunner = require("../services/CampaignAutoRunner");
       CampaignAutoRunner.start({
         campaignId,
-        emailsList: targetEmails.slice(batchSize),
+        emailsList: targetEmails.slice(startIndex + firstBatch.length),
         ipPool,
         emailOpts: { ...emailOpts, dashboardLogId },
         batchSize,
         sleepSeconds: Number(sleep_time) || 5,
         inboxPercentThreshold: Number(inbox_percent) || 50,
+        startIndex: startIndex + firstBatch.length, // Pass offset for IP selection continuity
       });
 
       await CampaignLog.create({
         campaign_id: campaignId,
-        log_text: `[BULK+AUTO] First batch of ${firstBatch.length} emails queued. AutoRunner started. Will send ${targetEmails.length - firstBatch.length} more emails in batches of ${batchSize} every ${sleep_time || 5}s.`,
+        log_text: `[BULK+AUTO] Resuming/Starting from ${startIndex}. First batch of ${firstBatch.length} queued.`,
         type: "info",
       });
 
       return res.json({
-        message: `Bulk+Auto started: ${firstBatch.length} emails sent now. AutoRunner will continue automatically.`,
+        message: `Bulk+Auto started from ${startIndex}.`,
         campaign_id: campaignId,
         count: firstBatch.length,
         total: targetEmails.length,

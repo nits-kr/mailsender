@@ -55,6 +55,7 @@ class CampaignAutoRunner {
     batchSize,
     sleepSeconds,
     inboxPercentThreshold, // user-defined inbox_percent field
+    startIndex,
   }) {
     const handle = { stop: false };
     this.runningCampaigns.set(String(campaignId), handle);
@@ -68,6 +69,7 @@ class CampaignAutoRunner {
       sleepSeconds,
       inboxPercentThreshold: Number(inboxPercentThreshold) || 50,
       handle,
+      startIndex: Number(startIndex) || 0,
     }).catch((err) => {
       console.error(`[AutoRunner] Campaign ${campaignId} error:`, err);
     });
@@ -90,9 +92,10 @@ class CampaignAutoRunner {
     sleepSeconds,
     inboxPercentThreshold,
     handle,
+    startIndex,
   }) {
-    let pIdx = 0;
-    let totalQueued = 0;
+    let currentOffset = startIndex;
+    let totalQueuedInRunner = 0;
 
     const batches = [];
     for (let i = 0; i < emailsList.length; i += batchSize) {
@@ -119,38 +122,54 @@ class CampaignAutoRunner {
         break;
       }
 
-      // Reputation check: remove paused IPs from pool for this batch
-      const activePool = [];
+      // 1. Reputation check & Weight calculation
+      // We check for all IPs and build a weighted pool
+      const poolWithRep = [];
+      let totalWeight = 0;
+
       for (const entry of ipPool) {
-        const rep = await ReputationScore.findOne({ assetValue: entry.ip });
-        if (!rep || rep.status !== "paused") {
-          activePool.push(entry);
+        let rep = await ReputationScore.findOne({ assetValue: entry.ip });
+        // Use default 100 for new IPs, or use their actual score
+        const score = rep ? rep.inboxScore : 100;
+        const status = rep ? rep.status : "healthy";
+
+        if (status !== "paused") {
+          // Weight is the inboxScore (e.g. 90% = 90 weight)
+          // Minimum weight of 1 to ensure some traffic if score is very low but not paused
+          const weight = Math.max(1, score);
+          poolWithRep.push({ entry, weight, score });
+          totalWeight += weight;
         }
       }
 
-      if (activePool.length === 0) {
+      if (poolWithRep.length === 0) {
         await Campaign.findByIdAndUpdate(campaignId, { status: "Stopped" });
         await CampaignLog.create({
           campaign_id: campaignId,
-          log_text: `[BULK+AUTO] All IPs are paused. Campaign auto-stopped to protect domain reputation.`,
+          log_text: `[BULK+AUTO] All IPs are paused or have 0 reputation. Campaign auto-stopped.`,
           type: "error",
         });
         break;
       }
 
-      if (activePool.length < ipPool.length) {
+      // Sort by score for logging
+      poolWithRep.sort((a, b) => b.score - a.score);
+
+      if (poolWithRep.length < ipPool.length) {
         const removedIps = ipPool
-          .filter((e) => !activePool.includes(e))
+          .filter((e) => !poolWithRep.find((p) => p.entry.ip === e.ip))
           .map((e) => e.ip)
           .join(", ");
-        await CampaignLog.create({
-          campaign_id: campaignId,
-          log_text: `[BULK+AUTO] Reputation guard removed IPs: ${removedIps}. Continuing with ${activePool.length} healthy IP(s).`,
-          type: "info",
-        });
+        if (removedIps) {
+          await CampaignLog.create({
+            campaign_id: campaignId,
+            log_text: `[BULK+AUTO] Reputation guard active. IPs removed: ${removedIps}.`,
+            type: "info",
+          });
+        }
       }
 
-      // Domain reputation check
+      // 2. Domain reputation check
       const domRep = await ReputationScore.findOne({
         assetValue: campaign.domain,
         status: "paused",
@@ -165,9 +184,8 @@ class CampaignAutoRunner {
         break;
       }
 
-      // ── Inbox Placement Rate Check (user-defined inbox_percent threshold) ─
+      // 3. Inbox Placement Rate Check (Campaign-wide safety jump)
       if (campaign.success_count > 10) {
-        // only check after meaningful sample
         const currentInboxRate =
           campaign.inbox_count > 0
             ? (campaign.inbox_count / campaign.success_count) * 100
@@ -176,18 +194,31 @@ class CampaignAutoRunner {
           await Campaign.findByIdAndUpdate(campaignId, { status: "Stopped" });
           await CampaignLog.create({
             campaign_id: campaignId,
-            log_text: `[BULK+AUTO] Inbox rate ${currentInboxRate.toFixed(1)}% dropped below threshold ${inboxPercentThreshold}%. Campaign auto-stopped.`,
+            log_text: `[BULK+AUTO] Overall Inbox rate ${currentInboxRate.toFixed(1)}% dropped below threshold ${inboxPercentThreshold}%. Auto-stopping.`,
             type: "error",
           });
           break;
         }
       }
 
-      // Queue this batch with active pool round-robin
+      // 4. Queue Batch using Weighted Selection
       const batch = batches[batchNum];
+      const stats = {}; // Tracking distribution for logging
+
       for (const email of batch) {
-        const entry = activePool[pIdx % activePool.length];
-        pIdx++;
+        // Weighted Random Selection
+        let random = Math.random() * totalWeight;
+        let selected = poolWithRep[0];
+        for (const item of poolWithRep) {
+          if (random < item.weight) {
+            selected = item;
+            break;
+          }
+          random -= item.weight;
+        }
+
+        const entry = selected.entry;
+        stats[entry.ip] = (stats[entry.ip] || 0) + 1;
 
         const replaceTags = buildReplaceTags(email.trim(), {
           ...emailOpts,
@@ -221,14 +252,19 @@ class CampaignAutoRunner {
         });
       }
 
-      totalQueued += batch.length;
+      totalQueuedInRunner += batch.length;
+      currentOffset += batch.length;
+
       await Campaign.findByIdAndUpdate(campaignId, {
-        total_queued: totalQueued,
+        total_queued: totalQueuedInRunner,
       });
 
+      const distLog = Object.entries(stats)
+        .map(([ip, count]) => `${ip}: ${count}`)
+        .join(", ");
       await CampaignLog.create({
         campaign_id: campaignId,
-        log_text: `[BULK+AUTO] Batch ${batchNum + 1}/${batches.length}: Queued ${batch.length} emails via ${activePool.length} IP(s). Total queued: ${totalQueued}. Sleeping ${sleepSeconds}s...`,
+        log_text: `[BULK+AUTO] Batch ${batchNum + 1}/${batches.length}: Queued ${batch.length} emails. Weighted Distribution -> ${distLog}. Sleeping ${sleepSeconds}s...`,
         type: "info",
       });
 
@@ -237,16 +273,19 @@ class CampaignAutoRunner {
       }
     }
 
-    // Mark campaign complete
-    await Campaign.findByIdAndUpdate(campaignId, {
-      status: "Completed",
-      end_time: new Date(),
-    });
-    await CampaignLog.create({
-      campaign_id: campaignId,
-      log_text: `[BULK+AUTO] AutoRunner complete. Total emails queued: ${totalQueued}.`,
-      type: "success",
-    });
+    // Mark campaign complete if we finished all batches
+    const finalCampaign = await Campaign.findById(campaignId);
+    if (finalCampaign && finalCampaign.status !== "Stopped") {
+      await Campaign.findByIdAndUpdate(campaignId, {
+        status: "Completed",
+        end_time: new Date(),
+      });
+      await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[BULK+AUTO] AutoRunner finished. Total runner-queued: ${totalQueuedInRunner}. Final Offset: ${currentOffset}.`,
+        type: "success",
+      });
+    }
 
     this.runningCampaigns.delete(String(campaignId));
   }
