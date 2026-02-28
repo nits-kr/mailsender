@@ -4,6 +4,9 @@ const SmtpDetail = require("../models/SmtpDetail");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const { evaluate: guardianEvaluate } = require("../services/guardianService");
+const imagePolymorphismService = require("../services/intelligence/ImagePolymorphismService");
+const path = require("path");
+const fs = require("fs-extra");
 
 const emailWorker = async (job) => {
   const {
@@ -182,12 +185,55 @@ const emailWorker = async (job) => {
       });
     }
 
-    if (msg_type === "html") {
-      mailOptions.html = transformTags(body_html);
-    } else if (msg_type === "plain") {
-      mailOptions.text = transformTags(body_plain);
-    } else if (msg_type === "mime") {
-      mailOptions.html = transformTags(body_html);
+    if (msg_type === "html" || msg_type === "mime") {
+      let mutatedHtml = transformTags(body_html);
+
+      // AI Image Polymorphism: Find local uploads and mutate them
+      // We look for src attributes pointing to our uploads directory
+      const imgRegex = /src="([^"]*\/uploads\/[^"]*)"/g;
+      let match;
+      const processedHtml = mutatedHtml;
+
+      while ((match = imgRegex.exec(mutatedHtml)) !== null) {
+        const originalUrl = match[1];
+        const filename = path.basename(originalUrl);
+        const sourcePath = path.join(
+          __dirname,
+          "../../uploads/images",
+          filename,
+        );
+
+        if (await fs.pathExists(sourcePath)) {
+          const uniqueId = require("crypto").randomBytes(4).toString("hex");
+          const targetFilename = `poly_${uniqueId}_${filename}`;
+          const targetPath = path.join(
+            __dirname,
+            "../../uploads/temp",
+            targetFilename,
+          );
+
+          await fs.ensureDir(path.dirname(targetPath));
+          const success = await imagePolymorphismService.mutateImage(
+            sourcePath,
+            targetPath,
+          );
+
+          if (success) {
+            // Replace local URL with the mutated one
+            // Assuming the frontend can serve from /uploads/temp or we handle the path
+            const mutatedUrl = originalUrl.replace(
+              filename,
+              `temp/${targetFilename}`,
+            );
+            mutatedHtml = mutatedHtml.replace(originalUrl, mutatedUrl);
+          }
+        }
+      }
+
+      mailOptions.html = mutatedHtml;
+    }
+
+    if (msg_type === "plain" || msg_type === "mime") {
       mailOptions.text = transformTags(body_plain);
     }
 

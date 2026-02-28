@@ -56,6 +56,10 @@ app.use(
   express.static(path.join(__dirname, "../uploads/images")),
 );
 app.use(
+  "/uploads/temp",
+  express.static(path.join(__dirname, "../uploads/temp")),
+);
+app.use(
   "/all_tar",
   (req, res, next) => {
     console.log(`[DOWNLOAD] Request for: ${req.url}`);

@@ -9,6 +9,7 @@ const IP = require("../models/IP");
 const Offer = require("../models/Offer");
 const { generateMessageId } = require("../utils/patternGenerator");
 const TagEngine = require("../utils/tagEngine");
+const ReputationScore = require("../models/ReputationScore");
 
 const applySearchReplace = (text, searchReplaceStr) => {
   if (!text || !searchReplaceStr) return text;
@@ -58,11 +59,34 @@ const sendEmail = async (req, res) => {
     total_send,
     data_file,
     search_replace,
-    inb_pattern,
+    min_inb_score, // Added optional threshold
   } = req.body;
 
   try {
+    // -------------------------------------------------------------------------
+    // Inbox Intelligence Engine: Reputation Guard
+    // -------------------------------------------------------------------------
     const ipLines = mailing_ip.split("\n").filter((l) => l.trim());
+    const primaryIp = ipLines[0] ? ipLines[0].split("|")[0].trim() : null;
+
+    if (primaryIp) {
+      const rep = await ReputationScore.findOne({ assetValue: primaryIp });
+      if (rep && (rep.status === "paused" || rep.status === "risky")) {
+        return res.status(403).json({
+          message: `Send Blocked: IP ${primaryIp} has a ${rep.status} reputation score (${rep.inboxScore}%). Check Intelligence Dashboard.`,
+        });
+      }
+    }
+
+    if (domain) {
+      const domRep = await ReputationScore.findOne({ assetValue: domain });
+      if (domRep && domRep.status === "paused") {
+        return res.status(403).json({
+          message: `Send Blocked: Domain ${domain} is currently paused due to low inbox placement. Check Intelligence Dashboard.`,
+        });
+      }
+    }
+    // -------------------------------------------------------------------------
     const targetEmails = emails.split("\n").filter((e) => e.trim());
 
     // Create a campaign record for tracking
