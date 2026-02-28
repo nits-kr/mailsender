@@ -28,9 +28,6 @@ const emailMasterSchema = new mongoose.Schema(
   },
 );
 
-// Index for fast MD5 lookups
-emailMasterSchema.index({ md5: 1 });
-
 const EmailMaster = mongoose.model("EmailMaster", emailMasterSchema);
 
 module.exports = EmailMaster;

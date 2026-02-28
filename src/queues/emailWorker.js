@@ -160,18 +160,19 @@ const emailWorker = async (job) => {
       from: `"${encodeHeader(from_name, from_enc)}" <${from_email}>`,
       to: email,
       subject: encodeHeader(subject, subject_enc),
-      messageId: msgId,
+      messageId: msgId ? msgId.replace(/[<>]/g, "") : undefined, // NodeMailer auto-adds < >, so strip them if present
       headers: {
         "X-Mailer": xmailer === "1" ? "V-Mailer" : undefined,
         "Reply-To": reply_to === "1" ? from_email : undefined,
-        "X-Campaign-Fingerprint": campaign_id
-          ? require("crypto")
-              .createHash("md5")
-              .update(`${campaign_id}:${email}`)
-              .digest("hex")
-          : undefined,
       },
     };
+
+    if (campaign_id) {
+      mailOptions.headers["X-Campaign-Fingerprint"] = require("crypto")
+        .createHash("md5")
+        .update(`${campaign_id}:${email}`)
+        .digest("hex");
+    }
 
     // Add custom headers
     if (headers) {
