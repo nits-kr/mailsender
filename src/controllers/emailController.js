@@ -171,7 +171,7 @@ const sendEmail = async (req, res) => {
     offer_id,
     template_name,
     domain,
-    message_id: manualMsgId,
+    message_id,
     reply_to,
     xmailer,
     total_send,
@@ -182,6 +182,8 @@ const sendEmail = async (req, res) => {
     sleep_time,
     limit_to_send,
     wait_time,
+    accs,
+    interval_time,
   } = req.body;
 
   // ── Validate required fields ──────────────────────────────────────────────
@@ -326,7 +328,7 @@ const sendEmail = async (req, res) => {
       ip_list: ipPool.map((e) => e.ip),
       total_queued: 0,
       // Configuration snapshot
-      accs: accs || "",
+      accs: accs || filing_ip || "",
       headers: headers || "",
       subject: subject || "",
       from_name: from_name || "",
@@ -580,17 +582,17 @@ const getDefaultIps = async (req, res) => {
 const getCampaigns = async (req, res) => {
   try {
     const templates = await CampaignTemplate.find({}).sort({ createdAt: -1 });
-    const campaigns = await Campaign.find({}).sort({ createdAt: -1 }).limit(20); // only show last 20 created campaigns
+    const campaigns = await Campaign.find({}).sort({ createdAt: -1 });
 
     const combined = [
       ...templates.map((t) => ({
         id: t._id,
-        name: `[Template] ${t.name}`,
+        name: `${t.name}`,
         isTemplate: true,
       })),
       ...campaigns.map((c) => ({
         id: c._id,
-        name: `[Sent] ${c.template_name} (${c.createdAt.toLocaleDateString()})`,
+        name: `${c.template_name}`,
         isTemplate: false,
       })),
     ];

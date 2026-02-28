@@ -205,7 +205,7 @@ export const InterfaceNewPage = () => {
         mail_after: legacyCampaign.mail_after || "",
       });
     }
-  }, [isLegacySuccess, legacyCampaign]);
+  }, [isLegacySuccess, legacyCampaign, formData, reset]);
 
   // Auto-fetch Data File Info
   useEffect(() => {

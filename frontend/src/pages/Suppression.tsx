@@ -16,7 +16,6 @@ import {
   Calendar,
   Database,
   Trash2,
-  FileText,
   Search,
   CheckCircle2,
   AlertCircle,

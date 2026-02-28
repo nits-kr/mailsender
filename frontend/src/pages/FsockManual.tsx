@@ -127,7 +127,7 @@ const FsockManual = () => {
         mode: "Test",
       });
     }
-  }, [isCampaignSuccess, campaignData]);
+  }, [isCampaignSuccess, campaignData, formData.mailing_ip, reset]);
 
   // Auto-fetch Datafile Info
   useEffect(() => {

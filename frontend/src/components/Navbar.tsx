@@ -47,7 +47,6 @@ const Navbar = () => {
     return [serverIp, ...additionalIps];
   });
 
-  const isSender = userInfo?.designation === "Sender";
   const isAdmin = userInfo?.designation === "Admin";
 
   const navItems: NavItem[] = [

@@ -15,7 +15,6 @@ import {
   Settings2,
   Terminal,
   FileText,
-  AlertCircle,
   CheckCircle2,
   Loader2,
   Layers,
@@ -25,7 +24,6 @@ import {
   Trash2,
   Eye,
   XCircle,
-  X,
   Copy,
 } from "lucide-react";
 import "./DataDownload.css";

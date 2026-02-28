@@ -16,13 +16,30 @@ const connectDB = async () => {
     const maskedUri = uri.replace(/:([^@]+)@/, ":****@");
     console.log(`DEBUG: Connecting to MongoDB with URI: ${maskedUri}`);
 
-    const conn = await mongoose.connect(uri);
+    // Connection options for better stability with Atlas/Remote clusters
+    const options = {
+      serverSelectionTimeoutMS: 30000, // 30 seconds
+      connectTimeoutMS: 30000, // 30 seconds
+    };
+
+    const conn = await mongoose.connect(uri, options);
 
     console.log(`MongoDB Connected successfully: ${conn.connection.host}`);
+
+    // Add listeners for connection state changes
+    mongoose.connection.on("error", (err) => {
+      console.error(`MongoDB Runtime Error: ${err.message}`);
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      console.log("MongoDB disconnected. Attempting to reconnect...");
+    });
+
+    mongoose.connection.on("connected", () => {
+      console.log("MongoDB connection established.");
+    });
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
-    // Do not exit process here to allow the server to start (for diagnostic purposes or if other features don't need DB)
-    // Actually, usually we exit, but let's just log for now as requested.
   }
 };
 

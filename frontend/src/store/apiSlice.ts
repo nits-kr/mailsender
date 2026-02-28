@@ -4,6 +4,7 @@ import API_BASE_URL from '../config/api';
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
+    // baseUrl: `http://localhost:5000/api`,
     baseUrl: `${API_BASE_URL}/api`,
     prepareHeaders: (headers, { getState }) => {
       const state: any = getState();

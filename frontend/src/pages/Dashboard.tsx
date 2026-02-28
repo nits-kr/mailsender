@@ -1,13 +1,10 @@
 import React, { useState } from "react";
 import {
   RefreshCw,
-  Calendar,
-  Filter,
   Search,
   Activity,
   BarChart3,
   TrendingUp,
-  LogOut,
 } from "lucide-react";
 import {
   PieChart,

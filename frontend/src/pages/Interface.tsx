@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Interface.css";
@@ -6,7 +6,6 @@ import RichTextEditor from "../components/RichTextEditor";
 import {
   useGetCampaignsQuery,
   useGetCampaignByIdQuery,
-  useGetDefaultIpsQuery,
   useSendEmailMutation,
   useGetCampaignLogsQuery,
   useLazyGetFileInfoQuery,
@@ -113,10 +112,9 @@ const Interface = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState<string>("");
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
-  const [dataFileSyncRate, setDataFileSyncRate] = useState<string>("");
   const [pollLogs, setPollLogs] = useState(false);
+  const [status, setStatus] = useState("");
   const [showEditor, setShowEditor] = useState(false);
   const [dataFileCount, setDataFileCount] = useState<number | null>(null);
   const [offerValid, setOfferValid] = useState<boolean | null>(null);
@@ -171,15 +169,6 @@ const Interface = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Fetch default IPs from MySQL (mumara table) on mount
-  const { data: defaultIpsData } = useGetDefaultIpsQuery();
-
-  useEffect(() => {
-    if (defaultIpsData?.ips && !formData.accs) {
-      setValue("accs", defaultIpsData.ips);
-    }
-  }, [defaultIpsData]);
 
   // Fetch all campaigns for the search dropdown
   const { data: campaigns = [] } = useGetCampaignsQuery();
@@ -250,22 +239,38 @@ const Interface = () => {
     }
   };
 
-  const handleFetchFileInfo = async (filename: string) => {
-    if (!filename) {
-      setDataFileCount(null);
-      return;
-    }
-    try {
-      const res = await triggerGetFileInfo(filename).unwrap();
-      if (res.found) {
-        setDataFileCount(res.count);
-      } else {
+  const handleFetchFileInfo = useCallback(
+    async (filename: string) => {
+      if (!filename) {
+        setDataFileCount(null);
+        return;
+      }
+      try {
+        const res = await triggerGetFileInfo(filename).unwrap();
+        if (res.found) {
+          setDataFileCount(res.count);
+        } else {
+          setDataFileCount(0);
+        }
+      } catch {
         setDataFileCount(0);
       }
-    } catch {
-      setDataFileCount(0);
-    }
-  };
+    },
+    [triggerGetFileInfo],
+  );
+
+  const handleValidateOffer = useCallback(
+    async (id: string) => {
+      if (!id) return;
+      try {
+        const res = await triggerValidateOffer(id).unwrap();
+        setOfferValid(res.valid);
+      } catch {
+        setOfferValid(false);
+      }
+    },
+    [triggerValidateOffer],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -276,7 +281,7 @@ const Interface = () => {
       }
     }, 400); // Faster response
     return () => clearTimeout(timer);
-  }, [formData.data_file]);
+  }, [formData.data_file, handleFetchFileInfo]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -287,17 +292,7 @@ const Interface = () => {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [formData.offer_id]);
-
-  const handleValidateOffer = async (id: string) => {
-    if (!id) return;
-    try {
-      const res = await triggerValidateOffer(id).unwrap();
-      setOfferValid(res.valid);
-    } catch {
-      setOfferValid(false);
-    }
-  };
+  }, [formData.offer_id, handleValidateOffer]);
 
   const [sendEmailMutation] = useSendEmailMutation();
 
@@ -717,6 +712,21 @@ const Interface = () => {
               >
                 {formData.mode} + {formData.sen_t}
               </span>
+              {status && (
+                <span
+                  style={{
+                    marginLeft: "10px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    backgroundColor: "#0ea5e9",
+                    color: "white",
+                  }}
+                >
+                  {status}
+                </span>
+              )}
             </div>
 
             {/* ── Error Banner (replaces alert popup) ─────────────────── */}

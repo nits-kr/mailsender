@@ -101,7 +101,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
       };
     }
-  }, [viewSource]); // Re-init when switching back from source view
+  }, [viewSource, triggerChange, value]); // Re-init when switching back from source view
 
   const execCmd = (command: string, cmdValue: string | null = null) => {
     const iframe = iframeRef.current;
