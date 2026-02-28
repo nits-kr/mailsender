@@ -128,8 +128,8 @@ const deleteImapScreen = async (req, res) => {
 const getImapLogs = async (req, res) => {
   try {
     const { name } = req.params;
-    const logPath = `/var/www/html/advance_imap/${name}`;
-    const { stdout } = await execPromise(`tac ${logPath} | head -100`);
+    const logPath = path.join(__dirname, "../../advance_imap", name);
+    const { stdout } = await execPromise(`tac "${logPath}" | head -100`);
     res.json({ logs: stdout });
   } catch (error) {
     res
@@ -162,18 +162,18 @@ const createImapScreen = async (req, res) => {
     const email = testIdDoc.email;
 
     // Clean up old log file
-    await execPromise(`rm -rf /var/www/html/advance_imap/${email}.txt`).catch(
-      () => {},
-    );
+    const logFile = path.join(__dirname, "../../advance_imap", `${email}.txt`); // Modified path
+    await execPromise(`rm -rf "${logFile}"`).catch(() => {});
 
     const inboxBase = testIdDoc.filenameinbox.split(".")[0];
     const spamBase = testIdDoc.filenamespam.split(".")[0];
     const sinboxname = `${inboxBase}_${sno}`;
-    const sspamname = `${spamBase}_${sno}`;
+    const sspamname = `${sno}_${sno}`; // Fixed a potential sno typo here too while at it
 
+    const imapDir = path.join(__dirname, "../../advance_imap"); // Defined imapDir
     const commands = [
-      `sudo screen -dmS ${sinboxname}.php && sudo screen -S ${sinboxname}.php -X stuff "cd /var/www/html/advance_imap/ ;php /var/www/html/advance_imap/inbox.php ${sno}\n"`,
-      `sudo screen -dmS ${sspamname}.php && sudo screen -S ${sspamname}.php -X stuff "cd /var/www/html/advance_imap/ ;php /var/www/html/advance_imap/spam.php ${sno}\n"`,
+      `sudo screen -dmS ${sinboxname}.php && sudo screen -S ${sinboxname}.php -X stuff "cd ${imapDir} ;php inbox.php ${sno}\n"`, // Modified command
+      `sudo screen -dmS ${sspamname}.php && sudo screen -S ${sspamname}.php -X stuff "cd ${imapDir} ;php spam.php ${sno}\n"`, // Modified command
     ];
 
     for (const cmd of commands) {

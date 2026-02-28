@@ -5,6 +5,8 @@ const OfferSuppQueue = require("../models/OfferSuppQueue");
 const EmailMaster = require("../models/EmailMaster");
 const ComplainerSuppression = require("../models/ComplainerSuppression");
 
+const { DATA_PATH, SUPPRESSION_DIR } = require("../config/paths");
+
 /**
  * Suppression Worker Logic
  * Ported from supp.php
@@ -21,15 +23,12 @@ const processSuppression = async (queueId) => {
       log: "Processing...",
     });
 
-    const sourcePath = path.join("/var/www/data", queueItem.filename);
+    const sourcePath = path.join(DATA_PATH, queueItem.filename);
     const vendorPath = queueItem.vendor_supp_filename
-      ? path.join(
-          "/var/www/html/suppression/vendor_suppression_uploaded_files",
-          queueItem.vendor_supp_filename,
-        )
+      ? path.join(SUPPRESSION_DIR, queueItem.vendor_supp_filename)
       : null;
     const outputPath = path.join(
-      "/var/www/data",
+      DATA_PATH,
       queueItem.new_filename || `suppressed_${queueItem.filename}`,
     );
 

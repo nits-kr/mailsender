@@ -21,8 +21,13 @@ if (!DATA_PATH) {
 }
 
 const BUFFER_PATH = path.join(DATA_PATH, "buffer");
+const SUPPRESSION_DIR = path.join(
+  __dirname,
+  "../../suppression/vendor_suppression_uploaded_files",
+);
 
 module.exports = {
   DATA_PATH,
   BUFFER_PATH,
+  SUPPRESSION_DIR,
 };

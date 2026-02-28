@@ -277,7 +277,7 @@ const uploadData = async (req, res) => {
 // @access  Private
 const splitData = async (req, res) => {
   const { filename, count } = req.body;
-  const dataPath = process.env.DATA_PATH || "/var/www/data/";
+  const dataPath = DATA_PATH;
   const filePath = path.join(dataPath, filename);
 
   if (!fs.existsSync(filePath)) {
