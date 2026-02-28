@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
+import "./SmtpTester.css";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useTestSmtpMutation } from "../store/apiSlice";
 import {
   Send,
@@ -10,35 +14,64 @@ import {
   AlignLeft,
   Globe,
   Loader2,
+  Eye,
 } from "lucide-react";
 
+const smtpTesterSchema = z.object({
+  ip: z
+    .string()
+    .min(1, "Server IP / Setup is required")
+    .regex(
+      /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.){3}(25[0-5]|(2[0-4]|1\d|[1-9]|)\d)$|^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      "Invalid format (Requires IP, Domain, or Email)",
+    ),
+  server: z.string().min(1, "Server is required"),
+  port: z.string().min(1, "Port is required"),
+  tls: z.enum(["No", "Yes"]),
+  usr: z.string().optional(),
+  pass: z.string().optional(),
+  from: z.string().min(1, "From Name is required"),
+  sub: z.string().min(1, "Subject is required"),
+  emails: z.string().min(1, "At least one test email is required"),
+  message: z.string().min(1, "Message body cannot be empty"),
+});
+
+type SmtpTesterFormData = z.infer<typeof smtpTesterSchema>;
+
 const SmtpTester = () => {
-  const [formData, setFormData] = useState({
-    server: "",
-    port: "587",
-    usr: "",
-    pass: "",
-    tls: "No",
-    ip: "", // From Email Address
-    from: "", // From Name
-    sub: "",
-    emails: "", // Test Email addresses
-    message: "",
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<SmtpTesterFormData>({
+    resolver: zodResolver(smtpTesterSchema),
+    defaultValues: {
+      port: "587",
+      tls: "No",
+      usr: "",
+      pass: "",
+      ip: "",
+      from: "",
+      sub: "",
+      emails: "",
+      message: "",
+      server: "",
+    },
   });
 
   const [testSmtp, { isLoading, data, error }] = useTestSmtpMutation();
 
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const handlePreview = () => {
+    const htmlContent = getValues("message");
+    const newWindow = window.open("", "Preview", "width=800,height=600");
+    if (newWindow) {
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSend: SubmitHandler<SmtpTesterFormData> = async (formData) => {
     try {
       await testSmtp(formData).unwrap();
     } catch (err) {
@@ -48,312 +81,8 @@ const SmtpTester = () => {
 
   return (
     <div className="smtp-wrapper">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-        .smtp-wrapper {
-          min-height: calc(100vh - 60px);
-          background: linear-gradient(135deg, #f3f6f9 0%, #e5ebf1 100%);
-          padding: 40px 20px;
-          font-family: 'Inter', system-ui, -apple-system, sans-serif;
-          color: #2d3748;
-          display: flex;
-          justify-content: center;
-        }
-
-        .smtp-card {
-          width: 100%;
-          max-width: 1100px;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(10px);
-          border-radius: 20px;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
-          overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 1);
-          animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .smtp-header {
-          background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
-          padding: 30px 40px;
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .smtp-header::before {
-          content: '';
-          position: absolute;
-          top: -50%; left: -50%; width: 200%; height: 200%;
-          background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
-          pointer-events: none;
-        }
-
-        .smtp-header-title {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          z-index: 1;
-        }
-
-        .smtp-header h2 {
-          margin: 0;
-          font-size: 26px;
-          font-weight: 700;
-          letter-spacing: -0.5px;
-        }
-
-        .icon-circle {
-          background: rgba(255,255,255,0.1);
-          padding: 10px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          backdrop-filter: blur(5px);
-        }
-
-        .ip-group {
-          display: flex;
-          align-items: center;
-          background: rgba(0, 0, 0, 0.2);
-          padding: 10px 20px;
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          z-index: 1;
-          transition: all 0.3s ease;
-        }
-
-        .ip-group:focus-within {
-          background: rgba(0, 0, 0, 0.3);
-          border-color: rgba(255, 255, 255, 0.3);
-          box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
-        }
-
-        .ip-label {
-          font-size: 13px;
-          color: #a0aec0;
-          margin-right: 15px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .ip-input {
-          background: transparent;
-          border: none;
-          color: white;
-          font-size: 15px;
-          outline: none;
-          width: 250px;
-          font-weight: 500;
-        }
-        
-        .ip-input::placeholder { color: rgba(255,255,255,0.4); }
-
-        .smtp-body {
-          display: flex;
-          padding: 40px;
-          gap: 50px;
-        }
-
-        .smtp-sidebar {
-          width: 340px;
-          flex-shrink: 0;
-        }
-
-        .smtp-main {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .section-title {
-          font-size: 18px;
-          font-weight: 600;
-          color: #2d3748;
-          margin-bottom: 25px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .section-title::after {
-          content: '';
-          flex-grow: 1;
-          height: 1px;
-          background: #e2e8f0;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        .form-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          color: #4a5568;
-          margin-bottom: 8px;
-        }
-
-        .form-label svg {
-          color: #718096;
-        }
-
-        .inp-container {
-          position: relative;
-        }
-
-        .form-input, .form-select, .form-textarea {
-          width: 100%;
-          padding: 12px 16px;
-          background: #f7fafc;
-          border: 1px solid #cbd5e0;
-          border-radius: 10px;
-          font-size: 15px;
-          color: #2d3748;
-          transition: all 0.2s ease;
-          box-sizing: border-box;
-          font-family: 'Inter', sans-serif;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-          outline: none;
-          border-color: #3182ce;
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
-        }
-
-        .form-textarea {
-          min-height: 120px;
-          resize: vertical;
-          line-height: 1.5;
-        }
-        
-        .body-textarea {
-          min-height: 250px;
-        }
-
-        .grid-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 15px;
-        }
-
-        .btn-send {
-          background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%);
-          color: white;
-          border: none;
-          padding: 16px 32px;
-          font-size: 16px;
-          font-weight: 600;
-          border-radius: 12px;
-          cursor: pointer;
-          width: 100%;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(49, 130, 206, 0.3);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 10px;
-          margin-top: auto;
-        }
-
-        .btn-send:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(49, 130, 206, 0.4);
-        }
-
-        .btn-send:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .btn-send:disabled {
-          background: #a0aec0;
-          cursor: not-allowed;
-          box-shadow: none;
-        }
-
-        .log-container {
-          margin-top: 30px;
-          background: #1a202c;
-          border-radius: 12px;
-          padding: 20px;
-          color: #68d391;
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          font-size: 13px;
-          max-height: 350px;
-          overflow-y: auto;
-          box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
-          border: 1px solid #2d3748;
-          line-height: 1.6;
-        }
-
-        .log-error {
-          color: #fc8181;
-        }
-        
-        .log-success-msg {
-          color: #48bb78;
-          font-weight: 700;
-          margin-bottom: 15px;
-          padding-bottom: 10px;
-          border-bottom: 1px dashed #2d3748;
-          font-family: 'Inter', sans-serif;
-          font-size: 15px;
-        }
-        
-        .log-error-msg {
-          color: #e53e3e;
-          font-weight: 700;
-          margin-bottom: 15px;
-          padding-bottom: 10px;
-          border-bottom: 1px dashed #2d3748;
-          font-family: 'Inter', sans-serif;
-          font-size: 15px;
-        }
-
-        /* Custom Scrollbar */
-        .log-container::-webkit-scrollbar {
-          width: 8px;
-        }
-        .log-container::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.1);
-          border-radius: 4px;
-        }
-        .log-container::-webkit-scrollbar-thumb {
-          background: #4a5568;
-          border-radius: 4px;
-        }
-        .log-container::-webkit-scrollbar-thumb:hover {
-          background: #718096;
-        }
-
-        @media (max-width: 900px) {
-          .smtp-body { flex-direction: column; gap: 30px; }
-          .smtp-sidebar { width: 100%; }
-          .smtp-header { flex-direction: column; gap: 20px; align-items: flex-start; }
-          .ip-group { width: 100%; box-sizing: border-box; }
-          .ip-input { width: 100%; }
-        }
-      `}</style>
-
       <div className="smtp-card">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSend)}>
           <div className="smtp-header">
             <div className="smtp-header-title">
               <div className="icon-circle">
@@ -362,18 +91,19 @@ const SmtpTester = () => {
               <h2>SMTP Tester Suite</h2>
             </div>
 
-            <div className="ip-group">
+            <div className={`ip-group ${errors.ip ? "has-error" : ""}`}>
               <span className="ip-label">
                 <Globe size={16} /> Server IP
               </span>
               <input
                 type="text"
-                name="ip"
-                value={formData.ip}
-                onChange={handleInputChange}
                 className="ip-input"
                 placeholder="From Email Setup / IP Address"
+                {...register("ip")}
               />
+              {errors.ip && (
+                <div className="ip-error-tooltip">{errors.ip.message}</div>
+              )}
             </div>
           </div>
 
@@ -388,14 +118,16 @@ const SmtpTester = () => {
                 <label className="form-label">Server</label>
                 <div className="inp-container">
                   <input
-                    name="server"
                     type="text"
-                    value={formData.server}
-                    onChange={handleInputChange}
-                    className="form-input"
+                    className={`form-input ${errors.server ? "invalid-input" : ""}`}
                     placeholder="mail.example.com"
-                    required
+                    {...register("server")}
                   />
+                  {errors.server && (
+                    <div className="smtp-error-msg">
+                      {errors.server.message}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -403,23 +135,18 @@ const SmtpTester = () => {
                 <div className="form-group">
                   <label className="form-label">Port</label>
                   <input
-                    name="port"
                     type="text"
-                    value={formData.port}
-                    onChange={handleInputChange}
-                    className="form-input"
+                    className={`form-input ${errors.port ? "invalid-input" : ""}`}
                     placeholder="587"
-                    required
+                    {...register("port")}
                   />
+                  {errors.port && (
+                    <div className="smtp-error-msg">{errors.port.message}</div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">TLS/SSL</label>
-                  <select
-                    name="tls"
-                    value={formData.tls}
-                    onChange={handleInputChange}
-                    className="form-select"
-                  >
+                  <select className="form-select" {...register("tls")}>
                     <option value="No">No</option>
                     <option value="Yes">Yes</option>
                   </select>
@@ -431,12 +158,10 @@ const SmtpTester = () => {
                   <Lock size={16} /> Username
                 </label>
                 <input
-                  name="usr"
                   type="text"
-                  value={formData.usr}
-                  onChange={handleInputChange}
-                  className="form-input"
+                  className={`form-input ${errors.usr ? "invalid-input" : ""}`}
                   placeholder="user@example.com"
+                  {...register("usr")}
                 />
               </div>
 
@@ -445,12 +170,10 @@ const SmtpTester = () => {
                   <Shield size={16} /> Password
                 </label>
                 <input
-                  name="pass"
                   type="password"
-                  value={formData.pass}
-                  onChange={handleInputChange}
-                  className="form-input"
+                  className={`form-input ${errors.pass ? "invalid-input" : ""}`}
                   placeholder="••••••••"
+                  {...register("pass")}
                 />
               </div>
             </div>
@@ -468,36 +191,39 @@ const SmtpTester = () => {
                   </label>
                   <input
                     type="text"
-                    name="from"
-                    value={formData.from}
-                    onChange={handleInputChange}
-                    className="form-input"
+                    className={`form-input ${errors.from ? "invalid-input" : ""}`}
                     placeholder="Display Name"
+                    {...register("from")}
                   />
+                  {errors.from && (
+                    <div className="smtp-error-msg">{errors.from.message}</div>
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Subject</label>
                   <input
                     type="text"
-                    name="sub"
-                    value={formData.sub}
-                    onChange={handleInputChange}
-                    className="form-input"
+                    className={`form-input ${errors.sub ? "invalid-input" : ""}`}
                     placeholder="Test Email Subject"
+                    {...register("sub")}
                   />
+                  {errors.sub && (
+                    <div className="smtp-error-msg">{errors.sub.message}</div>
+                  )}
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Test Emails (Recipients)</label>
                 <textarea
-                  name="emails"
-                  value={formData.emails}
-                  onChange={handleInputChange}
-                  className="form-textarea"
+                  className={`form-textarea ${errors.emails ? "invalid-input" : ""}`}
                   placeholder="recipient1@domain.com&#10;recipient2@domain.com"
+                  {...register("emails")}
                 />
+                {errors.emails && (
+                  <div className="smtp-error-msg">{errors.emails.message}</div>
+                )}
               </div>
 
               <div
@@ -512,26 +238,36 @@ const SmtpTester = () => {
                   <AlignLeft size={16} /> Message Body
                 </label>
                 <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  className="form-textarea body-textarea"
+                  className={`form-textarea body-textarea ${errors.message ? "invalid-input" : ""}`}
                   placeholder="Write your email content here (HTML supported depending on mailer)..."
+                  {...register("message")}
                 />
+                {errors.message && (
+                  <div className="smtp-error-msg">{errors.message.message}</div>
+                )}
               </div>
 
-              <button type="submit" className="btn-send" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />{" "}
-                    Transmitting...
-                  </>
-                ) : (
-                  <>
-                    <Send size={20} /> Dispatch Email
-                  </>
-                )}
-              </button>
+              <div style={{ display: "flex", gap: "15px", marginTop: "auto" }}>
+                <button
+                  type="button"
+                  className="btn-send btn-preview"
+                  onClick={handlePreview}
+                >
+                  <Eye size={20} /> Preview
+                </button>
+                <button type="submit" className="btn-send" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />{" "}
+                      Transmitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={20} /> Dispatch Email
+                    </>
+                  )}
+                </button>
+              </div>
 
               {/* Execution Logs Area */}
               {(data || error) && (
