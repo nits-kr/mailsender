@@ -17,6 +17,10 @@ const processSuppression = async (queueId) => {
     const queueItem = await OfferSuppQueue.findById(queueId);
     if (!queueItem) return;
 
+    console.log(
+      `[suppressionWorker] Starting job ${queueId} for file: ${queueItem.filename}`,
+    );
+
     // 1. Update status to Running
     await OfferSuppQueue.findByIdAndUpdate(queueId, {
       status: 2,
@@ -46,9 +50,12 @@ const processSuppression = async (queueId) => {
     );
 
     if (!sourcePath || !fs.existsSync(sourcePath)) {
-      throw new Error(
-        `Source file missing: ${primaryPath} (also checked fallbacks)`,
-      );
+      const checkedPaths = [
+        primaryPath,
+        bufferFallbackPath,
+        rootFallbackPath,
+      ].join(", ");
+      throw new Error(`Source file missing. Tried: ${checkedPaths}`);
     }
 
     // 2. Load Suppression Data (MD5s or Emails)
