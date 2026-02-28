@@ -471,3 +471,27 @@
   background: #eff6ff;
   border: 1px solid #bfdbfe;
 }
+
+/* Validation Styles */
+.invalid-input {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.invalid-input:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: -15px;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.register-left .error-message {
+  margin-top: 5px;
+  margin-bottom: 0;
+}

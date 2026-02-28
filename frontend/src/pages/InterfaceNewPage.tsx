@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import "./InterfaceNewPage.css";
 import {
   useGetCampaignsQuery,
@@ -9,47 +12,111 @@ import {
   useGetCampaignLogsQuery,
 } from "../store/apiSlice";
 
+const interfaceSchema = z.object({
+  accs: z.string().min(1, "IPs/Accounts are required"),
+  headers: z.string().optional().nullable(),
+  from_email: z
+    .string()
+    .email("Invalid from email")
+    .min(1, "From email is required"),
+  subject: z.string().min(1, "Subject is required"),
+  subject_enc: z.string().optional().nullable(),
+  from_name: z.string().min(1, "From name is required"),
+  from_enc: z.string().optional().nullable(),
+  emails: z.string().min(1, "Test emails are required"),
+  msg_type: z.string().optional().nullable(),
+  data_file: z.string().min(1, "Data file is required"),
+  total_send: z.string().min(1, "Total send is required"),
+  limit_to_send: z.string().min(1, "Limit to send is required"),
+  sleep_time: z.string().min(1, "Sleep time is required"),
+  offer_id: z.string().min(1, "Offer ID is required"),
+  template_name: z.string().min(1, "Template name is required"),
+  domain: z.string().min(1, "Domain is required"),
+  wait_time: z.string().min(1, "Wait time is required"),
+  message_id: z.string().optional().nullable(),
+  inb_pattern: z.string().min(1, "Inbox pattern is required"),
+  restart_choice: z.string().optional().nullable(),
+  script_choice: z.string().optional().nullable(),
+  relay_percent: z
+    .string()
+    .regex(/^[0-9]*$/, "Must be a number")
+    .min(1, "Relay percent is required"),
+  inbox_percent: z
+    .string()
+    .regex(/^[0-9]*$/, "Must be a number")
+    .min(1, "Inbox percent is required"),
+  times_to_send: z.string().min(1, "Times to send is required"),
+  mail_after: z.string().min(1, "Mail after is required"),
+  reply_to: z.string().optional().nullable(),
+  xmailer: z.string().optional().nullable(),
+  interval_time: z.string().optional().nullable(),
+  charset: z.string().optional().nullable(),
+  encoding: z.string().optional().nullable(),
+  message_html: z.string().min(1, "HTML message is required"),
+  charset_alt: z.string().optional().nullable(),
+  encoding_alt: z.string().optional().nullable(),
+  message_plain: z.string().optional().nullable(),
+  search_replace: z.string().optional().nullable(),
+  mode: z.string().optional().nullable(),
+  sen_t: z.string().optional().nullable(),
+});
+
+type InterfaceFormData = z.infer<typeof interfaceSchema>;
+
 export const InterfaceNewPage = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    accs: "",
-    headers: "",
-    from_email: "",
-    subject: "",
-    subject_enc: "reset",
-    from_name: "",
-    from_enc: "reset",
-    emails: "",
-    msg_type: "html",
-    data_file: "",
-    total_send: "",
-    limit_to_send: "",
-    sleep_time: "",
-    offer_id: "",
-    template_name: "",
-    domain: "",
-    wait_time: "2",
-    message_id: "",
-    inb_pattern: "1",
-    restart_choice: "YES",
-    script_choice: "",
-    relay_percent: "100",
-    inbox_percent: "",
-    times_to_send: "1",
-    mail_after: "1",
-    reply_to: "0",
-    xmailer: "0",
-    interval_time: "",
-    charset: "UTF-8",
-    encoding: "8bit",
-    message_html: "",
-    charset_alt: "UTF-8",
-    encoding_alt: "8bit",
-    message_plain: "",
-    search_replace: "",
-    mode: "test",
-    sen_t: "manual",
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<InterfaceFormData>({
+    resolver: zodResolver(interfaceSchema),
+    defaultValues: {
+      accs: "",
+      headers: "",
+      from_email: "",
+      subject: "",
+      subject_enc: "reset",
+      from_name: "",
+      from_enc: "reset",
+      emails: "",
+      msg_type: "html",
+      data_file: "",
+      total_send: "",
+      limit_to_send: "",
+      sleep_time: "",
+      offer_id: "",
+      template_name: "",
+      domain: "",
+      wait_time: "2",
+      message_id: "",
+      inb_pattern: "1",
+      restart_choice: "YES",
+      script_choice: "",
+      relay_percent: "100",
+      inbox_percent: "",
+      times_to_send: "1",
+      mail_after: "1",
+      reply_to: "0",
+      xmailer: "0",
+      interval_time: "",
+      charset: "UTF-8",
+      encoding: "8bit",
+      message_html: "",
+      charset_alt: "UTF-8",
+      encoding_alt: "8bit",
+      message_plain: "",
+      search_replace: "",
+      mode: "test",
+      sen_t: "manual",
+    },
   });
+
+  const formData = watch();
 
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,9 +155,9 @@ export const InterfaceNewPage = () => {
 
   useEffect(() => {
     if (defaultIpsData?.ips && !formData.accs) {
-      setFormData((prev) => ({ ...prev, accs: defaultIpsData.ips }));
+      setValue("accs", defaultIpsData.ips);
     }
-  }, [defaultIpsData]);
+  }, [defaultIpsData, setValue, formData.accs]);
 
   const { data: campaigns = [] } = useGetCampaignsQuery();
 
@@ -111,9 +178,8 @@ export const InterfaceNewPage = () => {
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      accs: campaignDetail.accs || prev.accs,
+    reset({
+      accs: campaignDetail.accs || formData.accs,
       headers: campaignDetail.headers || "",
       from_email: campaignDetail.from_email || "",
       subject: campaignDetail.subject || "",
@@ -148,7 +214,9 @@ export const InterfaceNewPage = () => {
       encoding_alt: campaignDetail.encoding_alt || "8bit",
       mode: campaignDetail.mode || "test",
       sen_t: campaignDetail.sen_t || "manual",
-    }));
+      subject_enc: "reset",
+      from_enc: "reset",
+    });
 
     setActiveCampaignId(selectedCampaignId);
     setPollLogs(false);
@@ -156,22 +224,13 @@ export const InterfaceNewPage = () => {
 
   const [sendEmailMutation] = useSendEmailMutation();
 
-  const handleInput = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSend = async () => {
+  const onSend = async (data: InterfaceFormData) => {
     setSending(true);
     setStatus("Sending...");
     try {
       const payload = {
-        ...formData,
-        mailing_ip: formData.accs,
+        ...data,
+        mailing_ip: data.accs,
       };
 
       const result = await sendEmailMutation(payload).unwrap();
@@ -249,7 +308,7 @@ export const InterfaceNewPage = () => {
         </div>
       </div>
 
-      <div className="register-main">
+      <form onSubmit={handleSubmit(onSend)} className="register-main">
         {/* Left Sidebar (Column 1) */}
         <div className="register-left">
           <div
@@ -266,13 +325,14 @@ export const InterfaceNewPage = () => {
               Put IP's Here (IP|From-Email)
             </div>
             <textarea
-              className="ips-textarea-new"
-              name="accs"
+              className={`ips-textarea-new ${errors.accs ? "invalid-input" : ""}`}
               style={{ height: "200px", margin: 0 }}
               placeholder=""
-              value={formData.accs}
-              onChange={handleInput}
+              {...register("accs")}
             />
+            {errors.accs && (
+              <span className="error-message">{errors.accs.message}</span>
+            )}
           </div>
         </div>
 
@@ -292,107 +352,91 @@ export const InterfaceNewPage = () => {
               • Headers & Sender Info
             </div>
             <textarea
-              className="input-field-new"
-              name="headers"
+              className={`input-field-new ${errors.headers ? "invalid-input" : ""}`}
               placeholder="Additional Header"
               rows={3}
-              value={formData.headers}
-              onChange={handleInput}
+              {...register("headers")}
             />
+            {errors.headers && (
+              <span className="error-message">{errors.headers.message}</span>
+            )}
 
             <input
-              className="input-field-new"
-              name="from_email"
+              className={`input-field-new ${errors.from_email ? "invalid-input" : ""}`}
               placeholder="From Email Address"
-              value={formData.from_email}
-              onChange={handleInput}
+              {...register("from_email")}
             />
+            {errors.from_email && (
+              <span className="error-message">{errors.from_email.message}</span>
+            )}
 
             <div className="field-row-enc-new">
               <input
-                className="input-field-new"
-                name="subject"
+                className={`input-field-new ${errors.subject ? "invalid-input" : ""}`}
                 style={{ marginBottom: "5px" }}
                 placeholder="Subject"
-                value={formData.subject}
-                onChange={handleInput}
+                {...register("subject")}
               />
               <div className="enc-radios-new">
                 <label>
                   <input
                     type="radio"
-                    name="subject_enc"
                     value="ascii"
-                    checked={formData.subject_enc === "ascii"}
-                    onChange={handleInput}
+                    {...register("subject_enc")}
                   />{" "}
                   UTF8-Q
                 </label>
                 <label>
                   <input
                     type="radio"
-                    name="subject_enc"
                     value="base64"
-                    checked={formData.subject_enc === "base64"}
-                    onChange={handleInput}
+                    {...register("subject_enc")}
                   />{" "}
                   UTF8-B
                 </label>
                 <label>
                   <input
                     type="radio"
-                    name="subject_enc"
                     value="reset"
-                    checked={formData.subject_enc === "reset"}
-                    onChange={handleInput}
+                    {...register("subject_enc")}
                   />{" "}
                   RESET
                 </label>
               </div>
             </div>
+            {errors.subject && (
+              <span className="error-message">{errors.subject.message}</span>
+            )}
 
             <div className="field-row-enc-new">
               <input
-                className="input-field-new"
-                name="from_name"
+                className={`input-field-new ${errors.from_name ? "invalid-input" : ""}`}
                 style={{ marginBottom: "5px" }}
                 placeholder="From Name"
-                value={formData.from_name}
-                onChange={handleInput}
+                {...register("from_name")}
               />
               <div className="enc-radios-new">
                 <label>
-                  <input
-                    type="radio"
-                    name="from_enc"
-                    value="ascii"
-                    checked={formData.from_enc === "ascii"}
-                    onChange={handleInput}
-                  />{" "}
+                  <input type="radio" value="ascii" {...register("from_enc")} />{" "}
                   UTF8-Q
                 </label>
                 <label>
                   <input
                     type="radio"
-                    name="from_enc"
                     value="base64"
-                    checked={formData.from_enc === "base64"}
-                    onChange={handleInput}
+                    {...register("from_enc")}
                   />{" "}
                   UTF8-B
                 </label>
                 <label>
-                  <input
-                    type="radio"
-                    name="from_enc"
-                    value="reset"
-                    checked={formData.from_enc === "reset"}
-                    onChange={handleInput}
-                  />{" "}
+                  <input type="radio" value="reset" {...register("from_enc")} />{" "}
                   RESET
                 </label>
               </div>
             </div>
+            {errors.from_name && (
+              <span className="error-message">{errors.from_name.message}</span>
+            )}
 
             <div
               style={{
@@ -407,13 +451,14 @@ export const InterfaceNewPage = () => {
               • Recipients
             </div>
             <textarea
-              className="input-field-new"
-              name="emails"
+              className={`input-field-new ${errors.emails ? "invalid-input" : ""}`}
               rows={4}
               placeholder="demo@demo.com"
-              value={formData.emails}
-              onChange={handleInput}
+              {...register("emails")}
             />
+            {errors.emails && (
+              <span className="error-message">{errors.emails.message}</span>
+            )}
 
             <div
               style={{
@@ -430,74 +475,54 @@ export const InterfaceNewPage = () => {
             <div className="msg-type-row-new">
               <div className="type-radios-new">
                 <label>
-                  <input
-                    type="radio"
-                    name="msg_type"
-                    value="plain"
-                    checked={formData.msg_type === "plain"}
-                    onChange={handleInput}
-                  />{" "}
+                  <input type="radio" value="plain" {...register("msg_type")} />{" "}
                   Plain
                 </label>
                 <label>
-                  <input
-                    type="radio"
-                    name="msg_type"
-                    value="html"
-                    checked={formData.msg_type === "html"}
-                    onChange={handleInput}
-                  />{" "}
+                  <input type="radio" value="html" {...register("msg_type")} />{" "}
                   Html
                 </label>
                 <label>
-                  <input
-                    type="radio"
-                    name="msg_type"
-                    value="mime"
-                    checked={formData.msg_type === "mime"}
-                    onChange={handleInput}
-                  />{" "}
+                  <input type="radio" value="mime" {...register("msg_type")} />{" "}
                   MIME
                 </label>
               </div>
               <div className="action-btns-new">
                 <button
+                  type="button"
                   className="btn-action-new preview"
                   onClick={handlePreview}
                 >
                   Preview
                 </button>
-                <button className="btn-action-new editor">EDITOR</button>
+                <button type="button" className="btn-action-new editor">
+                  EDITOR
+                </button>
               </div>
             </div>
 
             <div className="charset-row-new">
-              <select
-                name="charset"
-                value={formData.charset}
-                onChange={handleInput}
-              >
+              <select {...register("charset")}>
                 <option value="UTF-8">UTF-8</option>
               </select>
               <span> ; </span>
-              <select
-                name="encoding"
-                value={formData.encoding}
-                onChange={handleInput}
-              >
+              <select {...register("encoding")}>
                 <option value="8bit">8bit</option>
                 <option value="base64">base64</option>
               </select>
             </div>
 
             <textarea
-              className="input-field-new"
-              name="message_html"
+              className={`input-field-new ${errors.message_html ? "invalid-input" : ""}`}
               rows={6}
               placeholder="Message"
-              value={formData.message_html}
-              onChange={handleInput}
+              {...register("message_html")}
             />
+            {errors.message_html && (
+              <span className="error-message">
+                {errors.message_html.message}
+              </span>
+            )}
 
             <div
               style={{
@@ -512,31 +537,26 @@ export const InterfaceNewPage = () => {
               • Alternative (MIME/Plain)
             </div>
             <div className="charset-row-new">
-              <select
-                name="charset_alt"
-                value={formData.charset_alt}
-                onChange={handleInput}
-              >
+              <select {...register("charset_alt")}>
                 <option value="UTF-8">UTF-8</option>
               </select>
               <span> ; </span>
-              <select
-                name="encoding_alt"
-                value={formData.encoding_alt}
-                onChange={handleInput}
-              >
+              <select {...register("encoding_alt")}>
                 <option value="8bit">8bit</option>
               </select>
             </div>
 
             <textarea
-              className="input-field-new"
-              name="message_plain"
+              className={`input-field-new ${errors.message_plain ? "invalid-input" : ""}`}
               rows={3}
               placeholder="MIME Messsage"
-              value={formData.message_plain}
-              onChange={handleInput}
+              {...register("message_plain")}
             />
+            {errors.message_plain && (
+              <span className="error-message">
+                {errors.message_plain.message}
+              </span>
+            )}
 
             <div
               style={{
@@ -551,17 +571,20 @@ export const InterfaceNewPage = () => {
               • Search & Replace
             </div>
             <textarea
-              className="input-field-new"
-              name="search_replace"
+              className={`input-field-new ${errors.search_replace ? "invalid-input" : ""}`}
               placeholder="Search@|replace"
-              value={formData.search_replace}
-              onChange={handleInput}
+              {...register("search_replace")}
             />
+            {errors.search_replace && (
+              <span className="error-message">
+                {errors.search_replace.message}
+              </span>
+            )}
 
             <div className="send-btn-container-new">
               <button
+                type="submit"
                 className="main-send-btn-new"
-                onClick={handleSend}
                 disabled={sending}
               >
                 {sending ? "SENDING..." : "SEND"}
@@ -579,21 +602,17 @@ export const InterfaceNewPage = () => {
               <input
                 type="radio"
                 id="test-mode"
-                name="mode"
-                value="test"
                 className="mode-test"
-                checked={formData.mode === "test"}
-                onChange={handleInput}
+                value="test"
+                {...register("mode")}
               />
               <label htmlFor="test-mode">Test</label>
               <input
                 type="radio"
                 id="bulk-mode"
-                name="mode"
-                value="bulk"
                 className="mode-bulk"
-                checked={formData.mode === "bulk"}
-                onChange={handleInput}
+                value="bulk"
+                {...register("mode")}
               />
               <label htmlFor="bulk-mode">Bulk</label>
             </div>
@@ -602,21 +621,17 @@ export const InterfaceNewPage = () => {
               <input
                 type="radio"
                 id="manual-sen"
-                name="sen_t"
-                value="manual"
                 className="sen-manual"
-                checked={formData.sen_t === "manual"}
-                onChange={handleInput}
+                value="manual"
+                {...register("sen_t")}
               />
               <label htmlFor="manual-sen">Manual</label>
               <input
                 type="radio"
                 id="auto-sen"
-                name="sen_t"
-                value="auto"
                 className="sen-auto"
-                checked={formData.sen_t === "auto"}
-                onChange={handleInput}
+                value="auto"
+                {...register("sen_t")}
               />
               <label htmlFor="auto-sen">Auto</label>
             </div>
@@ -628,65 +643,57 @@ export const InterfaceNewPage = () => {
               <div className="settings-grid-new">
                 <div className="settings-row-new">
                   <input
-                    name="data_file"
+                    className={errors.data_file ? "invalid-input" : ""}
                     placeholder="Data File"
                     title="Data File"
-                    value={formData.data_file}
-                    onChange={handleInput}
+                    {...register("data_file")}
                   />
                   <input
-                    name="total_send"
+                    className={errors.total_send ? "invalid-input" : ""}
                     placeholder="Total Send"
                     title="Total Send"
-                    value={formData.total_send}
-                    onChange={handleInput}
+                    {...register("total_send")}
                   />
                 </div>
                 <div className="settings-row-new">
                   <input
-                    name="limit_to_send"
+                    className={errors.limit_to_send ? "invalid-input" : ""}
                     placeholder="Limit_to_Send"
                     title="Limit_to_Send"
-                    value={formData.limit_to_send}
-                    onChange={handleInput}
+                    {...register("limit_to_send")}
                   />
                   <input
-                    name="sleep_time"
+                    className={errors.sleep_time ? "invalid-input" : ""}
                     placeholder="Sleep Time"
                     title="Sleep Time"
-                    value={formData.sleep_time}
-                    onChange={handleInput}
+                    {...register("sleep_time")}
                   />
                 </div>
                 <div className="settings-row-new">
                   <input
-                    name="offer_id"
+                    className={errors.offer_id ? "invalid-input" : ""}
                     placeholder="Offer ID"
                     title="Offer ID"
-                    value={formData.offer_id}
-                    onChange={handleInput}
+                    {...register("offer_id")}
                   />
                   <input
-                    name="template_name"
+                    className={errors.template_name ? "invalid-input" : ""}
                     placeholder="Template"
                     title="Template Name"
-                    value={formData.template_name}
-                    onChange={handleInput}
+                    {...register("template_name")}
                   />
                 </div>
                 <div className="settings-row-new">
                   <input
-                    name="domain"
+                    className={errors.domain ? "invalid-input" : ""}
                     placeholder="Domain"
                     title="Domain"
-                    value={formData.domain}
-                    onChange={handleInput}
+                    {...register("domain")}
                   />
                   <select
-                    name="wait_time"
+                    className={errors.wait_time ? "invalid-input" : ""}
                     title="Wait Time"
-                    value={formData.wait_time}
-                    onChange={handleInput}
+                    {...register("wait_time")}
                   >
                     <option value="2">Wait Time</option>
                     <option value="1">1</option>
@@ -696,17 +703,14 @@ export const InterfaceNewPage = () => {
                 </div>
                 <div className="settings-row-new">
                   <input
-                    name="message_id"
                     placeholder="Msg ID"
                     title="Message ID"
-                    value={formData.message_id}
-                    onChange={handleInput}
+                    {...register("message_id")}
                   />
                   <select
-                    name="inb_pattern"
+                    className={errors.inb_pattern ? "invalid-input" : ""}
                     title="Inbox Pattern"
-                    value={formData.inb_pattern}
-                    onChange={handleInput}
+                    {...register("inb_pattern")}
                   >
                     <option value="1">Inbox Pattern</option>
                     <option value="1">Pattern 1</option>
@@ -715,72 +719,54 @@ export const InterfaceNewPage = () => {
                 </div>
                 <div className="settings-row-new">
                   <select
-                    name="restart_choice"
                     title="Restart_Choice"
-                    value={formData.restart_choice}
-                    onChange={handleInput}
+                    {...register("restart_choice")}
                   >
                     <option value="YES">Restart_Choice</option>
                     <option value="YES">YES</option>
                     <option value="NO">NO</option>
                   </select>
                   <input
-                    name="script_choice"
                     placeholder="Script_Mail_Choice"
                     title="Script_Mail_Choice"
-                    value={formData.script_choice}
-                    onChange={handleInput}
+                    {...register("script_choice")}
                   />
                 </div>
                 <div className="settings-row-new">
                   <input
-                    name="relay_percent"
+                    className={errors.relay_percent ? "invalid-input" : ""}
                     placeholder="Relay Percent"
                     title="Relay Percent"
-                    value={formData.relay_percent}
-                    onChange={handleInput}
+                    {...register("relay_percent")}
                   />
                   <input
-                    name="inbox_percent"
+                    className={errors.inbox_percent ? "invalid-input" : ""}
                     placeholder="Inbox Percent"
                     title="Inbox Percent"
-                    value={formData.inbox_percent}
-                    onChange={handleInput}
+                    {...register("inbox_percent")}
                   />
                 </div>
                 <div className="settings-row-new">
                   <input
-                    name="times_to_send"
+                    className={errors.times_to_send ? "invalid-input" : ""}
                     placeholder="Times_To_Send"
                     title="Times_To_Send"
-                    value={formData.times_to_send}
-                    onChange={handleInput}
+                    {...register("times_to_send")}
                   />
                   <input
-                    name="mail_after"
+                    className={errors.mail_after ? "invalid-input" : ""}
                     placeholder="Mail_After_Every"
                     title="Mail_After_Every"
-                    value={formData.mail_after}
-                    onChange={handleInput}
+                    {...register("mail_after")}
                   />
                 </div>
                 <div className="settings-row-new">
-                  <select
-                    name="reply_to"
-                    title="Reply to"
-                    value={formData.reply_to}
-                    onChange={handleInput}
-                  >
+                  <select title="Reply to" {...register("reply_to")}>
                     <option value="0">Reply to</option>
                     <option value="1">YES</option>
                     <option value="0">NO</option>
                   </select>
-                  <select
-                    name="xmailer"
-                    title="XMAILER"
-                    value={formData.xmailer}
-                    onChange={handleInput}
-                  >
+                  <select title="XMAILER" {...register("xmailer")}>
                     <option value="0">XMAILER</option>
                     <option value="1">YES</option>
                     <option value="0">NO</option>
@@ -795,20 +781,22 @@ export const InterfaceNewPage = () => {
                 <div className="interval-control-new">
                   <input
                     type="number"
-                    name="interval_time"
                     placeholder="Interval Time"
                     title="Interval Time"
-                    value={formData.interval_time}
-                    onChange={handleInput}
+                    {...register("interval_time")}
                   />
-                  <button className="btn-start-new">Start</button>
-                  <button className="btn-stop-new">Stop</button>
+                  <button type="button" className="btn-start-new">
+                    Start
+                  </button>
+                  <button type="button" className="btn-stop-new">
+                    Stop
+                  </button>
                 </div>
               </div>
             </details>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };
