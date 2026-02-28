@@ -253,6 +253,12 @@ const emailWorker = async (job) => {
       const totalSent =
         (updatedCampaign.success_count || 0) +
         (updatedCampaign.error_count || 0);
+
+      const received =
+        (updatedCampaign.inbox_count || 0) + (updatedCampaign.spam_count || 0);
+      const inboxPercent =
+        received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 0;
+
       const transcriptText = smtpTranscript.join("\n");
       await CampaignLog.create({
         campaign_id,
@@ -260,7 +266,7 @@ const emailWorker = async (job) => {
         type: "success",
         sent: totalSent,
         mail_status: `${email} success`,
-        inbox_percent: 0,
+        inbox_percent: Number(inboxPercent.toFixed(1)),
       });
 
       // Guardian Evaluation

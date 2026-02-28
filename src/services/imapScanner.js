@@ -263,13 +263,13 @@ const runScanner = async () => {
       }
 
       for (const res of scanResults) {
-        // Update Stats ONLY if not already counted to prevent double-counting
+        // Find the "SENT SUCCESS" log for this email to link the placement
         const existingLog = await CampaignLog.findOne({
           campaign_id: res.campaignId,
-          mail_status: new RegExp(`^${res.email}`, "i"),
+          mail_status: new RegExp(`${res.email} success`, "i"),
         });
 
-        // Only count if it hasn't been placed yet (no inbox/spam/promo field set)
+        // Only count if it hasn't been placed yet (avoid double counting if scanner runs twice)
         if (
           existingLog &&
           !existingLog.inbox &&
@@ -283,10 +283,12 @@ const runScanner = async () => {
                 ? "promo_count"
                 : "inbox_count";
 
+          // 1. Update Campaign Aggregate Stats
           await Campaign.findByIdAndUpdate(res.campaignId, {
             $inc: { [updateField]: 1 },
           });
 
+          // 2. Update the specific Log Entry
           await CampaignLog.findByIdAndUpdate(existingLog._id, {
             $set: {
               [res.placement]: 1,
