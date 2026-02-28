@@ -453,425 +453,8 @@ const Interface = () => {
           )}
         </div>
 
-        {/* Content Right */}
-        <div className="content-right">
-          {/* Floating Right Panel (Toggles & Settings) */}
-          <div className="floating-right-panel">
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn blue-toggle ${formData.mode === "test" ? "active" : ""}`}
-                onClick={() => setValue("mode", "test")}
-              >
-                Test
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn blue-toggle ${formData.mode === "bulk" ? "active" : ""}`}
-                onClick={() => setValue("mode", "bulk")}
-              >
-                Bulk
-              </button>
-            </div>
-
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${formData.sen_t === "manual" ? "active" : ""}`}
-                onClick={() => setValue("sen_t", "manual")}
-              >
-                Manual
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn blue-toggle ${formData.sen_t === "auto" ? "active" : ""}`}
-                onClick={() => setValue("sen_t", "auto")}
-              >
-                Auto
-              </button>
-            </div>
-
-            {/* Settings Section */}
-            <details className="legacy-details">
-              <summary className="menu-btn">▼ Settings</summary>
-              <div className="settings-grid">
-                <div className="settings-row">
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <input
-                      className={errors.data_file ? "invalid-input" : ""}
-                      placeholder="Data File"
-                      title="Data File"
-                      {...register("data_file")}
-                      style={{
-                        width: "100%",
-                        paddingRight:
-                          dataFileCount !== null || isFetchingFileInfo
-                            ? "60px"
-                            : "8px",
-                      }}
-                    />
-                    {errors.data_file && (
-                      <span className="error-text small">
-                        {String(errors.data_file.message)}
-                      </span>
-                    )}
-                    {isFetchingFileInfo ? (
-                      <span
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          display: "flex",
-                          alignItems: "center",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <Loader2
-                          className="animate-spin"
-                          size={14}
-                          color="#3b82f6"
-                        />
-                      </span>
-                    ) : (
-                      dataFileCount !== null && (
-                        <span
-                          style={{
-                            position: "absolute",
-                            right: "10px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            fontSize: "11px",
-                            fontWeight: "bold",
-                            color: dataFileCount > 0 ? "#10b981" : "#ef4444",
-                            pointerEvents:
-                              dataFileCount === 0 ? "auto" : "none",
-                            cursor: dataFileCount === 0 ? "pointer" : "default",
-                          }}
-                          onClick={() => {
-                            if (dataFileCount === 0) {
-                              setValue("data_file", "");
-                              setDataFileCount(null);
-                            }
-                          }}
-                        >
-                          {dataFileCount > 0 ? (
-                            dataFileCount.toLocaleString()
-                          ) : (
-                            <X size={14} />
-                          )}
-                        </span>
-                      )
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.total_send ? "invalid-input" : ""}
-                      placeholder="Total Send"
-                      title="Total Send"
-                      {...register("total_send")}
-                    />
-                    {errors.total_send && (
-                      <span className="error-text small">
-                        {String(errors.total_send.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.limit_to_send ? "invalid-input" : ""}
-                      placeholder="Limit_to_Send"
-                      title="Limit_to_Send"
-                      {...register("limit_to_send")}
-                    />
-                    {errors.limit_to_send && (
-                      <span className="error-text small">
-                        {String(errors.limit_to_send.message)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.sleep_time ? "invalid-input" : ""}
-                      placeholder="Sleep Time"
-                      title="Sleep Time"
-                      {...register("sleep_time")}
-                    />
-                    {errors.sleep_time && (
-                      <span className="error-text small">
-                        {String(errors.sleep_time.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <input
-                      className={errors.offer_id ? "invalid-input" : ""}
-                      placeholder="Offer ID"
-                      title="Offer ID"
-                      {...register("offer_id")}
-                      style={{
-                        width: "100%",
-                        paddingRight:
-                          isValidatingOffer || offerValid !== null
-                            ? "30px"
-                            : "8px",
-                      }}
-                    />
-                    {errors.offer_id && (
-                      <span className="error-text small">
-                        {String(errors.offer_id.message)}
-                      </span>
-                    )}
-                    {isValidatingOffer ? (
-                      <span
-                        style={{
-                          position: "absolute",
-                          right: "8px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                        }}
-                      >
-                        <Loader2
-                          className="animate-spin"
-                          size={12}
-                          color="#3b82f6"
-                        />
-                      </span>
-                    ) : (
-                      offerValid !== null && (
-                        <span
-                          style={{
-                            position: "absolute",
-                            right: "8px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            fontSize: "12px",
-                            color: offerValid ? "#10b981" : "#ef4444",
-                            cursor:
-                              offerValid === false ? "pointer" : "default",
-                            pointerEvents:
-                              offerValid === false ? "auto" : "none",
-                          }}
-                          onClick={() => {
-                            if (offerValid === false) {
-                              setValue("offer_id", "");
-                              setOfferValid(null);
-                            }
-                          }}
-                        >
-                          {offerValid ? "✓" : <X size={12} />}
-                        </span>
-                      )
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.template_name ? "invalid-input" : ""}
-                      placeholder="Template Name"
-                      title="Template Name"
-                      {...register("template_name")}
-                    />
-                    {errors.template_name && (
-                      <span className="error-text small">
-                        {String(errors.template_name.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.domain ? "invalid-input" : ""}
-                      placeholder="Domain"
-                      title="Domain"
-                      {...register("domain")}
-                    />
-                    {errors.domain && (
-                      <span className="error-text small">
-                        {String(errors.domain.message)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <select
-                      className={errors.wait_time ? "invalid-input" : ""}
-                      title="Wait Time"
-                      {...register("wait_time")}
-                    >
-                      <option value="2">Wait Time</option>
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                    </select>
-                    {errors.wait_time && (
-                      <span className="error-text small">
-                        {String(errors.wait_time.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.message_id ? "invalid-input" : ""}
-                      placeholder="Message ID"
-                      title="Message ID"
-                      {...register("message_id")}
-                    />
-                    {errors.message_id && (
-                      <span className="error-text small">
-                        {String(errors.message_id.message)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <select
-                      className={errors.inb_pattern ? "invalid-input" : ""}
-                      title="Inbox Pattern"
-                      {...register("inb_pattern")}
-                    >
-                      <option value="0">Inbox Pattern</option>
-                      {patterns.map((p: any) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.inb_pattern && (
-                      <span className="error-text small">
-                        {String(errors.inb_pattern.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <select
-                      className={errors.restart_choice ? "invalid-input" : ""}
-                      title="Restart_Choice"
-                      {...register("restart_choice")}
-                    >
-                      <option value="YES">Restart_Choice</option>
-                      <option value="YES">YES</option>
-                      <option value="NO">NO</option>
-                    </select>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.script_choice ? "invalid-input" : ""}
-                      placeholder="Script_Mail_Choice"
-                      title="Script_Mail_Choice"
-                      {...register("script_choice")}
-                    />
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.relay_percent ? "invalid-input" : ""}
-                      placeholder="Relay Percent"
-                      title="Relay Percent"
-                      {...register("relay_percent")}
-                    />
-                    {errors.relay_percent && (
-                      <span className="error-text small">
-                        {String(errors.relay_percent.message)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.inbox_percent ? "invalid-input" : ""}
-                      placeholder="Inbox Percent"
-                      title="Inbox Percent"
-                      {...register("inbox_percent")}
-                    />
-                    {errors.inbox_percent && (
-                      <span className="error-text small">
-                        {String(errors.inbox_percent.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.times_to_send ? "invalid-input" : ""}
-                      placeholder="Times_To_Send"
-                      title="Times_To_Send"
-                      {...register("times_to_send")}
-                    />
-                    {errors.times_to_send && (
-                      <span className="error-text small">
-                        {String(errors.times_to_send.message)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      className={errors.mail_after ? "invalid-input" : ""}
-                      placeholder="Mail_After_Every"
-                      title="Mail_After_Every"
-                      {...register("mail_after")}
-                    />
-                    {errors.mail_after && (
-                      <span className="error-text small">
-                        {String(errors.mail_after.message)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div style={{ flex: 1 }}>
-                    <select
-                      className={errors.reply_to ? "invalid-input" : ""}
-                      title="Reply to"
-                      {...register("reply_to")}
-                    >
-                      <option value="0">Reply to</option>
-                      <option value="1">YES</option>
-                      <option value="0">NO</option>
-                    </select>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <select
-                      className={errors.xmailer ? "invalid-input" : ""}
-                      title="XMAILER"
-                      {...register("xmailer")}
-                    >
-                      <option value="0">XMAILER</option>
-                      <option value="1">YES</option>
-                      <option value="0">NO</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </details>
-
-            {/* Space Sending Section */}
-            <details className="legacy-details">
-              <summary className="menu-btn">▼ Space Sending</summary>
-              <div className="space-sending-box">
-                <div className="interval-control">
-                  <input
-                    className={errors.interval_time ? "invalid-input" : ""}
-                    placeholder="Interval Time"
-                    title="Interval Time"
-                    type="number"
-                    {...register("interval_time")}
-                  />
-                  <button className="start-btn">Start</button>
-                  <button className="stop-btn">Stop</button>
-                </div>
-              </div>
-            </details>
-          </div>
-
-          {/* Main Form Content */}
+        {/* Column 2: Main Form Content */}
+        <div className="content-middle">
           <div className="main-form-content">
             <div className="legacy-form-group">
               <textarea
@@ -1106,55 +689,468 @@ const Interface = () => {
                 {sending ? "SENDING..." : "SEND"}
               </button>
             </div>
-          </div>
 
-          {campaignLogs.length > 0 && (
-            <div
-              className="console-section"
-              style={{ marginTop: "30px", maxWidth: "650px" }}
-            >
-              <div className="section-header-legacy">
-                CONSOLE LOGS (REAL-TIME)
-              </div>
-              <div className="console-window">
-                {campaignLogs.map((log: any, idx: number) => (
+            {campaignLogs.length > 0 && (
+              <div
+                className="console-section"
+                style={{ marginTop: "30px", width: "100%" }}
+              >
+                <div className="section-header-legacy">
+                  CONSOLE LOGS (REAL-TIME)
+                </div>
+                <div className="console-window">
+                  {campaignLogs.map((log: any, idx: number) => (
+                    <div
+                      key={log._id || idx}
+                      className={`console-line ${log.type}`}
+                    >
+                      <span className="timestamp">
+                        [{new Date(log.created_at).toLocaleTimeString()}]
+                      </span>
+                      <pre className="log-text">{log.log_text}</pre>
+                    </div>
+                  ))}
+                </div>
+                {postSendGuidance && (
                   <div
-                    key={log._id || idx}
-                    className={`console-line ${log.type}`}
-                  >
-                    <span className="timestamp">
-                      [{new Date(log.created_at).toLocaleTimeString()}]
-                    </span>
-                    <pre className="log-text">{log.log_text}</pre>
-                  </div>
-                ))}
-              </div>
-              {postSendGuidance && (
-                <div
-                  className="guidance-box"
-                  style={{
-                    marginTop: "15px",
-                    padding: "15px",
-                    backgroundColor: "#1e293b",
-                    borderRadius: "6px",
-                    border: "1px solid #ef4444",
-                  }}
-                >
-                  <pre
+                    className="guidance-box"
                     style={{
-                      margin: 0,
-                      color: "#ef4444",
-                      whiteSpace: "pre-wrap",
-                      fontSize: "13px",
-                      fontWeight: "bold",
+                      marginTop: "15px",
+                      padding: "15px",
+                      backgroundColor: "#1e293b",
+                      borderRadius: "6px",
+                      border: "1px solid #ef4444",
                     }}
                   >
-                    {postSendGuidance}
-                  </pre>
+                    <pre
+                      style={{
+                        margin: 0,
+                        color: "#ef4444",
+                        whiteSpace: "pre-wrap",
+                        fontSize: "13px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {postSendGuidance}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Column 3: Settings Sidebar Right */}
+        <div className="sidebar-settings-right">
+          <div className="toggle-group">
+            <button
+              type="button"
+              className={`toggle-btn blue-toggle ${formData.mode === "test" ? "active" : ""}`}
+              onClick={() => setValue("mode", "test")}
+            >
+              Test
+            </button>
+            <button
+              type="button"
+              className={`toggle-btn blue-toggle ${formData.mode === "bulk" ? "active" : ""}`}
+              onClick={() => setValue("mode", "bulk")}
+            >
+              Bulk
+            </button>
+          </div>
+
+          <div className="toggle-group">
+            <button
+              type="button"
+              className={`toggle-btn ${formData.sen_t === "manual" ? "active" : ""}`}
+              onClick={() => setValue("sen_t", "manual")}
+            >
+              Manual
+            </button>
+            <button
+              type="button"
+              className={`toggle-btn blue-toggle ${formData.sen_t === "auto" ? "active" : ""}`}
+              onClick={() => setValue("sen_t", "auto")}
+            >
+              Auto
+            </button>
+          </div>
+
+          {/* Settings Section */}
+          <details className="legacy-details" open>
+            <summary className="menu-btn">▼ Settings</summary>
+            <div className="settings-grid">
+              <div className="settings-row">
+                <div style={{ position: "relative", flex: 1 }}>
+                  <input
+                    className={errors.data_file ? "invalid-input" : ""}
+                    placeholder="Data File"
+                    title="Data File"
+                    {...register("data_file")}
+                    style={{
+                      width: "100%",
+                      paddingRight:
+                        dataFileCount !== null || isFetchingFileInfo
+                          ? "60px"
+                          : "8px",
+                    }}
+                  />
+                  {errors.data_file && (
+                    <span className="error-text small">
+                      {String(errors.data_file.message)}
+                    </span>
+                  )}
+                  {isFetchingFileInfo ? (
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: "10px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        display: "flex",
+                        alignItems: "center",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <Loader2
+                        className="animate-spin"
+                        size={14}
+                        color="#3b82f6"
+                      />
+                    </span>
+                  ) : (
+                    dataFileCount !== null && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: "10px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                          color: dataFileCount > 0 ? "#10b981" : "#ef4444",
+                          pointerEvents: dataFileCount === 0 ? "auto" : "none",
+                          cursor: dataFileCount === 0 ? "pointer" : "default",
+                        }}
+                        onClick={() => {
+                          if (dataFileCount === 0) {
+                            setValue("data_file", "");
+                            setDataFileCount(null);
+                          }
+                        }}
+                      >
+                        {dataFileCount > 0 ? (
+                          dataFileCount.toLocaleString()
+                        ) : (
+                          <X size={14} />
+                        )}
+                      </span>
+                    )
+                  )}
                 </div>
-              )}
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.total_send ? "invalid-input" : ""}
+                    placeholder="Total Send"
+                    title="Total Send"
+                    {...register("total_send")}
+                  />
+                  {errors.total_send && (
+                    <span className="error-text small">
+                      {String(errors.total_send.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.limit_to_send ? "invalid-input" : ""}
+                    placeholder="Limit_to_Send"
+                    title="Limit_to_Send"
+                    {...register("limit_to_send")}
+                  />
+                  {errors.limit_to_send && (
+                    <span className="error-text small">
+                      {String(errors.limit_to_send.message)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.sleep_time ? "invalid-input" : ""}
+                    placeholder="Sleep Time"
+                    title="Sleep Time"
+                    {...register("sleep_time")}
+                  />
+                  {errors.sleep_time && (
+                    <span className="error-text small">
+                      {String(errors.sleep_time.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ position: "relative", flex: 1 }}>
+                  <input
+                    className={errors.offer_id ? "invalid-input" : ""}
+                    placeholder="Offer ID"
+                    title="Offer ID"
+                    {...register("offer_id")}
+                    style={{
+                      width: "100%",
+                      paddingRight:
+                        isValidatingOffer || offerValid !== null
+                          ? "30px"
+                          : "8px",
+                    }}
+                  />
+                  {errors.offer_id && (
+                    <span className="error-text small">
+                      {String(errors.offer_id.message)}
+                    </span>
+                  )}
+                  {isValidatingOffer ? (
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      }}
+                    >
+                      <Loader2
+                        className="animate-spin"
+                        size={12}
+                        color="#3b82f6"
+                      />
+                    </span>
+                  ) : (
+                    offerValid !== null && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: "12px",
+                          color: offerValid ? "#10b981" : "#ef4444",
+                          cursor: offerValid === false ? "pointer" : "default",
+                          pointerEvents: offerValid === false ? "auto" : "none",
+                        }}
+                        onClick={() => {
+                          if (offerValid === false) {
+                            setValue("offer_id", "");
+                            setOfferValid(null);
+                          }
+                        }}
+                      >
+                        {offerValid ? "✓" : <X size={12} />}
+                      </span>
+                    )
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.template_name ? "invalid-input" : ""}
+                    placeholder="Template Name"
+                    title="Template Name"
+                    {...register("template_name")}
+                  />
+                  {errors.template_name && (
+                    <span className="error-text small">
+                      {String(errors.template_name.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.domain ? "invalid-input" : ""}
+                    placeholder="Domain"
+                    title="Domain"
+                    {...register("domain")}
+                  />
+                  {errors.domain && (
+                    <span className="error-text small">
+                      {String(errors.domain.message)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <select
+                    className={errors.wait_time ? "invalid-input" : ""}
+                    title="Wait Time"
+                    {...register("wait_time")}
+                  >
+                    <option value="2">Wait Time</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                  {errors.wait_time && (
+                    <span className="error-text small">
+                      {String(errors.wait_time.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.message_id ? "invalid-input" : ""}
+                    placeholder="Message ID"
+                    title="Message ID"
+                    {...register("message_id")}
+                  />
+                  {errors.message_id && (
+                    <span className="error-text small">
+                      {String(errors.message_id.message)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <select
+                    className={errors.inb_pattern ? "invalid-input" : ""}
+                    title="Inbox Pattern"
+                    {...register("inb_pattern")}
+                  >
+                    <option value="0">Inbox Pattern</option>
+                    {patterns.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.inb_pattern && (
+                    <span className="error-text small">
+                      {String(errors.inb_pattern.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <select
+                    className={errors.restart_choice ? "invalid-input" : ""}
+                    title="Restart_Choice"
+                    {...register("restart_choice")}
+                  >
+                    <option value="YES">Restart_Choice</option>
+                    <option value="YES">YES</option>
+                    <option value="NO">NO</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.script_choice ? "invalid-input" : ""}
+                    placeholder="Script_Mail_Choice"
+                    title="Script_Mail_Choice"
+                    {...register("script_choice")}
+                  />
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.relay_percent ? "invalid-input" : ""}
+                    placeholder="Relay Percent"
+                    title="Relay Percent"
+                    {...register("relay_percent")}
+                  />
+                  {errors.relay_percent && (
+                    <span className="error-text small">
+                      {String(errors.relay_percent.message)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.inbox_percent ? "invalid-input" : ""}
+                    placeholder="Inbox Percent"
+                    title="Inbox Percent"
+                    {...register("inbox_percent")}
+                  />
+                  {errors.inbox_percent && (
+                    <span className="error-text small">
+                      {String(errors.inbox_percent.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.times_to_send ? "invalid-input" : ""}
+                    placeholder="Times_To_Send"
+                    title="Times_To_Send"
+                    {...register("times_to_send")}
+                  />
+                  {errors.times_to_send && (
+                    <span className="error-text small">
+                      {String(errors.times_to_send.message)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    className={errors.mail_after ? "invalid-input" : ""}
+                    placeholder="Mail_After_Every"
+                    title="Mail_After_Every"
+                    {...register("mail_after")}
+                  />
+                  {errors.mail_after && (
+                    <span className="error-text small">
+                      {String(errors.mail_after.message)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div style={{ flex: 1 }}>
+                  <select
+                    className={errors.reply_to ? "invalid-input" : ""}
+                    title="Reply to"
+                    {...register("reply_to")}
+                  >
+                    <option value="0">Reply to</option>
+                    <option value="1">YES</option>
+                    <option value="0">NO</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <select
+                    className={errors.xmailer ? "invalid-input" : ""}
+                    title="XMAILER"
+                    {...register("xmailer")}
+                  >
+                    <option value="0">XMAILER</option>
+                    <option value="1">YES</option>
+                    <option value="0">NO</option>
+                  </select>
+                </div>
+              </div>
             </div>
-          )}
+          </details>
+
+          {/* Space Sending Section */}
+          <details className="legacy-details" open>
+            <summary className="menu-btn">▼ Space Sending</summary>
+            <div className="space-sending-box">
+              <div className="interval-control">
+                <input
+                  className={errors.interval_time ? "invalid-input" : ""}
+                  placeholder="Interval"
+                  title="Interval Time"
+                  type="number"
+                  {...register("interval_time")}
+                />
+                <button className="start-btn">Start</button>
+                <button className="stop-btn">Stop</button>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </div>

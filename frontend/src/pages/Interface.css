@@ -141,10 +141,11 @@
 }
 
 .sidebar-left {
-  flex: 0 0 240px;
-  padding: 40px 20px;
+  flex: 0 0 18%;
+  padding: 40px 15px;
   color: white;
   text-align: center;
+  background-color: #269abc;
 }
 
 .sidebar-left h3 {
@@ -165,16 +166,26 @@
   color: #333;
 }
 
-.content-right {
-  flex: 1;
+.content-middle {
+  flex: 0 0 57%;
   background-color: white;
-  padding: 40px 20px;
-  padding-right: 320px; /* Space for the 280px panel + padding */
-  position: relative;
-  border-radius: 0 8px 8px 0;
+  padding: 40px 25px;
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
-  overflow: visible;
+  border-right: 1px solid #eee;
+  overflow-y: auto;
+}
+
+.sidebar-settings-right {
+  flex: 0 0 25%;
+  background-color: #f8f9fa;
+  padding: 40px 15px;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  border-left: 1px solid #ddd;
 }
 
 /* Form Groups */
@@ -263,46 +274,44 @@
   font-size: 13px;
 }
 
-/* Floating Right Panel (Settings & Space Sending) */
-.floating-right-panel {
-  position: absolute;
-  top: 40px;
-  right: 15px; /* Closer to edge but within safety */
-  width: 280px; 
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  z-index: 10;
-  overflow: visible;
-}
+/* Removed floating panel styles as it's now a column */
 
 .toggle-group {
   display: flex;
-  border-radius: 4px;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 0;
+  border: 1px solid #dee2e6;
+  margin-bottom: 15px;
+  width: 100%;
+  max-width: 160px;
   overflow: hidden;
-  border: 1px solid #ddd;
-  margin-bottom: 5px;
-  max-width: 130px;
-  align-self: flex-start; /* Aligned to start */
+  align-self: center;
 }
 
 .toggle-btn {
   flex: 1;
   border: none;
-  padding: 6px;
-  background-color: #eee;
-  font-size: 11px;
-  font-weight: bold;
+  padding: 10px 5px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+  color: #4b5563;
 }
 
 .toggle-btn.active {
-  background-color: #28a745;
   color: white;
+  background-color: #10b981; /* Emerald green from image */
+}
+
+.toggle-btn.active:not(.blue-toggle) {
+  background-color: #10b981;
 }
 
 .blue-toggle.active {
-  background-color: #007bff;
+  background-color: #10b981; /* Matching both to green as per image */
 }
 
 .manual-indicator {
@@ -325,15 +334,24 @@
 }
 
 .menu-btn {
-  background-color: #269abc; /* Blue from screenshot */
+  background: linear-gradient(135deg, #269abc 0%, #1a7fa0 100%);
   color: white;
-  padding: 8px 15px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: bold;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   list-style: none; /* Hide default arrow */
   text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.menu-btn:hover {
+  background: linear-gradient(135deg, #2188ab 0%, #156d8a 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .menu-btn::-webkit-details-marker {
@@ -396,25 +414,41 @@
 }
 
 .start-btn {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
-  border: 1px solid #0056b3;
+  border: none;
   border-radius: 4px;
-  padding: 4px 8px; /* Reduced padding */
+  padding: 5px 12px;
   font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  transition: all 0.2s;
+}
+
+.start-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
 
 .stop-btn {
-  background-color: #dc3545;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
-  border: 1px solid #bd2130;
+  border: none;
   border-radius: 4px;
-  padding: 4px 8px; /* Reduced padding */
+  padding: 5px 12px;
   font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+  transition: all 0.2s;
+}
+
+.stop-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* Final Send Button */
@@ -425,24 +459,39 @@
 }
 
 .send-btn {
-  background-color: #4cd137;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  padding: 12px 60px;
-  border-radius: 4px;
+  padding: 14px 70px;
+  border-radius: 30px;
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.send-btn:hover {
-  background-color: #44bd32;
+.send-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.send-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.send-btn:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .main-form-content {
-  max-width: 600px;
   width: 100%;
+  max-width: 100%;
 }
 
 .compact-form-group {
