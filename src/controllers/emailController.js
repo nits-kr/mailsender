@@ -7,9 +7,11 @@ const crypto = require("crypto");
 const CampaignTemplate = require("../models/CampaignTemplate");
 const IP = require("../models/IP");
 const Offer = require("../models/Offer");
+const MonitoringMailbox = require("../models/MonitoringMailbox");
 const { generateMessageId } = require("../utils/patternGenerator");
 const TagEngine = require("../utils/tagEngine");
 const ReputationScore = require("../models/ReputationScore");
+const { parseIpPool } = require("../utils/parseIpPool");
 
 const applySearchReplace = (text, searchReplaceStr) => {
   if (!text || !searchReplaceStr) return text;
@@ -19,7 +21,6 @@ const applySearchReplace = (text, searchReplaceStr) => {
     const [search, replace] = pair.split("|");
     if (search && replace) {
       try {
-        // Escape search for literal replacement
         const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const regex = new RegExp(escapedSearch, "g");
         result = result.replace(regex, replace);
@@ -29,6 +30,124 @@ const applySearchReplace = (text, searchReplaceStr) => {
     }
   }
   return result;
+};
+
+/**
+ * Build a replaceTags function for a single email address
+ */
+const buildReplaceTags = (email, opts) => {
+  const { from_email, from_name, offer_id, domain, msgId, search_replace } =
+    opts;
+
+  const dateNow = new Date();
+  const dateStr = dateNow.toLocaleDateString("en-GB").replace(/\//g, "-");
+  const datetimeStr = dateNow.toUTCString();
+  const emailDomain = email.split("@")[1] || "";
+  const nameTag = emailDomain.replace(/[._-]/g, "").replace(/[0-9]/g, "");
+
+  return (text) => {
+    if (!text) return "";
+    let processed = text
+      .replace(/{email}/g, email)
+      .replace(/{name}/g, nameTag)
+      .replace(/{fromid}/g, from_email)
+      .replace(/{fromname}/g, from_name)
+      .replace(/{datetime}/g, datetimeStr)
+      .replace(/{date}/g, dateStr)
+      .replace(/{msgid}/g, msgId)
+      .replace(/{domain}/g, domain || "")
+      .replace(
+        /{unsl}/g,
+        `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
+      )
+      .replace(
+        /{ourl}/g,
+        `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
+      )
+      .replace(
+        /{oln}/g,
+        `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
+      )
+      .replace(
+        /{base_trk}/g,
+        Buffer.from(`${offer_id || "0"}|${email}`).toString("base64"),
+      )
+      .replace(
+        /{hex_trk}/g,
+        Buffer.from(`${offer_id || "0"}|${email}`).toString("hex"),
+      )
+      .replace(
+        /\(\(_track_\)\)/g,
+        crypto.createHash("md5").update(email).digest("hex"),
+      );
+
+    processed = TagEngine.process(processed, { email, domain, offer_id });
+    processed = applySearchReplace(processed, search_replace);
+    return processed;
+  };
+};
+
+/**
+ * Queue a single email job
+ */
+const queueEmail = async (email, currentIp, campaignId, opts) => {
+  const {
+    from_email,
+    from_name,
+    headers,
+    subject,
+    message_html,
+    message_plain,
+    mode,
+    subject_enc,
+    from_enc,
+    msg_type,
+    charset,
+    encoding,
+    charset_alt,
+    encoding_alt,
+    reply_to,
+    xmailer,
+    domain,
+    offer_id,
+    search_replace,
+    wait_time,
+  } = opts;
+
+  const msgId = `<${crypto.randomBytes(16).toString("hex")}@${domain || "localhost"}>`;
+  const replaceTags = buildReplaceTags(email.trim(), {
+    from_email,
+    from_name,
+    offer_id,
+    domain,
+    msgId,
+    search_replace,
+  });
+
+  await emailQueue.add("send-email", {
+    campaign_id: campaignId,
+    from_email,
+    from_name: replaceTags(from_name),
+    mailing_ip: currentIp,
+    headers: replaceTags(headers),
+    subject: replaceTags(subject),
+    body_html: replaceTags(message_html),
+    body_plain: replaceTags(message_plain),
+    email: email.trim(),
+    mode,
+    subject_enc,
+    from_enc,
+    msg_type,
+    charset,
+    encoding,
+    charset_alt,
+    encoding_alt,
+    msgId,
+    reply_to,
+    xmailer,
+    offer_id,
+    wait_time: Number(wait_time) || 0,
+  });
 };
 
 const sendEmail = async (req, res) => {
@@ -41,7 +160,7 @@ const sendEmail = async (req, res) => {
     message_html,
     message_plain,
     emails,
-    mode,
+    mode = "test",
     subject_enc,
     from_enc,
     msg_type,
@@ -49,7 +168,7 @@ const sendEmail = async (req, res) => {
     encoding,
     charset_alt,
     encoding_alt,
-    sen_t,
+    sen_t = "manual",
     offer_id,
     template_name,
     domain,
@@ -59,57 +178,168 @@ const sendEmail = async (req, res) => {
     total_send,
     data_file,
     search_replace,
-    min_inb_score, // Added optional threshold
+    inbox_percent,
+    mail_after,
+    sleep_time,
+    limit_to_send,
   } = req.body;
 
+  // ── Validate required fields ──────────────────────────────────────────────
+  if (!from_email || !mailing_ip) {
+    return res.status(400).json({
+      message: "Missing required fields: from_email, mailing_ip",
+    });
+  }
+  // emails OR data_file must be provided
+  if (!emails && !data_file) {
+    return res.status(400).json({
+      message:
+        "Either paste emails in the Emails field or provide a Data File name.",
+    });
+  }
+
   try {
-    // -------------------------------------------------------------------------
-    // Inbox Intelligence Engine: Reputation Guard
-    // -------------------------------------------------------------------------
-    const ipLines = mailing_ip.split("\n").filter((l) => l.trim());
-    const primaryIp = ipLines[0] ? ipLines[0].split("|")[0].trim() : null;
+    // ── Parse IP Pool (supports Format 1: IP|email and Format 2: 3-line group) ─
+    const ipPool = parseIpPool(mailing_ip);
+    if (ipPool.length === 0) {
+      return res.status(400).json({
+        message:
+          "No valid IPs found. Use 'IP|email' per line, or 3-line groups (IP / email / name).",
+      });
+    }
+    const primaryEntry = ipPool[0];
+    const primaryIp = primaryEntry.ip;
 
-    if (primaryIp) {
-      const rep = await ReputationScore.findOne({ assetValue: primaryIp });
-      if (rep && (rep.status === "paused" || rep.status === "risky")) {
-        return res.status(403).json({
-          message: `Send Blocked: IP ${primaryIp} has a ${rep.status} reputation score (${rep.inboxScore}%). Check Intelligence Dashboard.`,
-        });
+    // ── Reputation Guard (only for bulk modes) ────────────────────────────
+    if (mode === "bulk") {
+      if (primaryIp) {
+        const rep = await ReputationScore.findOne({ assetValue: primaryIp });
+        if (rep && rep.status === "paused") {
+          return res.status(403).json({
+            message: `Send Blocked: IP ${primaryIp} is paused (Inbox Score: ${rep.inboxScore?.toFixed(1)}%). Check Intelligence Dashboard.`,
+          });
+        }
+      }
+      if (domain) {
+        const domRep = await ReputationScore.findOne({ assetValue: domain });
+        if (domRep && domRep.status === "paused") {
+          return res.status(403).json({
+            message: `Send Blocked: Domain ${domain} is paused due to low inbox placement. Check Intelligence Dashboard.`,
+          });
+        }
       }
     }
 
-    if (domain) {
-      const domRep = await ReputationScore.findOne({ assetValue: domain });
-      if (domRep && domRep.status === "paused") {
-        return res.status(403).json({
-          message: `Send Blocked: Domain ${domain} is currently paused due to low inbox placement. Check Intelligence Dashboard.`,
-        });
-      }
-    }
-    // -------------------------------------------------------------------------
-    const targetEmails = emails.split("\n").filter((e) => e.trim());
+    // ── Determine mode type ───────────────────────────────────────────────
+    const campaignType = `${mode}_${sen_t}`;
 
-    // Create a campaign record for tracking
+    // ── Build email list: data_file (server) takes priority over textarea ─
+    let rawEmailList = "";
+
+    if (data_file && data_file.trim()) {
+      // Read from server-side file in /uploads directory
+      const fse = require("fs-extra");
+      const nodePath = require("path");
+      const filePath = nodePath.join(
+        __dirname,
+        "../../uploads",
+        data_file.trim(),
+      );
+      try {
+        if (await fse.pathExists(filePath)) {
+          rawEmailList = await fse.readFile(filePath, "utf-8");
+        } else {
+          // file not found — fall back to textarea emails
+          console.warn(
+            `[emailController] data_file "${data_file}" not found on disk. Falling back to emails field.`,
+          );
+          rawEmailList = emails || "";
+        }
+      } catch (fileErr) {
+        console.error(
+          `[emailController] Error reading data_file "${data_file}":`,
+          fileErr.message,
+        );
+        rawEmailList = emails || "";
+      }
+    } else {
+      rawEmailList = emails || "";
+    }
+
+    let targetEmails = rawEmailList
+      .split("\n")
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    if (targetEmails.length === 0) {
+      return res.status(400).json({
+        message:
+          "No valid email addresses found. Check your email list or data file.",
+      });
+    }
+
+    // ── Apply total_send hard cap ─────────────────────────────────────────
+    const totalSendCap = Number(total_send);
+    if (totalSendCap > 0 && targetEmails.length > totalSendCap) {
+      targetEmails = targetEmails.slice(0, totalSendCap);
+    }
+
+    const emailOpts = {
+      from_email,
+      from_name,
+      headers,
+      subject,
+      message_html,
+      message_plain,
+      mode,
+      subject_enc,
+      from_enc,
+      msg_type,
+      charset,
+      encoding,
+      charset_alt,
+      encoding_alt,
+      reply_to,
+      xmailer,
+      domain,
+      offer_id,
+      search_replace,
+      wait_time: Number(wait_time) || 0,
+    };
+
+    // ── Create Campaign Record ────────────────────────────────────────────
     const campaign = await Campaign.create({
       template_name: template_name || "Manual Sending",
       offer_id: offer_id || "Manual",
-      server: ipLines[0] || "Unknown",
-      data_file: data_file || "Manual",
+      server: primaryIp || "Unknown",
+      data_file: data_file || "emails_field",
       total_emails: targetEmails.length,
       status: "Running",
+      mode,
+      sen_t,
+      type: campaignType,
+      domain: domain || "",
+      from_email: from_email || "",
+      mail_after: Number(mail_after) || 100,
+      sleep_time: Number(sleep_time) || 5,
+      limit_to_send: Number(limit_to_send) || 500,
+      ip_list: ipPool.map((e) => e.ip),
+      total_queued: 0,
     });
 
+    const campaignId = campaign._id;
+
     await CampaignLog.create({
-      campaign_id: campaign._id,
-      log_text: `Campaign started with ${targetEmails.length} emails.`,
+      campaign_id: campaignId,
+      log_text: `[${campaignType.toUpperCase()}] Campaign started | Emails: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
       type: "info",
     });
 
-    // Create a log entry for dashboard
+    // ── Dashboard Log ─────────────────────────────────────────────────────
     await Log.create({
       mailer: "Admin",
       template_id: template_name || "Manual",
-      interface: mode === "bulk" ? "FSOCK SEND SMTP AUTO" : "NEW INTERFACE",
+      interface: mode === "bulk" ? "BULK SEND" : "TEST SEND",
       server: primaryIp || "Unknown",
       offer_id: offer_id || "Manual",
       domain:
@@ -126,108 +356,175 @@ const sendEmail = async (req, res) => {
       console.error("Dashboard Log Creation Failed:", err.message),
     );
 
-    let ipIndex = 0;
-    for (const email of targetEmails) {
-      const currentIp = ipLines[ipIndex % ipLines.length].trim();
-      ipIndex++;
+    // ════════════════════════════════════════════════════════════════════════
+    //  MODE BRANCHES
+    // ════════════════════════════════════════════════════════════════════════
 
-      const dateNow = new Date();
-      const dateStr = dateNow.toLocaleDateString("en-GB").replace(/\//g, "-");
-      const datetimeStr = dateNow.toUTCString();
-      const msgId =
-        manualMsgId ||
-        (inb_pattern && inb_pattern !== "0" && inb_pattern !== "1"
-          ? generateMessageId(inb_pattern, domain || "localhost")
-          : `<${crypto.randomBytes(16).toString("hex")}@${domain || "localhost"}>`);
+    if (campaignType === "test_manual") {
+      // ── TEST + MANUAL: Round-robin across ip pool to test list ────────────
+      let pIdx = 0;
+      for (const email of targetEmails) {
+        const entry = ipPool[pIdx % ipPool.length];
+        pIdx++;
+        await queueEmail(email, entry.ip, campaignId, {
+          ...emailOpts,
+          from_name: entry.from_name || from_name,
+          from_email: entry.from_email || from_email,
+        });
+      }
 
-      const emailDomain = email.split("@")[1] || "";
-      const nameTag = emailDomain.replace(/[._-]/g, "").replace(/[0-9]/g, "");
+      await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[TEST+MANUAL] Queued ${targetEmails.length} emails. Check inboxes manually.`,
+        type: "info",
+      });
 
-      const replaceTags = (text) => {
-        if (!text) return "";
-        let processed = text
-          .replace(/{email}/g, email)
-          .replace(/{name}/g, nameTag)
-          .replace(/{fromid}/g, from_email)
-          .replace(/{fromname}/g, from_name)
-          .replace(/{datetime}/g, datetimeStr)
-          .replace(/{date}/g, dateStr)
-          .replace(/{msgid}/g, msgId)
-          .replace(/{domain}/g, domain || "")
-          .replace(
-            /{unsl}/g,
-            `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
-          )
-          .replace(
-            /{ourl}/g,
-            `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
-          )
-          .replace(
-            /{oln}/g,
-            `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
-          )
-          .replace(
-            /{base_trk}/g,
-            Buffer.from(`${offer_id || "0"}|${email}`).toString("base64"),
-          )
-          .replace(
-            /{hex_trk}/g,
-            Buffer.from(`${offer_id || "0"}|${email}`).toString("hex"),
-          )
-          .replace(
-            /\(\(_track_\)\)/g,
-            crypto.createHash("md5").update(email).digest("hex"),
-          );
-
-        // Apply TagEngine for functions like [[num(10)]]
-        processed = TagEngine.process(processed, { email, domain, offer_id });
-
-        // Apply search/replace logic (PHP parity)
-        processed = applySearchReplace(processed, search_replace);
-
-        return processed;
-      };
-
-      await emailQueue.add("send-email", {
-        campaign_id: campaign._id, // Pass campaign ID to worker
-        from_email,
-        from_name: replaceTags(from_name),
-        mailing_ip: currentIp,
-        headers: replaceTags(headers),
-        subject: replaceTags(subject),
-        body_html: replaceTags(message_html),
-        body_plain: replaceTags(message_plain),
-        email: email.trim(),
-        mode,
-        subject_enc,
-        from_enc,
-        msg_type,
-        charset,
-        encoding,
-        charset_alt,
-        encoding_alt,
-        msgId,
-        reply_to,
-        xmailer,
+      return res.json({
+        message: "Test emails queued. Please check inboxes manually.",
+        campaign_id: campaignId,
+        count: targetEmails.length,
+        mode: campaignType,
       });
     }
 
-    let commandGuidance = "";
-    if (mode === "bulk" || sen_t === "auto") {
-      commandGuidance = `To Run In Screen Use Below Command:\nphp send_mul_phpm.php ${campaign._id}`;
+    if (campaignType === "test_auto") {
+      // ── TEST + AUTO: Send to monitoring mailboxes + schedule IMAP scan ─
+      const monitoringMailboxes = await MonitoringMailbox.find({
+        isActive: true,
+      });
+
+      if (monitoringMailboxes.length === 0) {
+        // Fall back to target emails if no monitoring mailboxes configured
+        let pIdx = 0;
+        for (const email of targetEmails) {
+          const entry = ipPool[pIdx % ipPool.length];
+          pIdx++;
+          await queueEmail(email, entry.ip, campaignId, {
+            ...emailOpts,
+            from_name: entry.from_name || from_name,
+            from_email: entry.from_email || from_email,
+          });
+        }
+        await CampaignLog.create({
+          campaign_id: campaignId,
+          log_text: `[TEST+AUTO] No monitoring mailboxes configured. Sent to ${targetEmails.length} test emails. Add mailboxes in Intelligence settings for auto IMAP scanning.`,
+          type: "info",
+        });
+      } else {
+        // Test + Auto: send from EACH IP to EACH monitoring mailbox for per-IP placement scoring
+        for (const entry of ipPool) {
+          for (const mbox of monitoringMailboxes) {
+            await queueEmail(mbox.email, entry.ip, campaignId, {
+              ...emailOpts,
+              from_name: entry.from_name || from_name,
+              from_email: entry.from_email || from_email,
+            });
+          }
+        }
+
+        await CampaignLog.create({
+          campaign_id: campaignId,
+          log_text: `[TEST+AUTO] Sent to ${monitoringMailboxes.length} monitoring mailboxes from ${ipPool.length} IP(s). IMAP scan will run automatically in 5 min.`,
+          type: "info",
+        });
+      }
+
+      return res.json({
+        message: `Test emails sent to ${monitoringMailboxes.length > 0 ? monitoringMailboxes.length + " monitoring mailboxes" : targetEmails.length + " test emails"}. Auto IMAP scan scheduled.`,
+        campaign_id: campaignId,
+        count: monitoringMailboxes.length || targetEmails.length,
+        mode: campaignType,
+        monitoring: monitoringMailboxes.length > 0,
+      });
     }
 
-    res.json({
-      message: "Jobs queued successfully",
-      count: targetEmails.length,
-      campaign_id: campaign._id,
-      guidance: commandGuidance,
-    });
+    if (campaignType === "bulk_manual") {
+      // ── BULK + MANUAL: Round-robin batch using ip pool ─────────────────
+      const batchSize = Number(limit_to_send) || 500;
+      let queued = 0;
+      let pIdx = 0;
+
+      for (const email of targetEmails) {
+        if (queued >= batchSize) break;
+        const entry = ipPool[pIdx % ipPool.length];
+        pIdx++;
+        await queueEmail(email, entry.ip, campaignId, {
+          ...emailOpts,
+          from_name: entry.from_name || from_name,
+          from_email: entry.from_email || from_email,
+        });
+        queued++;
+      }
+
+      await Campaign.findByIdAndUpdate(campaignId, { total_queued: queued });
+      await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[BULK+MANUAL] Queued ${queued} of ${targetEmails.length} emails (limit: ${batchSize}). Press Send again to continue next batch.`,
+        type: "info",
+      });
+
+      return res.json({
+        message: `Bulk send queued: ${queued} emails dispatched. Monitor logs below.`,
+        campaign_id: campaignId,
+        count: queued,
+        total: targetEmails.length,
+        mode: campaignType,
+      });
+    }
+
+    if (campaignType === "bulk_auto") {
+      // ── BULK + AUTO: First batch + start AutoRunner ───────────────────
+      const batchSize = Number(mail_after) || 100;
+      const firstBatch = targetEmails.slice(0, batchSize);
+
+      let pIdx = 0;
+      for (const email of firstBatch) {
+        const entry = ipPool[pIdx % ipPool.length];
+        pIdx++;
+        await queueEmail(email, entry.ip, campaignId, {
+          ...emailOpts,
+          from_name: entry.from_name || from_name,
+          from_email: entry.from_email || from_email,
+        });
+      }
+
+      await Campaign.findByIdAndUpdate(campaignId, {
+        total_queued: firstBatch.length,
+      });
+
+      const CampaignAutoRunner = require("../services/CampaignAutoRunner");
+      CampaignAutoRunner.start({
+        campaignId,
+        emailsList: targetEmails.slice(batchSize),
+        ipPool,
+        emailOpts,
+        batchSize,
+        sleepSeconds: Number(sleep_time) || 5,
+        inboxPercentThreshold: Number(inbox_percent) || 50,
+      });
+
+      await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[BULK+AUTO] First batch of ${firstBatch.length} emails queued. AutoRunner started. Will send ${targetEmails.length - firstBatch.length} more emails in batches of ${batchSize} every ${sleep_time || 5}s.`,
+        type: "info",
+      });
+
+      return res.json({
+        message: `Bulk+Auto started: ${firstBatch.length} emails sent now. AutoRunner will continue automatically.`,
+        campaign_id: campaignId,
+        count: firstBatch.length,
+        total: targetEmails.length,
+        mode: campaignType,
+      });
+    }
+
+    // Fallback (should not reach here)
+    return res.status(400).json({ message: "Unknown mode combination" });
   } catch (error) {
-    console.error("Error queueing emails", error);
+    console.error("Error in sendEmail:", error);
     res
       .status(500)
-      .json({ message: "Error queueing emails", error: error.message });
+      .json({ message: "Error sending emails", error: error.message });
   }
 };
 
@@ -266,9 +563,7 @@ const getCampaignDetails = async (req, res) => {
       return res.status(404).json({ message: "Campaign not found" });
     }
 
-    // Map fields to the expected frontend structure
     const mappedData = {
-      // Main Headers & Content
       accs: c.accs || "",
       headers: c.headers || "",
       from_email: c.from_email || "",
@@ -279,8 +574,6 @@ const getCampaignDetails = async (req, res) => {
       message_html: c.message_html || "",
       message_plain: c.message_plain || "",
       search_replace: c.search_replace || "",
-
-      // Settings Grid
       data_file: c.data_file || "",
       total_send: String(c.total_send || ""),
       limit_to_send: c.limit_to_send || "",
@@ -290,24 +583,15 @@ const getCampaignDetails = async (req, res) => {
       domain: c.domain || "",
       wait_time: String(c.wait_time || "2"),
       message_id: c.message_id || "",
-      inb_pattern: c.inb_pattern || "1",
-      restart_choice: c.restart_choice || "YES",
-      script_choice: c.script_choice || "",
-      relay_percent: c.relay_percent || "",
       inbox_percent: c.inbox_percent || "",
-      times_to_send: String(c.times_to_send || "1"),
       mail_after: c.mail_after || "",
       reply_to: c.reply_to || "0",
       xmailer: c.xmailer || "0",
       interval_time: String(c.interval_time || ""),
-
-      // Charsets / Encodings
       charset: c.charset || "UTF-8",
       encoding: c.encoding || "8bit",
       charset_alt: c.charset_alt || "UTF-8",
       encoding_alt: c.encoding_alt || "8bit",
-
-      // Modes
       mode: c.mode || "test",
       sen_t: c.sen_t || "manual",
       status: c.status || "0",
@@ -339,7 +623,6 @@ const getCampaignLogs = async (req, res) => {
 
 const getInboxPatterns = async (req, res) => {
   try {
-    // Generate list of 24 patterns
     const patterns = Array.from({ length: 24 }, (_, i) => ({
       id: i + 1,
       name: `pattern ${i + 1}`,
@@ -363,6 +646,22 @@ const validateOffer = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/sendEmail/campaign-status/:id
+ * Returns live campaign stats for polling
+ */
+const getCampaignStatus = async (req, res) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id).select(
+      "status type mode sen_t success_count error_count total_emails inbox_count spam_count promo_count bounce_count total_queued guardian_logs",
+    );
+    if (!campaign) return res.status(404).json({ message: "Not found" });
+    res.json(campaign);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   sendEmail,
   getCampaigns,
@@ -371,4 +670,5 @@ module.exports = {
   getCampaignLogs,
   getInboxPatterns,
   validateOffer,
+  getCampaignStatus,
 };

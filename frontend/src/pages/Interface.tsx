@@ -11,6 +11,7 @@ import {
   useGetCampaignLogsQuery,
   useLazyGetFileInfoQuery,
   useLazyValidateOfferQuery,
+  useLazyGetCampaignStatusQuery,
 } from "../store/apiSlice";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -121,12 +122,16 @@ const Interface = () => {
   const [offerValid, setOfferValid] = useState<boolean | null>(null);
   const [postSendGuidance, setPostSendGuidance] = useState<string>("");
   const [campaignStatus, setCampaignStatus] = useState<string>("0");
+  const [liveStatus, setLiveStatus] = useState<any>(null);
+  const [sendError, setSendError] = useState<string>("");
 
   const [triggerGetFileInfo, { isFetching: isFetchingFileInfo }] =
     useLazyGetFileInfoQuery();
 
   const [triggerValidateOffer, { isFetching: isValidatingOffer }] =
     useLazyValidateOfferQuery();
+
+  const [triggerGetCampaignStatus] = useLazyGetCampaignStatusQuery();
 
   // Polling for logs when a campaign is active
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
@@ -293,18 +298,27 @@ const Interface = () => {
 
   const [sendEmailMutation] = useSendEmailMutation();
 
-  // handleInput is mostly replaced by register, but kept for manual overrides if any
-  const handleInput = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setValue(name as keyof InterfaceFormData, value);
-  };
+  // Poll live campaign status every 3s when a campaign is running
+  useEffect(() => {
+    if (!activeCampaignId) return;
+    const interval = setInterval(async () => {
+      try {
+        const result =
+          await triggerGetCampaignStatus(activeCampaignId).unwrap();
+        setLiveStatus(result);
+        if (result.status === "Completed" || result.status === "Stopped") {
+          clearInterval(interval);
+        }
+      } catch {
+        // silent fail
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [activeCampaignId]);
 
   const onSend = async (data: any) => {
     setSending(true);
+    setSendError("");
     try {
       const payload = {
         ...data,
@@ -313,15 +327,16 @@ const Interface = () => {
 
       const result = await sendEmailMutation(payload).unwrap();
       setActiveCampaignId(result.campaign_id);
+      setLiveStatus(null);
       setPollLogs(true);
-      if (result.guidance) {
-        setPostSendGuidance(result.guidance);
-      } else {
-        setPostSendGuidance("");
-      }
+      setPostSendGuidance(result.guidance || "");
       setStatus("Last sent: " + new Date().toLocaleTimeString());
     } catch (error: any) {
-      alert("Error: " + (error?.data?.message || "Send failed"));
+      const msg =
+        error?.data?.message ||
+        error?.error ||
+        "Send failed. Check all required fields and try again.";
+      setSendError(msg);
     } finally {
       setSending(false);
     }
@@ -682,7 +697,259 @@ const Interface = () => {
               >
                 {sending ? "SENDING..." : "SEND"}
               </button>
+              {/* Mode badge */}
+              <span
+                style={{
+                  marginLeft: "10px",
+                  fontSize: "11px",
+                  fontWeight: "bold",
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  backgroundColor:
+                    formData.sen_t === "auto" ? "#6366f1" : "#0ea5e9",
+                  color: "white",
+                  textTransform: "uppercase",
+                }}
+              >
+                {formData.mode} + {formData.sen_t}
+              </span>
             </div>
+
+            {/* ── Error Banner (replaces alert popup) ─────────────────── */}
+            {sendError && (
+              <div
+                style={{
+                  marginTop: "12px",
+                  padding: "12px 16px",
+                  backgroundColor: "#1e0a0a",
+                  border: "1px solid #ef4444",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                }}
+              >
+                <span
+                  style={{ color: "#ef4444", fontSize: "16px", flexShrink: 0 }}
+                >
+                  ✖
+                </span>
+                <div>
+                  <div
+                    style={{
+                      color: "#ef4444",
+                      fontWeight: "bold",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Send Failed
+                  </div>
+                  <div
+                    style={{
+                      color: "#fca5a5",
+                      fontSize: "12px",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {sendError}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSendError("")}
+                  style={{
+                    marginLeft: "auto",
+                    background: "none",
+                    border: "none",
+                    color: "#ef4444",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* ── Mode-Aware Live Status Panel ─────────────────────────── */}
+            {activeCampaignId && liveStatus && (
+              <div
+                style={{
+                  marginTop: "16px",
+                  padding: "14px",
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #334155",
+                  borderRadius: "8px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#94a3b8",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    CAMPAIGN LIVE STATUS
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      backgroundColor:
+                        liveStatus.status === "Running"
+                          ? "#16a34a"
+                          : liveStatus.status === "Completed"
+                            ? "#0ea5e9"
+                            : "#ef4444",
+                      color: "white",
+                    }}
+                  >
+                    {liveStatus.status}
+                  </span>
+                </div>
+
+                {/* Stats Grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "8px",
+                  }}
+                >
+                  {[
+                    {
+                      label: "Sent",
+                      value: liveStatus.success_count || 0,
+                      color: "#10b981",
+                    },
+                    {
+                      label: "Errors",
+                      value: liveStatus.error_count || 0,
+                      color: "#ef4444",
+                    },
+                    {
+                      label: "Total",
+                      value: liveStatus.total_emails || 0,
+                      color: "#94a3b8",
+                    },
+                    ...(liveStatus.type === "test_auto" ||
+                    liveStatus.type === "bulk_auto"
+                      ? [
+                          {
+                            label: "Inbox",
+                            value: liveStatus.inbox_count || 0,
+                            color: "#10b981",
+                          },
+                          {
+                            label: "Spam",
+                            value: liveStatus.spam_count || 0,
+                            color: "#f97316",
+                          },
+                          {
+                            label: "Bounce",
+                            value: liveStatus.bounce_count || 0,
+                            color: "#ef4444",
+                          },
+                        ]
+                      : []),
+                  ].map((stat, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        backgroundColor: "#1e293b",
+                        borderRadius: "6px",
+                        padding: "8px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: stat.color,
+                          fontWeight: "bold",
+                          fontSize: "18px",
+                        }}
+                      >
+                        {stat.value}
+                      </div>
+                      <div
+                        style={{
+                          color: "#64748b",
+                          fontSize: "10px",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {stat.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mode-specific hints */}
+                {liveStatus.type === "test_manual" && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      color: "#94a3b8",
+                      fontSize: "12px",
+                    }}
+                  >
+                    📋 <strong>Test + Manual</strong>: Check your inbox manually
+                    for placement results.
+                  </div>
+                )}
+                {liveStatus.type === "test_auto" && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      color: "#94a3b8",
+                      fontSize: "12px",
+                    }}
+                  >
+                    🤖 <strong>Test + Auto</strong>: IMAP scanner will check
+                    inbox placement in ~5 min. View results on Intelligence
+                    Dashboard.
+                  </div>
+                )}
+                {liveStatus.type === "bulk_manual" && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      color: "#94a3b8",
+                      fontSize: "12px",
+                    }}
+                  >
+                    📤 <strong>Bulk + Manual</strong>:{" "}
+                    {liveStatus.total_queued || 0} of {liveStatus.total_emails}{" "}
+                    queued. Click SEND again to dispatch next batch.
+                  </div>
+                )}
+                {liveStatus.type === "bulk_auto" && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      color: "#94a3b8",
+                      fontSize: "12px",
+                    }}
+                  >
+                    ⚡ <strong>Bulk + Auto</strong>: AutoRunner is sending in
+                    batches. {liveStatus.total_queued || 0} of{" "}
+                    {liveStatus.total_emails} queued. Dashboard updates every
+                    3s.
+                  </div>
+                )}
+              </div>
+            )}
 
             {campaignLogs.length > 0 && (
               <div

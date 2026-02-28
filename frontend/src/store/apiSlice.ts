@@ -407,6 +407,12 @@ export const apiSlice = createApi({
       query: () => '/intelligence/domain-health',
       providesTags: ['Intelligence'],
     }),
+
+    // ─── Campaign Live Status ─────────────────────────────────────────────────
+    getCampaignStatus: builder.query<any, string>({
+      query: (id) => `/sendEmail/campaign-status/${id}`,
+      providesTags: ['Campaign'],
+    }),
   }),
 });
 
@@ -516,6 +522,9 @@ export const {
   useGetIntelligenceStatsQuery,
   useGetIpHealthQuery,
   useGetDomainHealthQuery,
+  // Campaign Live Status
+  useGetCampaignStatusQuery,
+  useLazyGetCampaignStatusQuery,
 } = apiSlice;
 
 

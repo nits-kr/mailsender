@@ -30,6 +30,7 @@ const emailWorker = async (job) => {
     msgId,
     reply_to,
     xmailer,
+    wait_time,
   } = job.data;
 
   try {
@@ -273,6 +274,12 @@ const emailWorker = async (job) => {
     }
 
     console.log(`Email sent successfully to ${email} via ${mailing_ip}`);
+
+    // ── wait_time: per-email delay to control sending speed ──────────────
+    const delaySeconds = Number(wait_time);
+    if (delaySeconds > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+    }
   } catch (error) {
     console.error(`Error sending email to ${email}`, error);
     if (campaign_id) {
