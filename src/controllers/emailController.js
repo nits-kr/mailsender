@@ -11,6 +11,7 @@ const MonitoringMailbox = require("../models/MonitoringMailbox");
 const { generateMessageId } = require("../utils/patternGenerator");
 const TagEngine = require("../utils/tagEngine");
 const ReputationScore = require("../models/ReputationScore");
+const SmtpDetail = require("../models/SmtpDetail");
 const { parseIpPool } = require("../utils/parseIpPool");
 
 const applySearchReplace = (text, searchReplaceStr) => {
@@ -180,6 +181,7 @@ const sendEmail = async (req, res) => {
     mail_after,
     sleep_time,
     limit_to_send,
+    wait_time,
   } = req.body;
 
   // ── Validate required fields ──────────────────────────────────────────────
@@ -532,9 +534,19 @@ const sendEmail = async (req, res) => {
 
 const getDefaultIps = async (req, res) => {
   try {
-    const rows = await IP.find({ status: "active" });
-    const ips = rows.map((r) => r.ip).join("\n");
-    res.json({ ips });
+    const ipRows = await IP.find({ status: "active" });
+    const legacyIps = ipRows.map((r) => r.ip);
+
+    const smtpRows = await SmtpDetail.find({});
+    const accountIps = smtpRows.map((r) => {
+      if (r.user && r.assignedip) {
+        return `${r.assignedip}|${r.user}`;
+      }
+      return r.assignedip;
+    });
+
+    const combined = [...legacyIps, ...accountIps].join("\n");
+    res.json({ ips: combined });
   } catch (error) {
     console.error("Error fetching default IPs from MongoDB", error);
     res.status(500).json({
