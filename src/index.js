@@ -59,24 +59,6 @@ app.use(
   "/uploads/temp",
   express.static(path.join(__dirname, "../uploads/temp")),
 );
-
-// Dynamic Image Pattern Interceptor
-// This allows users to invent any URL structure (e.g. /images/deals/promo-filename.jpg)
-// As long as it ends in an image extension, we serve it from /uploads/images/
-app.get(/(.*)/, (req, res, next) => {
-  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(req.path);
-  if (isImage) {
-    const filename = path.basename(req.path);
-    const imagePath = path.join(__dirname, "../uploads/images", filename);
-    const fs = require("fs");
-
-    // Only serve if it actually exists in our local uploads folder
-    if (fs.existsSync(imagePath)) {
-      return res.sendFile(imagePath);
-    }
-  }
-  next();
-});
 app.use(
   "/all_tar",
   (req, res, next) => {
