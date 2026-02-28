@@ -310,7 +310,7 @@ const emailWorker = async (job) => {
         (updatedCampaign.error_count || 0);
       await CampaignLog.create({
         campaign_id,
-        log_text: `[${email}] SEND ERROR: ${error.message}`,
+        log_text: `[${email}] SEND ERROR: ${error.message} (Host: ${smtpConfig?.host}, User: ${smtpConfig?.auth?.user})`,
         type: "error",
         sent: totalSent,
         mail_status: `${email} error`,

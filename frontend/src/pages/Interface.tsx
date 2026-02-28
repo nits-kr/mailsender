@@ -308,8 +308,11 @@ const Interface = () => {
           clearInterval(interval);
           setPollLogs(false);
         }
-      } catch {
-        // silent fail
+      } catch (err: any) {
+        // Stop polling on errors (e.g. 404 Not Found) to prevent infinite loops
+        if (err?.status === 404 || err?.status === 500) {
+          clearInterval(interval);
+        }
       }
     }, 3000);
     return () => clearInterval(interval);
