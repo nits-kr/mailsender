@@ -10,7 +10,6 @@ import {
   useSendEmailMutation,
   useGetCampaignLogsQuery,
   useLazyGetFileInfoQuery,
-  useGetPatternsQuery,
   useLazyValidateOfferQuery,
 } from "../store/apiSlice";
 import { useForm } from "react-hook-form";
@@ -39,18 +38,10 @@ const interfaceSchema = z.object({
   domain: z.string().min(1, "Domain is required"),
   wait_time: z.string().min(1, "Wait time is required"),
   message_id: z.string().optional().nullable(),
-  inb_pattern: z.string().min(1, "Inbox pattern is required"),
-  restart_choice: z.string().optional().nullable(),
-  script_choice: z.string().optional().nullable(),
-  relay_percent: z
-    .string()
-    .regex(/^[0-9]*$/, "Must be a number")
-    .min(1, "Relay percent is required"),
   inbox_percent: z
     .string()
     .regex(/^[0-9]*$/, "Must be a number")
     .min(1, "Inbox percent is required"),
-  times_to_send: z.string().min(1, "Times to send is required"),
   mail_after: z.string().min(1, "Mail after is required"),
   reply_to: z.string().optional().nullable(),
   xmailer: z.string().optional().nullable(),
@@ -98,12 +89,7 @@ const Interface = () => {
       domain: "",
       wait_time: "2",
       message_id: "",
-      inb_pattern: "1",
-      restart_choice: "YES",
-      script_choice: "",
-      relay_percent: "",
       inbox_percent: "",
-      times_to_send: "1",
       mail_after: "",
       reply_to: "0",
       xmailer: "0",
@@ -141,8 +127,6 @@ const Interface = () => {
 
   const [triggerValidateOffer, { isFetching: isValidatingOffer }] =
     useLazyValidateOfferQuery();
-
-  const { data: patterns = [] } = useGetPatternsQuery();
 
   // Polling for logs when a campaign is active
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
@@ -233,12 +217,7 @@ const Interface = () => {
       domain: campaignDetail.domain || "",
       wait_time: campaignDetail.wait_time || "2",
       message_id: campaignDetail.message_id || "",
-      inb_pattern: campaignDetail.inb_pattern || "1",
-      restart_choice: campaignDetail.restart_choice || "YES",
-      script_choice: campaignDetail.script_choice || "",
-      relay_percent: campaignDetail.relay_percent || "",
       inbox_percent: campaignDetail.inbox_percent || "",
-      times_to_send: campaignDetail.times_to_send || "1",
       mail_after: campaignDetail.mail_after || "",
       reply_to: campaignDetail.reply_to || "0",
       xmailer: campaignDetail.xmailer || "0",
@@ -1025,61 +1004,8 @@ const Interface = () => {
                     </span>
                   )}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <select
-                    className={errors.inb_pattern ? "invalid-input" : ""}
-                    title="Inbox Pattern"
-                    {...register("inb_pattern")}
-                  >
-                    <option value="0">Inbox Pattern</option>
-                    {patterns.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.inb_pattern && (
-                    <span className="error-text small">
-                      {String(errors.inb_pattern.message)}
-                    </span>
-                  )}
-                </div>
               </div>
               <div className="settings-row">
-                <div style={{ flex: 1 }}>
-                  <select
-                    className={errors.restart_choice ? "invalid-input" : ""}
-                    title="Restart_Choice"
-                    {...register("restart_choice")}
-                  >
-                    <option value="YES">Restart_Choice</option>
-                    <option value="YES">YES</option>
-                    <option value="NO">NO</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <input
-                    className={errors.script_choice ? "invalid-input" : ""}
-                    placeholder="Script_Mail_Choice"
-                    title="Script_Mail_Choice"
-                    {...register("script_choice")}
-                  />
-                </div>
-              </div>
-              <div className="settings-row">
-                <div style={{ flex: 1 }}>
-                  <input
-                    className={errors.relay_percent ? "invalid-input" : ""}
-                    placeholder="Relay Percent"
-                    title="Relay Percent"
-                    {...register("relay_percent")}
-                  />
-                  {errors.relay_percent && (
-                    <span className="error-text small">
-                      {String(errors.relay_percent.message)}
-                    </span>
-                  )}
-                </div>
                 <div style={{ flex: 1 }}>
                   <input
                     className={errors.inbox_percent ? "invalid-input" : ""}
@@ -1097,22 +1023,9 @@ const Interface = () => {
               <div className="settings-row">
                 <div style={{ flex: 1 }}>
                   <input
-                    className={errors.times_to_send ? "invalid-input" : ""}
-                    placeholder="Times_To_Send"
-                    title="Times_To_Send"
-                    {...register("times_to_send")}
-                  />
-                  {errors.times_to_send && (
-                    <span className="error-text small">
-                      {String(errors.times_to_send.message)}
-                    </span>
-                  )}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <input
                     className={errors.mail_after ? "invalid-input" : ""}
-                    placeholder="Mail_After_Every"
-                    title="Mail_After_Every"
+                    placeholder="Inbox test after"
+                    title="Inbox test after"
                     {...register("mail_after")}
                   />
                   {errors.mail_after && (
