@@ -30,6 +30,7 @@ export const apiSlice = createApi({
     'Dashboard',
     'SmtpDetail',
     'Legacy',
+    'Intelligence',
   ],
   endpoints: (builder) => ({
 
@@ -392,6 +393,20 @@ export const apiSlice = createApi({
     getMailboxData: builder.query<any[], string>({
       query: (email) => `/mailbox/data/${email}`,
     }),
+
+    // â”€â”€â”€ Inbox Intelligence Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    getIntelligenceStats: builder.query<any, void>({
+      query: () => '/intelligence/stats',
+      providesTags: ['Intelligence'],
+    }),
+    getIpHealth: builder.query<any[], void>({
+      query: () => '/intelligence/ip-health',
+      providesTags: ['Intelligence'],
+    }),
+    getDomainHealth: builder.query<any[], void>({
+      query: () => '/intelligence/domain-health',
+      providesTags: ['Intelligence'],
+    }),
   }),
 });
 
@@ -497,6 +512,10 @@ export const {
   // IMAP Mailbox
   useGetMailboxEmailsQuery,
   useGetMailboxDataQuery,
+  // Intelligence
+  useGetIntelligenceStatsQuery,
+  useGetIpHealthQuery,
+  useGetDomainHealthQuery,
 } = apiSlice;
 
 

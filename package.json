@@ -30,11 +30,12 @@
     "fs-extra": "^11.3.3",
     "imap": "^0.8.19",
     "ioredis": "^5.9.2",
+    "jimp": "^1.6.0",
     "jsonwebtoken": "^9.0.3",
     "mailparser": "^3.9.3",
     "mongoose": "^9.1.6",
     "multer": "^2.0.2",
-
+    "node-cron": "^4.2.1",
     "node-imap": "^0.9.6",
     "node-ssh": "^13.2.1",
     "nodemailer": "^8.0.0",

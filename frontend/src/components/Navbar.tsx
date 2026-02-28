@@ -56,7 +56,10 @@ const Navbar = () => {
       name: "TOOLS",
       path: "#",
       icon: Settings,
-      dropdown: [{ name: "Data File List", path: "/data-count" }],
+      dropdown: [
+        { name: "Data File List", path: "/data-count" },
+        { name: "INTELLIGENCE", path: "/intelligence", isAdmin: true },
+      ],
     },
     {
       name: "LOGIN",

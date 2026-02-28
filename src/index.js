@@ -95,6 +95,7 @@ app.use("/api/mailbox", require("./routes/mailboxRoutes"));
 app.use("/api/imap-screens", require("./routes/imapScreenRoutes"));
 app.use("/api/smtp", smtpRoutes);
 app.use("/api/legacy", require("./routes/legacyRoutes"));
+app.use("/api/intelligence", require("./routes/intelligenceRoutes"));
 app.use("/t", trackingRoutes);
 
 app.get("/", (req, res) => {
@@ -111,4 +112,8 @@ app.listen(PORT, async () => {
   logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   // Start the background IMAP scanner job
   await startImapScannerJob();
+
+  // Start the Inbox Intelligence Engine Monitor
+  const inboxMonitor = require("./services/intelligence/InboxMonitor");
+  inboxMonitor.start();
 });

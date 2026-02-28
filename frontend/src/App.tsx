@@ -43,6 +43,7 @@ import FsockManual from "./pages/FsockManual";
 import FsockHelp from "./pages/FsockHelp";
 import { InterfaceNewPage } from "./pages/InterfaceNewPage";
 import InterfaceGuide from "./pages/InterfaceGuide";
+import IntelligenceDashboard from "./pages/IntelligenceDashboard";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -86,6 +87,7 @@ const TitleUpdater = () => {
       "/fsock-send-smtp-auto": "Mail Interface (Auto)",
       "/interface-new": "Advanced Mailer",
       "/interface/guide": "Interface Guide",
+      "/intelligence": "Inbox Intelligence",
     };
 
     const path = location.pathname;
@@ -397,6 +399,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <InterfaceNewPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/intelligence"
+                element={
+                  <ProtectedRoute requiredDesignation="Admin">
+                    <IntelligenceDashboard />
                   </ProtectedRoute>
                 }
               />
