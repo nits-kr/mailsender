@@ -308,9 +308,21 @@ const emailWorker = async (job) => {
       const totalSent =
         (updatedCampaign.success_count || 0) +
         (updatedCampaign.error_count || 0);
+
+      // Auto-complete if finished
+      if (totalSent >= (updatedCampaign.total_emails || 0)) {
+        console.log(
+          `Campaign ${campaign_id} reaching end (${totalSent}/${updatedCampaign.total_emails}). Setting to Completed.`,
+        );
+        await Campaign.findByIdAndUpdate(campaign_id, {
+          status: "Completed",
+          end_time: new Date(),
+        });
+      }
+
       await CampaignLog.create({
         campaign_id,
-        log_text: `[${email}] SEND ERROR: ${error.message} (Host: ${smtpConfig?.host}, User: ${smtpConfig?.auth?.user})`,
+        log_text: `[${email}] SEND ERROR: ${error.message}${smtpConfig ? ` (Host: ${smtpConfig.host}, User: ${smtpConfig.auth?.user})` : ""}`,
         type: "error",
         sent: totalSent,
         mail_status: `${email} error`,
@@ -319,14 +331,6 @@ const emailWorker = async (job) => {
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});
-
-      // Auto-complete if finished
-      if (totalSent >= (updatedCampaign.total_emails || 0)) {
-        await Campaign.findByIdAndUpdate(campaign_id, {
-          status: "Completed",
-          end_time: new Date(),
-        });
-      }
     }
     if (dashboardLogId) {
       await Log.findByIdAndUpdate(dashboardLogId, { $inc: { error: 1 } });

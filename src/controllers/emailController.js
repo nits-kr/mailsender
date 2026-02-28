@@ -447,7 +447,9 @@ const sendEmail = async (req, res) => {
             });
           }
         }
-
+        await Campaign.findByIdAndUpdate(campaignId, {
+          total_queued: monitoringMailboxes.length * ipPool.length,
+        });
         await CampaignLog.create({
           campaign_id: campaignId,
           log_text: `[TEST+AUTO] Sent to ${monitoringMailboxes.length} monitoring mailboxes from ${ipPool.length} IP(s). IMAP scan will run automatically in 5 min.`,
