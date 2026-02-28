@@ -133,6 +133,7 @@ const ServerSetupUbuntu = () => {
                     padding: 2px 5px;
                     font-size: 11px;
                     outline: none;
+                    color: #000;
                 }
 
                 .legacy-textarea {
@@ -142,6 +143,7 @@ const ServerSetupUbuntu = () => {
                     padding: 5px;
                     resize: none;
                     height: 80px;
+                    color: #000;
                 }
 
                 .two-col-layout {
@@ -191,6 +193,7 @@ const ServerSetupUbuntu = () => {
                     cursor: pointer;
                     margin: 10px auto;
                     display: block;
+                    color: #000;
                 }
 
                 .submit-btn:active { background-color: #e0e0e0; }
@@ -218,6 +221,7 @@ const ServerSetupUbuntu = () => {
                     font-size: 11px;
                     padding: 1px 4px;
                     border: 1px solid #c0c0c0;
+                    color: #000;
                 }
             `}</style>
 
