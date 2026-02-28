@@ -609,11 +609,10 @@ const Interface = () => {
                 <div className="settings-row">
                   <div style={{ position: "relative", flex: 1 }}>
                     <input
-                      name="offer_id"
+                      className={errors.offer_id ? "invalid-input" : ""}
                       placeholder="Offer ID"
                       title="Offer ID"
-                      value={formData.offer_id}
-                      onChange={handleInput}
+                      {...register("offer_id")}
                       style={{
                         width: "100%",
                         paddingRight:
@@ -622,6 +621,11 @@ const Interface = () => {
                             : "8px",
                       }}
                     />
+                    {errors.offer_id && (
+                      <span className="error-text small">
+                        {String(errors.offer_id.message)}
+                      </span>
+                    )}
                     {isValidatingOffer ? (
                       <span
                         style={{

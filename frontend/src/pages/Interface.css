@@ -21,7 +21,7 @@
   border-bottom: 2px solid #00c6ff;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
-  max-width: 1250px;
+  /* max-width: 1250px; */
   margin-left: auto;
   margin-right: auto;
 }
@@ -135,7 +135,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   min-height: 800px;
   width: 100%;
-  max-width: 1250px;
+  /* max-width: 1250px; */
   margin-left: auto;
   margin-right: auto;
 }
@@ -169,9 +169,8 @@
   flex: 1;
   background-color: white;
   padding: 40px 20px;
-  padding-right: 300px; /* Space for the 280px panel + padding */
+  padding-right: 320px; /* Space for the 280px panel + padding */
   position: relative;
-  /* Maintain standard radii */
   border-radius: 0 8px 8px 0;
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
@@ -359,8 +358,7 @@
 
 .settings-row input,
 .settings-row select {
-  flex: 1;
-  min-width: 0; 
+  width: 100%;
   padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -443,7 +441,7 @@
 }
 
 .main-form-content {
-  max-width: 650px;
+  max-width: 600px;
   width: 100%;
 }
 
@@ -581,6 +579,8 @@
   font-weight: bold;
   margin-top: 2px;
   display: block;
+  max-width: 100%;
+  word-break: break-word;
 }
 
 .error-text.small {
