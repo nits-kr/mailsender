@@ -63,7 +63,7 @@ app.use(
 // Dynamic Image Pattern Interceptor
 // This allows users to invent any URL structure (e.g. /images/deals/promo-filename.jpg)
 // As long as it ends in an image extension, we serve it from /uploads/images/
-app.get("/*", (req, res, next) => {
+app.get("*", (req, res, next) => {
   const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(req.path);
   if (isImage) {
     const filename = path.basename(req.path);
