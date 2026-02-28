@@ -250,7 +250,7 @@ export const InterfaceNewPage = () => {
       </div>
 
       <div className="register-main">
-        {/* Left Sidebar */}
+        {/* Left Sidebar (Column 1) */}
         <div className="register-left">
           <div
             style={{
@@ -276,249 +276,8 @@ export const InterfaceNewPage = () => {
           </div>
         </div>
 
-        {/* Right Content */}
-        <div className="register-right">
-          {/* Floating Right Panel (Toggles & Settings) */}
-          <div className="floating-right-panel-new">
-            <div className="toggle-group-new-con">
-              <div className="toggle-group-new">
-                <input
-                  type="radio"
-                  id="test-mode"
-                  name="mode"
-                  value="test"
-                  className="mode-test"
-                  checked={formData.mode === "test"}
-                  onChange={handleInput}
-                />
-                <label htmlFor="test-mode">Test</label>
-                <input
-                  type="radio"
-                  id="bulk-mode"
-                  name="mode"
-                  value="bulk"
-                  className="mode-bulk"
-                  checked={formData.mode === "bulk"}
-                  onChange={handleInput}
-                />
-                <label htmlFor="bulk-mode">Bulk</label>
-              </div>
-
-              <div className="toggle-group-new">
-                <input
-                  type="radio"
-                  id="manual-sen"
-                  name="sen_t"
-                  value="manual"
-                  className="sen-manual"
-                  checked={formData.sen_t === "manual"}
-                  onChange={handleInput}
-                />
-                <label htmlFor="manual-sen">Manual</label>
-                <input
-                  type="radio"
-                  id="auto-sen"
-                  name="sen_t"
-                  value="auto"
-                  className="sen-auto"
-                  checked={formData.sen_t === "auto"}
-                  onChange={handleInput}
-                />
-                <label htmlFor="auto-sen">Auto</label>
-              </div>
-            </div>
-
-            {/* Sidebar Settings */}
-            <div className="settings-panel-new">
-              <details className="legacy-details-new">
-                <summary className="settings-header-new">▼ Settings</summary>
-                <div className="settings-grid-new">
-                  <div className="settings-row-new">
-                    <input
-                      name="data_file"
-                      placeholder="Data File"
-                      title="Data File"
-                      value={formData.data_file}
-                      onChange={handleInput}
-                    />
-                    <input
-                      name="total_send"
-                      placeholder="Total Send"
-                      title="Total Send"
-                      value={formData.total_send}
-                      onChange={handleInput}
-                    />
-                  </div>
-                  <div className="settings-row-new">
-                    <input
-                      name="limit_to_send"
-                      placeholder="Limit_to_Send"
-                      title="Limit_to_Send"
-                      value={formData.limit_to_send}
-                      onChange={handleInput}
-                    />
-                    <input
-                      name="sleep_time"
-                      placeholder="Sleep Time"
-                      title="Sleep Time"
-                      value={formData.sleep_time}
-                      onChange={handleInput}
-                    />
-                  </div>
-                  <div className="settings-row-new">
-                    <input
-                      name="offer_id"
-                      placeholder="Offer ID"
-                      title="Offer ID"
-                      value={formData.offer_id}
-                      onChange={handleInput}
-                    />
-                    <input
-                      name="template_name"
-                      placeholder="Template"
-                      title="Template Name"
-                      value={formData.template_name}
-                      onChange={handleInput}
-                    />
-                  </div>
-                  <div className="settings-row-new">
-                    <input
-                      name="domain"
-                      placeholder="Domain"
-                      title="Domain"
-                      value={formData.domain}
-                      onChange={handleInput}
-                    />
-                    <select
-                      name="wait_time"
-                      title="Wait Time"
-                      value={formData.wait_time}
-                      onChange={handleInput}
-                    >
-                      <option value="2">Wait Time</option>
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                    </select>
-                  </div>
-                  <div className="settings-row-new">
-                    <input
-                      name="message_id"
-                      placeholder="Msg ID"
-                      title="Message ID"
-                      value={formData.message_id}
-                      onChange={handleInput}
-                    />
-                    <select
-                      name="inb_pattern"
-                      title="Inbox Pattern"
-                      value={formData.inb_pattern}
-                      onChange={handleInput}
-                    >
-                      <option value="1">Inbox Pattern</option>
-                      <option value="1">Pattern 1</option>
-                      <option value="2">Pattern 2</option>
-                    </select>
-                  </div>
-                  <div className="settings-row-new">
-                    <select
-                      name="restart_choice"
-                      title="Restart_Choice"
-                      value={formData.restart_choice}
-                      onChange={handleInput}
-                    >
-                      <option value="YES">Restart_Choice</option>
-                      <option value="YES">YES</option>
-                      <option value="NO">NO</option>
-                    </select>
-                    <input
-                      name="script_choice"
-                      placeholder="Script_Mail_Choice"
-                      title="Script_Mail_Choice"
-                      value={formData.script_choice}
-                      onChange={handleInput}
-                    />
-                  </div>
-                  <div className="settings-row-new">
-                    <input
-                      name="relay_percent"
-                      placeholder="Relay Percent"
-                      title="Relay Percent"
-                      value={formData.relay_percent}
-                      onChange={handleInput}
-                    />
-                    <input
-                      name="inbox_percent"
-                      placeholder="Inbox Percent"
-                      title="Inbox Percent"
-                      value={formData.inbox_percent}
-                      onChange={handleInput}
-                    />
-                  </div>
-                  <div className="settings-row-new">
-                    <input
-                      name="times_to_send"
-                      placeholder="Times_To_Send"
-                      title="Times_To_Send"
-                      value={formData.times_to_send}
-                      onChange={handleInput}
-                    />
-                    <input
-                      name="mail_after"
-                      placeholder="Mail_After_Every"
-                      title="Mail_After_Every"
-                      value={formData.mail_after}
-                      onChange={handleInput}
-                    />
-                  </div>
-                  <div className="settings-row-new">
-                    <select
-                      name="reply_to"
-                      title="Reply to"
-                      value={formData.reply_to}
-                      onChange={handleInput}
-                    >
-                      <option value="0">Reply to</option>
-                      <option value="1">YES</option>
-                      <option value="0">NO</option>
-                    </select>
-                    <select
-                      name="xmailer"
-                      title="XMAILER"
-                      value={formData.xmailer}
-                      onChange={handleInput}
-                    >
-                      <option value="0">XMAILER</option>
-                      <option value="1">YES</option>
-                      <option value="0">NO</option>
-                    </select>
-                  </div>
-                </div>
-              </details>
-
-              <details className="legacy-details-new">
-                <summary className="settings-header-new">
-                  ▼ Space Sending
-                </summary>
-                <div className="space-sending-box-new">
-                  <div className="interval-control-new">
-                    <input
-                      type="number"
-                      name="interval_time"
-                      placeholder="Interval Time"
-                      title="Interval Time"
-                      value={formData.interval_time}
-                      onChange={handleInput}
-                    />
-                    <button className="btn-start-new">Start</button>
-                    <button className="btn-stop-new">Stop</button>
-                  </div>
-                </div>
-              </details>
-            </div>
-          </div>
-
-          {/* Main Form Fields */}
+        {/* Middle Content (Column 2) */}
+        <div className="register-middle">
           <div className="main-form-content-new">
             <div
               style={{
@@ -808,7 +567,245 @@ export const InterfaceNewPage = () => {
                 {sending ? "SENDING..." : "SEND"}
               </button>
             </div>
+
             {status && <div className="send-status-new">{status}</div>}
+          </div>
+        </div>
+
+        {/* Settings Sidebar (Column 3) */}
+        <div className="register-settings-right">
+          <div className="toggle-group-new-con">
+            <div className="toggle-group-new">
+              <input
+                type="radio"
+                id="test-mode"
+                name="mode"
+                value="test"
+                className="mode-test"
+                checked={formData.mode === "test"}
+                onChange={handleInput}
+              />
+              <label htmlFor="test-mode">Test</label>
+              <input
+                type="radio"
+                id="bulk-mode"
+                name="mode"
+                value="bulk"
+                className="mode-bulk"
+                checked={formData.mode === "bulk"}
+                onChange={handleInput}
+              />
+              <label htmlFor="bulk-mode">Bulk</label>
+            </div>
+
+            <div className="toggle-group-new">
+              <input
+                type="radio"
+                id="manual-sen"
+                name="sen_t"
+                value="manual"
+                className="sen-manual"
+                checked={formData.sen_t === "manual"}
+                onChange={handleInput}
+              />
+              <label htmlFor="manual-sen">Manual</label>
+              <input
+                type="radio"
+                id="auto-sen"
+                name="sen_t"
+                value="auto"
+                className="sen-auto"
+                checked={formData.sen_t === "auto"}
+                onChange={handleInput}
+              />
+              <label htmlFor="auto-sen">Auto</label>
+            </div>
+          </div>
+
+          <div className="settings-panel-new">
+            <details className="legacy-details-new" open>
+              <summary className="settings-header-new">▼ Settings</summary>
+              <div className="settings-grid-new">
+                <div className="settings-row-new">
+                  <input
+                    name="data_file"
+                    placeholder="Data File"
+                    title="Data File"
+                    value={formData.data_file}
+                    onChange={handleInput}
+                  />
+                  <input
+                    name="total_send"
+                    placeholder="Total Send"
+                    title="Total Send"
+                    value={formData.total_send}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="settings-row-new">
+                  <input
+                    name="limit_to_send"
+                    placeholder="Limit_to_Send"
+                    title="Limit_to_Send"
+                    value={formData.limit_to_send}
+                    onChange={handleInput}
+                  />
+                  <input
+                    name="sleep_time"
+                    placeholder="Sleep Time"
+                    title="Sleep Time"
+                    value={formData.sleep_time}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="settings-row-new">
+                  <input
+                    name="offer_id"
+                    placeholder="Offer ID"
+                    title="Offer ID"
+                    value={formData.offer_id}
+                    onChange={handleInput}
+                  />
+                  <input
+                    name="template_name"
+                    placeholder="Template"
+                    title="Template Name"
+                    value={formData.template_name}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="settings-row-new">
+                  <input
+                    name="domain"
+                    placeholder="Domain"
+                    title="Domain"
+                    value={formData.domain}
+                    onChange={handleInput}
+                  />
+                  <select
+                    name="wait_time"
+                    title="Wait Time"
+                    value={formData.wait_time}
+                    onChange={handleInput}
+                  >
+                    <option value="2">Wait Time</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+                <div className="settings-row-new">
+                  <input
+                    name="message_id"
+                    placeholder="Msg ID"
+                    title="Message ID"
+                    value={formData.message_id}
+                    onChange={handleInput}
+                  />
+                  <select
+                    name="inb_pattern"
+                    title="Inbox Pattern"
+                    value={formData.inb_pattern}
+                    onChange={handleInput}
+                  >
+                    <option value="1">Inbox Pattern</option>
+                    <option value="1">Pattern 1</option>
+                    <option value="2">Pattern 2</option>
+                  </select>
+                </div>
+                <div className="settings-row-new">
+                  <select
+                    name="restart_choice"
+                    title="Restart_Choice"
+                    value={formData.restart_choice}
+                    onChange={handleInput}
+                  >
+                    <option value="YES">Restart_Choice</option>
+                    <option value="YES">YES</option>
+                    <option value="NO">NO</option>
+                  </select>
+                  <input
+                    name="script_choice"
+                    placeholder="Script_Mail_Choice"
+                    title="Script_Mail_Choice"
+                    value={formData.script_choice}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="settings-row-new">
+                  <input
+                    name="relay_percent"
+                    placeholder="Relay Percent"
+                    title="Relay Percent"
+                    value={formData.relay_percent}
+                    onChange={handleInput}
+                  />
+                  <input
+                    name="inbox_percent"
+                    placeholder="Inbox Percent"
+                    title="Inbox Percent"
+                    value={formData.inbox_percent}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="settings-row-new">
+                  <input
+                    name="times_to_send"
+                    placeholder="Times_To_Send"
+                    title="Times_To_Send"
+                    value={formData.times_to_send}
+                    onChange={handleInput}
+                  />
+                  <input
+                    name="mail_after"
+                    placeholder="Mail_After_Every"
+                    title="Mail_After_Every"
+                    value={formData.mail_after}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="settings-row-new">
+                  <select
+                    name="reply_to"
+                    title="Reply to"
+                    value={formData.reply_to}
+                    onChange={handleInput}
+                  >
+                    <option value="0">Reply to</option>
+                    <option value="1">YES</option>
+                    <option value="0">NO</option>
+                  </select>
+                  <select
+                    name="xmailer"
+                    title="XMAILER"
+                    value={formData.xmailer}
+                    onChange={handleInput}
+                  >
+                    <option value="0">XMAILER</option>
+                    <option value="1">YES</option>
+                    <option value="0">NO</option>
+                  </select>
+                </div>
+              </div>
+            </details>
+
+            <details className="legacy-details-new" open>
+              <summary className="settings-header-new">▼ Space Sending</summary>
+              <div className="space-sending-box-new">
+                <div className="interval-control-new">
+                  <input
+                    type="number"
+                    name="interval_time"
+                    placeholder="Interval Time"
+                    title="Interval Time"
+                    value={formData.interval_time}
+                    onChange={handleInput}
+                  />
+                  <button className="btn-start-new">Start</button>
+                  <button className="btn-stop-new">Stop</button>
+                </div>
+              </div>
+            </details>
           </div>
         </div>
       </div>

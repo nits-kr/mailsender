@@ -122,9 +122,8 @@
 }
 
 .register-left {
-  width: 300px;
-  flex-shrink: 0;
-  padding: 40px 20px;
+  flex: 0 0 18%;
+  padding: 40px 15px;
   display: flex;
   flex-direction: column;
 }
@@ -149,34 +148,34 @@
   box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
 }
 
-.register-right {
-  flex-grow: 1;
+.register-middle {
+  flex: 0 0 57%;
   background: white;
-  /* Reduced border radius to prevent clipping on smaller screens */
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
-  padding: 40px 60px;
-  position: relative;
-  min-height: 900px;
+  padding: 40px 30px;
+  overflow-y: auto;
+  border-right: 1px solid #eee;
 }
 
-/* Floating Right Panel */
-.floating-right-panel-new {
-  position: absolute;
-  top: 40px;
-  right: 20px; /* Moved closer to edge */
-  width: 300px; /* Increased from 280px to prevent clipping */
+.register-settings-right {
+  flex: 0 0 25%;
+  background: #f9fafb;
+  padding: 40px 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  z-index: 10; /* Ensure it stays on top */
+  overflow-y: auto;
+  border-left: 1px solid #e5e7eb;
 }
+
+/* Removed floating panel as it's now a column */
 
 .toggle-group-new-con {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  align-items: flex-start;
+  gap: 15px;
+  align-items: center; /* Centered in sidebar */
 }
 
 .toggle-group-new {
@@ -304,10 +303,10 @@
 .btn-start-new { background: #10b981; }
 .btn-stop-new { background: #ef4444; }
 
-/* Main Form Fields */
+/* Main Form Content */
 .main-form-content-new {
-  max-width: 850px;
-  margin-right: 320px; /* Ensure no overlap with floating panel */
+  width: 100%;
+  max-width: 100%;
 }
 
 .input-field-new {
