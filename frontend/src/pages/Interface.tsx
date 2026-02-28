@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Loader2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Interface.css";
+import RichTextEditor from "../components/RichTextEditor";
 import {
   useGetCampaignsQuery,
   useGetCampaignByIdQuery,
@@ -127,7 +128,9 @@ const Interface = () => {
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const [dataFileSyncRate, setDataFileSyncRate] = useState<string>("");
   const [pollLogs, setPollLogs] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [dataFileCount, setDataFileCount] = useState<number | null>(null);
   const [offerValid, setOfferValid] = useState<boolean | null>(null);
   const [postSendGuidance, setPostSendGuidance] = useState<string>("");
@@ -358,7 +361,7 @@ const Interface = () => {
   };
 
   const handleEditor = () => {
-    window.open("http://173.249.50.153/edit.php", "_blank");
+    setShowEditor(true);
   };
 
   return (
@@ -1165,6 +1168,19 @@ const Interface = () => {
           </details>
         </div>
       </div>
+
+      {showEditor && (
+        <RichTextEditor
+          value={watch("message_html")}
+          onChange={(content) =>
+            setValue("message_html", content, {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+          }
+          onClose={() => setShowEditor(false)}
+        />
+      )}
     </div>
   );
 };
