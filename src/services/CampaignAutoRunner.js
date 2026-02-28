@@ -256,7 +256,7 @@ class CampaignAutoRunner {
       currentOffset += batch.length;
 
       await Campaign.findByIdAndUpdate(campaignId, {
-        total_queued: totalQueuedInRunner,
+        total_queued: currentOffset,
       });
 
       const distLog = Object.entries(stats)

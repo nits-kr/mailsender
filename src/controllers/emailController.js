@@ -443,6 +443,12 @@ const sendEmail = async (req, res) => {
       (campaignType === "test_auto" &&
         (await MonitoringMailbox.countDocuments({ isActive: true })) === 0)
     ) {
+      if (!ipPool || ipPool.length === 0) {
+        return res.status(400).json({
+          message:
+            "No active IPs or SMTP accounts found. Please check your setup.",
+        });
+      }
       // ── TEST + MANUAL (or fallback AUTO): Round-robin across ip pool ──
       let pIdx = startIndex % ipPool.length;
       const batchEmails = targetEmails.slice(startIndex);
@@ -506,6 +512,14 @@ const sendEmail = async (req, res) => {
     }
 
     if (campaignType === "bulk_manual") {
+      if (!ipPool || ipPool.length === 0) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "No active IPs or SMTP accounts found. Please check your setup.",
+          });
+      }
       // ── BULK + MANUAL: Round-robin batch starting from offset ───────────
       const batchSize = Number(limit_to_send) || 500;
       const batchEmails = targetEmails.slice(
@@ -545,6 +559,14 @@ const sendEmail = async (req, res) => {
     }
 
     if (campaignType === "bulk_auto") {
+      if (!ipPool || ipPool.length === 0) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "No active IPs or SMTP accounts found. Please check your setup.",
+          });
+      }
       // ── BULK + AUTO: First batch + start AutoRunner from offset ────────
       const batchSize = Number(mail_after) || 100;
       const firstBatch = targetEmails.slice(startIndex, startIndex + batchSize);
