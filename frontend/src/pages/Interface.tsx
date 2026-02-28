@@ -562,9 +562,12 @@ const Interface = () => {
               )}
               <div
                 className="radio-group"
-                style={{ justifyContent: "space-between" }}
+                style={{
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
               >
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "15px" }}>
                   <label className="radio-item">
                     <input
                       type="radio"
@@ -578,6 +581,7 @@ const Interface = () => {
                       type="radio"
                       value="plain"
                       {...register("msg_type")}
+                      defaultChecked
                     />{" "}
                     PLAIN
                   </label>
@@ -590,15 +594,23 @@ const Interface = () => {
                     MIME
                   </label>
                 </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    className="preview-btn"
+                    onClick={handlePreview}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    className="editor-btn"
+                    onClick={handleEditor}
+                  >
+                    EDITOR
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="action-row">
-              <button className="preview-btn" onClick={handlePreview}>
-                Preview
-              </button>
-              <button className="editor-btn" onClick={handleEditor}>
-                EDITOR
-              </button>
             </div>
 
             <div className="select-row">
