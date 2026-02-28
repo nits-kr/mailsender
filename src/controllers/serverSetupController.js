@@ -56,8 +56,7 @@ const setupServer = async (req, res) => {
         fullCommand +=
           "export DEBIAN_FRONTEND=noninteractive; curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -; sudo apt-get install -y nodejs; sudo npm install -g pm2; ";
       } else {
-        fullCommand +=
-          "yum -y -q install httpd php php-mysql; service httpd restart; ";
+        fullCommand += "yum -y -q install httpd php; service httpd restart; ";
       }
     }
 
@@ -74,7 +73,7 @@ const setupServer = async (req, res) => {
         fullCommand +=
           "echo 'deb [trusted=yes] file:/opt/php56-localrepo ./' | sudo tee /etc/apt/sources.list.d/php56-localrepo.list; sudo apt update -y; ";
         fullCommand +=
-          "sudo apt install php5.6 php5.6-mcrypt php5.6-cli php5.6-gd php5.6-curl php5.6-mysql php5.6-ldap php5.6-zip php5.6-fileinfo php5.6-imap php5.6-xml php5.6-mbstring -y; service apache2 restart; ";
+          "sudo apt install php5.6 php5.6-mcrypt php5.6-cli php5.6-gd php5.6-curl php5.6-ldap php5.6-zip php5.6-fileinfo php5.6-imap php5.6-xml php5.6-mbstring -y; service apache2 restart; ";
       }
     }
 

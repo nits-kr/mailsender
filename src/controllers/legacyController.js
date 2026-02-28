@@ -11,11 +11,8 @@ const path = require("path");
 // @route   GET /api/legacy/campaign/:id
 const getLegacyCampaign = async (req, res) => {
   try {
-    // Try to find by MongoDB ID first, then by legacy mysql_sno
-    let campaign = await CampaignTemplate.findById(req.params.id);
-    if (!campaign) {
-      campaign = await CampaignTemplate.findOne({ mysql_sno: req.params.id });
-    }
+    // Try to find by MongoDB ID
+    const campaign = await CampaignTemplate.findById(req.params.id);
 
     if (!campaign) {
       return res.status(404).json({ message: "Campaign not found" });

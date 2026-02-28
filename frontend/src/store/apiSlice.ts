@@ -170,6 +170,12 @@ export const apiSlice = createApi({
       query: (campaignId) => `/email/logs/${campaignId}`,
       providesTags: (result, error, id) => [{ type: 'Campaign', id }],
     }),
+    getPatterns: builder.query<any[], void>({
+      query: () => '/email/patterns',
+    }),
+    validateOffer: builder.query<{ valid: boolean; offer_id?: string }, string>({
+      query: (offerId) => `/email/validate-offer/${offerId}`,
+    }),
 
     // â”€â”€â”€ Screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getScreens: builder.query<any[], void>({
@@ -431,6 +437,9 @@ export const {
   useGetDefaultIpsQuery,
   useSendEmailMutation,
   useGetCampaignLogsQuery,
+  useGetPatternsQuery,
+  useValidateOfferQuery,
+  useLazyValidateOfferQuery,
   // Screens
   useGetScreensQuery,
   useGetScreenLogsQuery,

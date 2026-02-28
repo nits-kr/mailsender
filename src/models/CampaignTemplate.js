@@ -37,7 +37,7 @@ const campaignTemplateSchema = mongoose.Schema(
     encoding_alt: { type: String, default: "8bit" },
     mode: { type: String, default: "test" },
     sen_t: { type: String, default: "manual" },
-    mysql_sno: { type: Number, unique: true }, // To avoid duplicate migration
+    status: { type: String, default: "0" }, // 0: Pending, 1: Approved, 2: Rejected
   },
   { timestamps: true },
 );

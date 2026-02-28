@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Interface.css";
 import {
@@ -9,6 +9,8 @@ import {
   useSendEmailMutation,
   useGetCampaignLogsQuery,
   useLazyGetFileInfoQuery,
+  useGetPatternsQuery,
+  useLazyValidateOfferQuery,
 } from "../store/apiSlice";
 
 const Interface = () => {
@@ -68,9 +70,17 @@ const Interface = () => {
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [pollLogs, setPollLogs] = useState(false);
   const [dataFileCount, setDataFileCount] = useState<number | null>(null);
+  const [offerValid, setOfferValid] = useState<boolean | null>(null);
+  const [postSendGuidance, setPostSendGuidance] = useState<string>("");
+  const [campaignStatus, setCampaignStatus] = useState<string>("0");
 
   const [triggerGetFileInfo, { isFetching: isFetchingFileInfo }] =
     useLazyGetFileInfoQuery();
+
+  const [triggerValidateOffer, { isFetching: isValidatingOffer }] =
+    useLazyValidateOfferQuery();
+
+  const { data: patterns = [] } = useGetPatternsQuery();
 
   // Polling for logs when a campaign is active
   const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
@@ -186,6 +196,8 @@ const Interface = () => {
       sen_t: campaignDetail.sen_t || "manual",
     }));
 
+    setCampaignStatus(campaignDetail.status || "0");
+
     // Start tracking logs for this campaign
     setActiveCampaignId(selectedCampaignId);
     setPollLogs(false);
@@ -213,7 +225,6 @@ const Interface = () => {
     }
   };
 
-  // Debounced effect for manual typing
   useEffect(() => {
     const timer = setTimeout(() => {
       if (formData.data_file) {
@@ -224,6 +235,27 @@ const Interface = () => {
     }, 400); // Faster response
     return () => clearTimeout(timer);
   }, [formData.data_file]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.offer_id) {
+        handleValidateOffer(formData.offer_id);
+      } else {
+        setOfferValid(null);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.offer_id]);
+
+  const handleValidateOffer = async (id: string) => {
+    if (!id) return;
+    try {
+      const res = await triggerValidateOffer(id).unwrap();
+      setOfferValid(res.valid);
+    } catch {
+      setOfferValid(false);
+    }
+  };
 
   const [sendEmailMutation] = useSendEmailMutation();
 
@@ -249,6 +281,11 @@ const Interface = () => {
       const result = await sendEmailMutation(payload).unwrap();
       setActiveCampaignId(result.campaign_id);
       setPollLogs(true);
+      if (result.guidance) {
+        setPostSendGuidance(result.guidance);
+      } else {
+        setPostSendGuidance("");
+      }
       setStatus("Last sent: " + new Date().toLocaleTimeString());
     } catch (error: any) {
       alert("Error: " + (error?.data?.message || "Send failed"));
@@ -313,6 +350,31 @@ const Interface = () => {
           >
             {loadingCampaign ? "Loading..." : "Load"}
           </button>
+          {selectedCampaignId && (
+            <div
+              className={`status-badge status-${campaignStatus}`}
+              style={{
+                marginLeft: "15px",
+                padding: "4px 10px",
+                borderRadius: "4px",
+                fontSize: "12px",
+                fontWeight: "bold",
+                color: "white",
+                backgroundColor:
+                  campaignStatus === "1"
+                    ? "#10b981"
+                    : campaignStatus === "2"
+                      ? "#ef4444"
+                      : "#f59e0b",
+              }}
+            >
+              {campaignStatus === "1"
+                ? "APPROVED"
+                : campaignStatus === "2"
+                  ? "REJECTED"
+                  : "PENDING"}
+            </div>
+          )}
         </div>
         <div className="nav-right-btns">
           <button
@@ -422,10 +484,25 @@ const Interface = () => {
                             fontSize: "11px",
                             fontWeight: "bold",
                             color: dataFileCount > 0 ? "#10b981" : "#ef4444",
-                            pointerEvents: "none",
+                            pointerEvents:
+                              dataFileCount === 0 ? "auto" : "none",
+                            cursor: dataFileCount === 0 ? "pointer" : "default",
+                          }}
+                          onClick={() => {
+                            if (dataFileCount === 0) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                data_file: "",
+                              }));
+                              setDataFileCount(null);
+                            }
                           }}
                         >
-                          {dataFileCount.toLocaleString()}
+                          {dataFileCount > 0 ? (
+                            dataFileCount.toLocaleString()
+                          ) : (
+                            <X size={14} />
+                          )}
                         </span>
                       )
                     )}
@@ -455,13 +532,66 @@ const Interface = () => {
                   />
                 </div>
                 <div className="settings-row">
-                  <input
-                    name="offer_id"
-                    placeholder="Offer ID"
-                    title="Offer ID"
-                    value={formData.offer_id}
-                    onChange={handleInput}
-                  />
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <input
+                      name="offer_id"
+                      placeholder="Offer ID"
+                      title="Offer ID"
+                      value={formData.offer_id}
+                      onChange={handleInput}
+                      style={{
+                        width: "100%",
+                        paddingRight:
+                          isValidatingOffer || offerValid !== null
+                            ? "30px"
+                            : "8px",
+                      }}
+                    />
+                    {isValidatingOffer ? (
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                        }}
+                      >
+                        <Loader2
+                          className="animate-spin"
+                          size={12}
+                          color="#3b82f6"
+                        />
+                      </span>
+                    ) : (
+                      offerValid !== null && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            right: "8px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            fontSize: "12px",
+                            color: offerValid ? "#10b981" : "#ef4444",
+                            cursor:
+                              offerValid === false ? "pointer" : "default",
+                            pointerEvents:
+                              offerValid === false ? "auto" : "none",
+                          }}
+                          onClick={() => {
+                            if (offerValid === false) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                offer_id: "",
+                              }));
+                              setOfferValid(null);
+                            }
+                          }}
+                        >
+                          {offerValid ? "✓" : <X size={12} />}
+                        </span>
+                      )
+                    )}
+                  </div>
                   <input
                     name="template_name"
                     placeholder="Template Name"
@@ -504,9 +634,12 @@ const Interface = () => {
                     value={formData.inb_pattern}
                     onChange={handleInput}
                   >
-                    <option value="1">Inbox Pattern</option>
-                    <option value="1">Pattern 1</option>
-                    <option value="2">Pattern 2</option>
+                    <option value="0">Inbox Pattern</option>
+                    {patterns.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="settings-row">
@@ -885,6 +1018,30 @@ const Interface = () => {
                   </div>
                 ))}
               </div>
+              {postSendGuidance && (
+                <div
+                  className="guidance-box"
+                  style={{
+                    marginTop: "15px",
+                    padding: "15px",
+                    backgroundColor: "#1e293b",
+                    borderRadius: "6px",
+                    border: "1px solid #ef4444",
+                  }}
+                >
+                  <pre
+                    style={{
+                      margin: 0,
+                      color: "#ef4444",
+                      whiteSpace: "pre-wrap",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {postSendGuidance}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
         </div>

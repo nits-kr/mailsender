@@ -52,7 +52,7 @@ const getImapScreens = async (req, res) => {
         // ps might fail if screen is gone
       }
 
-      // Get metadata from MongoDB TestId (replaces MySQL admin.testids)
+      // Get metadata from MongoDB TestId
       let email = "---";
       let count = 0;
 
@@ -67,7 +67,7 @@ const getImapScreens = async (req, res) => {
         });
         if (testIdDoc) {
           email = testIdDoc.email;
-          // Count not applicable without MySQL imap_data_new — return 0
+          // Count not applicable — return 0
           count = 0;
         }
       } catch (e) {
@@ -146,7 +146,7 @@ const createImapScreen = async (req, res) => {
     if (!sno)
       return res.status(400).json({ message: "Test ID (sno) is required" });
 
-    // Fetch Test ID from MongoDB (replaces MySQL admin.testids lookup)
+    // Fetch Test ID from MongoDB
     const testIdDoc =
       (await TestId.findById(sno).catch(() => null)) ||
       (await TestId.findOne({
@@ -161,7 +161,7 @@ const createImapScreen = async (req, res) => {
 
     const email = testIdDoc.email;
 
-    // Clean up old log file (MySQL TRUNCATE no longer needed)
+    // Clean up old log file
     await execPromise(`rm -rf /var/www/html/advance_imap/${email}.txt`).catch(
       () => {},
     );

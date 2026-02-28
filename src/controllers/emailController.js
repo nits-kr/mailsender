@@ -6,6 +6,29 @@ const crypto = require("crypto");
 
 const CampaignTemplate = require("../models/CampaignTemplate");
 const IP = require("../models/IP");
+const Offer = require("../models/Offer");
+const { generateMessageId } = require("../utils/patternGenerator");
+const TagEngine = require("../utils/tagEngine");
+
+const applySearchReplace = (text, searchReplaceStr) => {
+  if (!text || !searchReplaceStr) return text;
+  let result = text;
+  const pairs = searchReplaceStr.split("\n");
+  for (const pair of pairs) {
+    const [search, replace] = pair.split("|");
+    if (search && replace) {
+      try {
+        // Escape search for literal replacement
+        const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escapedSearch, "g");
+        result = result.replace(regex, replace);
+      } catch (e) {
+        console.error("Search/Replace Regex Error:", e);
+      }
+    }
+  }
+  return result;
+};
 
 const sendEmail = async (req, res) => {
   const {
@@ -34,6 +57,8 @@ const sendEmail = async (req, res) => {
     xmailer,
     total_send,
     data_file,
+    search_replace,
+    inb_pattern,
   } = req.body;
 
   try {
@@ -81,14 +106,16 @@ const sendEmail = async (req, res) => {
       const datetimeStr = dateNow.toUTCString();
       const msgId =
         manualMsgId ||
-        `<${crypto.randomBytes(16).toString("hex")}@${domain || "localhost"}>`;
+        (inb_pattern && inb_pattern !== "0" && inb_pattern !== "1"
+          ? generateMessageId(inb_pattern, domain || "localhost")
+          : `<${crypto.randomBytes(16).toString("hex")}@${domain || "localhost"}>`);
 
       const emailDomain = email.split("@")[1] || "";
       const nameTag = emailDomain.replace(/[._-]/g, "").replace(/[0-9]/g, "");
 
       const replaceTags = (text) => {
         if (!text) return "";
-        return text
+        let processed = text
           .replace(/{email}/g, email)
           .replace(/{name}/g, nameTag)
           .replace(/{fromid}/g, from_email)
@@ -102,13 +129,33 @@ const sendEmail = async (req, res) => {
             `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
           )
           .replace(
+            /{ourl}/g,
+            `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
+          )
+          .replace(
+            /{oln}/g,
+            `http://${domain || "localhost"}/un.php?${offer_id || "0"}|${email}`,
+          )
+          .replace(
             /{base_trk}/g,
             Buffer.from(`${offer_id || "0"}|${email}`).toString("base64"),
           )
           .replace(
             /{hex_trk}/g,
             Buffer.from(`${offer_id || "0"}|${email}`).toString("hex"),
+          )
+          .replace(
+            /\(\(_track_\)\)/g,
+            crypto.createHash("md5").update(email).digest("hex"),
           );
+
+        // Apply TagEngine for functions like [[num(10)]]
+        processed = TagEngine.process(processed, { email, domain, offer_id });
+
+        // Apply search/replace logic (PHP parity)
+        processed = applySearchReplace(processed, search_replace);
+
+        return processed;
       };
 
       await emailQueue.add("send-email", {
@@ -135,10 +182,16 @@ const sendEmail = async (req, res) => {
       });
     }
 
+    let commandGuidance = "";
+    if (mode === "bulk" || sen_t === "auto") {
+      commandGuidance = `To Run In Screen Use Below Command:\nphp send_mul_phpm.php ${campaign._id}`;
+    }
+
     res.json({
       message: "Jobs queued successfully",
       count: targetEmails.length,
       campaign_id: campaign._id,
+      guidance: commandGuidance,
     });
   } catch (error) {
     console.error("Error queueing emails", error);
@@ -227,6 +280,7 @@ const getCampaignDetails = async (req, res) => {
       // Modes
       mode: c.mode || "test",
       sen_t: c.sen_t || "manual",
+      status: c.status || "0",
     };
 
     res.json(mappedData);
@@ -253,10 +307,38 @@ const getCampaignLogs = async (req, res) => {
   }
 };
 
+const getInboxPatterns = async (req, res) => {
+  try {
+    // Generate list of 24 patterns
+    const patterns = Array.from({ length: 24 }, (_, i) => ({
+      id: i + 1,
+      name: `pattern ${i + 1}`,
+    }));
+    res.json(patterns);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching patterns" });
+  }
+};
+
+const validateOffer = async (req, res) => {
+  try {
+    const offer = await Offer.findOne({ offer_id: req.params.offerId });
+    if (offer) {
+      res.json({ valid: true, offer_id: offer.offer_id });
+    } else {
+      res.json({ valid: false });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Error validating offer" });
+  }
+};
+
 module.exports = {
   sendEmail,
   getCampaigns,
   getCampaignDetails,
   getDefaultIps,
   getCampaignLogs,
+  getInboxPatterns,
+  validateOffer,
 };
