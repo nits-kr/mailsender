@@ -5,6 +5,7 @@ const ReputationScore = require("../models/ReputationScore");
 
 // Get overall intelligence stats
 router.get("/stats", async (req, res) => {
+  console.log("[DEBUG] Hit /api/intelligence/stats");
   try {
     const totalLogs = await IntelligenceLog.countDocuments();
     const inboxCount = await IntelligenceLog.countDocuments({

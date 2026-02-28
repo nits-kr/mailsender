@@ -40,6 +40,7 @@ const imageRoutes = require("./routes/imageRoutes");
 const testIdsRoutes = require("./routes/testIdsRoutes");
 const smtpRoutes = require("./routes/smtpRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
+const intelligenceRoutes = require("./routes/intelligenceRoutes");
 
 // Express 5 handles async errors natively, so express-async-errors is not needed
 // require("express-async-errors");
@@ -95,7 +96,7 @@ app.use("/api/mailbox", require("./routes/mailboxRoutes"));
 app.use("/api/imap-screens", require("./routes/imapScreenRoutes"));
 app.use("/api/smtp", smtpRoutes);
 app.use("/api/legacy", require("./routes/legacyRoutes"));
-app.use("/api/intelligence", require("./routes/intelligenceRoutes"));
+app.use("/api/intelligence", intelligenceRoutes);
 app.use("/t", trackingRoutes);
 
 app.get("/", (req, res) => {
