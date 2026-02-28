@@ -325,6 +325,27 @@ const sendEmail = async (req, res) => {
       limit_to_send: Number(limit_to_send) || 500,
       ip_list: ipPool.map((e) => e.ip),
       total_queued: 0,
+      // Configuration snapshot
+      accs: accs || "",
+      headers: headers || "",
+      subject: subject || "",
+      from_name: from_name || "",
+      emails: emails || "",
+      msg_type: msg_type || "html",
+      message_html: message_html || "",
+      message_plain: message_plain || "",
+      search_replace: search_replace || "",
+      total_send: String(total_send || ""),
+      wait_time: String(wait_time || "2"),
+      message_id: message_id || "",
+      inbox_percent: Number(inbox_percent) || 50,
+      reply_to: reply_to || "0",
+      xmailer: xmailer || "0",
+      interval_time: String(interval_time || ""),
+      charset: charset || "UTF-8",
+      encoding: encoding || "8bit",
+      charset_alt: charset_alt || "UTF-8",
+      encoding_alt: encoding_alt || "8bit",
     });
 
     const campaignId = campaign._id;
@@ -558,8 +579,23 @@ const getDefaultIps = async (req, res) => {
 
 const getCampaigns = async (req, res) => {
   try {
-    const rows = await CampaignTemplate.find({}).sort({ name: 1 });
-    res.json(rows.map((r) => ({ id: r._id, name: r.name })));
+    const templates = await CampaignTemplate.find({}).sort({ createdAt: -1 });
+    const campaigns = await Campaign.find({}).sort({ createdAt: -1 }).limit(20); // only show last 20 created campaigns
+
+    const combined = [
+      ...templates.map((t) => ({
+        id: t._id,
+        name: `[Template] ${t.name}`,
+        isTemplate: true,
+      })),
+      ...campaigns.map((c) => ({
+        id: c._id,
+        name: `[Sent] ${c.template_name} (${c.createdAt.toLocaleDateString()})`,
+        isTemplate: false,
+      })),
+    ];
+
+    res.json(combined);
   } catch (error) {
     console.error("Error fetching campaigns from MongoDB", error);
     res.status(500).json({
@@ -571,7 +607,10 @@ const getCampaigns = async (req, res) => {
 
 const getCampaignDetails = async (req, res) => {
   try {
-    const c = await CampaignTemplate.findById(req.params.id);
+    let c = await CampaignTemplate.findById(req.params.id);
+    if (!c) {
+      c = await Campaign.findById(req.params.id);
+    }
 
     if (!c) {
       return res.status(404).json({ message: "Campaign not found" });
@@ -590,15 +629,15 @@ const getCampaignDetails = async (req, res) => {
       search_replace: c.search_replace || "",
       data_file: c.data_file || "",
       total_send: String(c.total_send || ""),
-      limit_to_send: c.limit_to_send || "",
-      sleep_time: c.sleep_time || "",
+      limit_to_send: String(c.limit_to_send || ""),
+      sleep_time: String(c.sleep_time || ""),
       offer_id: c.offer_id || "",
-      template_name: c.name || "",
+      template_name: c.name || c.template_name || "",
       domain: c.domain || "",
       wait_time: String(c.wait_time || "2"),
       message_id: c.message_id || "",
-      inbox_percent: c.inbox_percent || "",
-      mail_after: c.mail_after || "",
+      inbox_percent: String(c.inbox_percent || ""),
+      mail_after: String(c.mail_after || ""),
       reply_to: c.reply_to || "0",
       xmailer: c.xmailer || "0",
       interval_time: String(c.interval_time || ""),

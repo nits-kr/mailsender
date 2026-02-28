@@ -163,6 +163,7 @@ export const apiSlice = createApi({
     }),
     sendEmail: builder.mutation({
       query: (payload) => ({ url: '/email/send', method: 'POST', body: payload }),
+      invalidatesTags: ['Campaign'],
     }),
     getDefaultIps: builder.query<{ ips: string }, void>({
       query: () => '/email/default-ips',

@@ -139,7 +139,6 @@ const Interface = () => {
     {
       skip: !activeCampaignId,
       pollingInterval: pollLogs ? 2000 : 0,
-      refetchOnMountOrArgChange: true,
     },
   );
 
@@ -152,9 +151,13 @@ const Interface = () => {
   // Auto-stop polling when campaign finishes (success OR error log appears)
   useEffect(() => {
     if (!pollLogs || campaignLogs.length === 0) return;
-    const isDone = campaignLogs.some(
-      (log: any) => log.type === "success" || log.type === "error",
-    );
+    const isDone = campaignLogs.some((log: any) => {
+      const typeDone = log.type === "success" || log.type === "error";
+      const textDone =
+        log.log_text?.includes("SENT SUCCESS") ||
+        log.log_text?.includes("ERROR");
+      return typeDone || textDone;
+    });
     if (isDone) setPollLogs(false);
   }, [campaignLogs, pollLogs]);
 
@@ -308,6 +311,7 @@ const Interface = () => {
         setLiveStatus(result);
         if (result.status === "Completed" || result.status === "Stopped") {
           clearInterval(interval);
+          setPollLogs(false);
         }
       } catch {
         // silent fail
