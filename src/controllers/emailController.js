@@ -910,9 +910,9 @@ const startSpaceSending = async (req, res) => {
 
     // Create the initial CampaignLog
     await CampaignLog.create({
-      campaign: campaign._id,
-      event: "Started",
-      message: `Space Sending campaign started. Total targets: ${targetEmails.length}, Interval: ${interval_time}s`,
+      campaign_id: campaign._id,
+      type: "info",
+      log_text: `Space Sending campaign started. Total targets: ${targetEmails.length}, Interval: ${interval_time}s`,
     });
 
     // Queue ONLY the first email to start the loop
@@ -986,9 +986,9 @@ const stopSpaceSending = async (req, res) => {
     await campaign.save();
 
     await CampaignLog.create({
-      campaign: campaign._id,
-      event: "Stopped",
-      message: "Space Sending campaign manually stopped.",
+      campaign_id: campaign._id,
+      type: "info",
+      log_text: "Space Sending campaign manually stopped.",
     });
 
     res.status(200).json({ message: "Space Sending campaign stopped." });
