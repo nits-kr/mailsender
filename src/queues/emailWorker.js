@@ -288,12 +288,12 @@ const emailWorker = async (job) => {
       const received =
         (updatedCampaign.inbox_count || 0) + (updatedCampaign.spam_count || 0);
       const inboxPercent =
-        received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 0;
+        received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 100;
 
       const transcriptText = smtpTranscript.join("\n");
       await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} | SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+        log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
         type: "success",
         sent: totalSent,
         mail_status: `${email} success`,

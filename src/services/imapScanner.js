@@ -309,17 +309,34 @@ const runScanner = async () => {
                 : "inbox_count";
 
           // 1. Update Campaign Aggregate Stats
-          await Campaign.findByIdAndUpdate(res.campaignId, {
-            $inc: { [updateField]: 1 },
-          });
+          const campaign = await Campaign.findByIdAndUpdate(
+            res.campaignId,
+            { $inc: { [updateField]: 1 } },
+            { new: true },
+          );
 
-          // 2. Update the specific Log Entry
-          await CampaignLog.findByIdAndUpdate(existingLog._id, {
-            $set: {
-              [res.placement]: 1,
-              mail_status: `${res.email} ${res.placement}`,
-            },
-          });
+          if (campaign) {
+            const totalSent =
+              (campaign.success_count || 0) + (campaign.error_count || 0);
+            const received =
+              (campaign.inbox_count || 0) + (campaign.spam_count || 0);
+            const inboxPercent =
+              received > 0 ? (campaign.inbox_count / received) * 100 : 100;
+
+            const newLogText = `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
+
+            // 2. Update the specific Log Entry
+            await CampaignLog.findByIdAndUpdate(existingLog._id, {
+              $set: {
+                [res.placement]: 1,
+                mail_status: `${res.email} ${res.placement}`,
+                log_text: newLogText,
+                inbox_percent: Number(inboxPercent.toFixed(1)),
+                sent: totalSent,
+                received: received,
+              },
+            });
+          }
 
           // ── Synchronize with Inbox Intelligence Engine ───────────────
           const providerMatch =
