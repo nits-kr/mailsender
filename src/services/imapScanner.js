@@ -260,7 +260,10 @@ const runScanner = async () => {
 
     const testIds = await TestId.find({ status: "A" });
     if (!testIds.length) {
-      console.log("[IMAP Scanner] No active TestIDs found in DB. Skipping.");
+      const totalCount = await TestId.countDocuments({});
+      console.log(
+        `[IMAP Scanner] No active TestIDs found in DB (Total records in DB: ${totalCount}). Skipping.`,
+      );
       return;
     }
 
