@@ -286,7 +286,9 @@ const emailWorker = async (job) => {
         (updatedCampaign.error_count || 0);
 
       const received =
-        (updatedCampaign.inbox_count || 0) + (updatedCampaign.spam_count || 0);
+        (updatedCampaign.inbox_count || 0) +
+        (updatedCampaign.spam_count || 0) +
+        (updatedCampaign.promo_count || 0);
       const inboxPercent =
         received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 100;
 

@@ -70,7 +70,7 @@ const campaignSchema = mongoose.Schema(
     total_send: { type: String },
     wait_time: { type: String, default: "2" },
     message_id: { type: String },
-    inbox_percent: { type: Number, default: 50 },
+    inbox_percent: { type: Number, default: 100 },
     reply_to: { type: String, default: "0" },
     xmailer: { type: String, default: "0" },
     interval_time: { type: String },

@@ -319,7 +319,9 @@ const runScanner = async () => {
             const totalSent =
               (campaign.success_count || 0) + (campaign.error_count || 0);
             const received =
-              (campaign.inbox_count || 0) + (campaign.spam_count || 0);
+              (campaign.inbox_count || 0) +
+              (campaign.spam_count || 0) +
+              (campaign.promo_count || 0);
             const inboxPercent =
               received > 0 ? (campaign.inbox_count / received) * 100 : 100;
 
