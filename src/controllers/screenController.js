@@ -34,7 +34,7 @@ const getScreenLogs = async (req, res) => {
 const getCampaignStats = async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id).select(
-      "template_name total_emails success_count error_count status start_time",
+      "template_name total_emails success_count error_count status start_time inbox_count spam_count promo_count",
     );
     if (!campaign) return res.status(404).json({ message: "Not found" });
     res.json(campaign);
