@@ -234,11 +234,28 @@ const emailWorker = async (job) => {
         }
       }
 
-      mailOptions.html = mutatedHtml;
+      mailOptions.html = {
+        content: mutatedHtml,
+        charset: charset || "UTF-8",
+        encoding: encoding || "8bit",
+      };
     }
 
     if (msg_type === "plain" || msg_type === "mime") {
-      mailOptions.text = transformTags(body_plain);
+      const textContent = transformTags(body_plain);
+      if (msg_type === "mime") {
+        mailOptions.text = {
+          content: textContent,
+          charset: charset_alt || "UTF-8",
+          encoding: encoding_alt || "8bit",
+        };
+      } else {
+        mailOptions.text = {
+          content: textContent,
+          charset: charset || "UTF-8",
+          encoding: encoding || "8bit",
+        };
+      }
     }
 
     const info = await transporter.sendMail(mailOptions);
