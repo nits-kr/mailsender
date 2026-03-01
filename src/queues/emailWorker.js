@@ -169,6 +169,14 @@ const emailWorker = async (job) => {
       messageId: msgId || undefined,
     };
 
+    // Force envelope FROM to match authenticated user to avoid SMTP 436 error
+    if (smtpConfig && smtpConfig.auth && smtpConfig.auth.user) {
+      mailOptions.envelope = {
+        from: smtpConfig.auth.user,
+        to: email,
+      };
+    }
+
     if (campaign_id) {
       mailOptions.headers["X-Campaign-Fingerprint"] = require("crypto")
         .createHash("md5")
