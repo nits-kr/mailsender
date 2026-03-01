@@ -11,6 +11,8 @@ import {
   useLazyGetFileInfoQuery,
   useLazyValidateOfferQuery,
   useLazyGetCampaignStatusQuery,
+  useStartSpaceSendingMutation,
+  useStopSpaceSendingMutation,
 } from "../store/apiSlice";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -139,6 +141,11 @@ const Interface = () => {
   const [triggerValidateOffer, { isFetching: isValidatingOffer }] =
     useLazyValidateOfferQuery();
 
+  const [startSpaceSending, { isLoading: isStartingSpace }] =
+    useStartSpaceSendingMutation();
+  const [stopSpaceSending, { isLoading: isStoppingSpace }] =
+    useStopSpaceSendingMutation();
+
   const [triggerGetCampaignStatus] = useLazyGetCampaignStatusQuery();
 
   // Polling for logs when a campaign is active
@@ -181,7 +188,10 @@ const Interface = () => {
   }, []);
 
   // Fetch all campaigns for the search dropdown
-  const { data: campaigns = [] } = useGetCampaignsQuery();
+  const { data: campaigns = [], refetch: refetchCampaigns } =
+    useGetCampaignsQuery(undefined, {
+      pollingInterval: 60000, // Poll every 60 seconds
+    });
 
   const filteredCampaigns = campaigns.filter((c: any) =>
     (c.tempname || c.name || "")
@@ -327,6 +337,58 @@ const Interface = () => {
     }, 3000);
     return () => clearInterval(interval);
   }, [activeCampaignId]);
+
+  const handleStartSpaceSending = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!formData.data_file && !formData.emails) {
+      alert("Please provide a Data File or paste emails.");
+      return;
+    }
+    if (!formData.interval_time) {
+      alert("Please specify the Interval Time.");
+      return;
+    }
+    if (!formData.accs) {
+      alert("Please assign mailing IPs/Accounts.");
+      return;
+    }
+
+    try {
+      const payload = {
+        ...formData,
+        mailing_ip: formData.accs,
+      };
+
+      const res = await startSpaceSending(payload).unwrap();
+      setActiveCampaignId(res.campaignId);
+      // alert(res.message || "Space Sending started.");
+      setStatus("Space Sending Mode Started");
+      setPollLogs(true);
+      setShowDropdown(false);
+    } catch (err: any) {
+      alert(
+        err.data?.message || err.message || "Failed to start space sending.",
+      );
+      setSendError(err.data?.message || err.message || "Unknown error");
+    }
+  };
+
+  const handleStopSpaceSending = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!activeCampaignId) {
+      alert("No active campaign to stop. Make sure a campaign has started.");
+      return;
+    }
+    try {
+      await stopSpaceSending({ campaignId: activeCampaignId }).unwrap();
+      setStatus("Space Sending Stopped");
+      // alert("Space Sending stopped.");
+    } catch (err: any) {
+      alert(
+        err.data?.message || err.message || "Failed to stop space sending.",
+      );
+    }
+  };
 
   const onSend = async (data: any) => {
     setSending(true);
@@ -1356,8 +1418,34 @@ const Interface = () => {
                   type="number"
                   {...register("interval_time")}
                 />
-                <button className="start-btn">Start</button>
-                <button className="stop-btn">Stop</button>
+                <button
+                  type="button"
+                  className="start-btn"
+                  onClick={handleStartSpaceSending}
+                  disabled={isStartingSpace}
+                  style={{ opacity: isStartingSpace ? 0.7 : 1 }}
+                >
+                  {isStartingSpace ? (
+                    <Loader2 className="animate-spin inline" size={14} />
+                  ) : (
+                    "Start"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="stop-btn"
+                  onClick={handleStopSpaceSending}
+                  disabled={isStoppingSpace || !activeCampaignId}
+                  style={{
+                    opacity: isStoppingSpace || !activeCampaignId ? 0.5 : 1,
+                  }}
+                >
+                  {isStoppingSpace ? (
+                    <Loader2 className="animate-spin inline" size={14} />
+                  ) : (
+                    "Stop"
+                  )}
+                </button>
               </div>
             </div>
           </details>

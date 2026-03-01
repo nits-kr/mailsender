@@ -13,6 +13,7 @@ const TagEngine = require("../utils/tagEngine");
 const ReputationScore = require("../models/ReputationScore");
 const SmtpDetail = require("../models/SmtpDetail");
 const { parseIpPool } = require("../utils/parseIpPool");
+const { spaceEmailQueue } = require("../queues/spaceEmailQueue");
 
 const applySearchReplace = (text, searchReplaceStr) => {
   if (!text || !searchReplaceStr) return text;
@@ -784,6 +785,219 @@ const getCampaignStatus = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/email/start-space-sending
+ * Starts the drip feed campaign
+ */
+const startSpaceSending = async (req, res) => {
+  const {
+    from_email,
+    from_name,
+    mailing_ip,
+    headers,
+    subject,
+    message_html,
+    message_plain,
+    emails,
+    subject_enc,
+    from_enc,
+    msg_type,
+    charset,
+    encoding,
+    charset_alt,
+    encoding_alt,
+    offer_id,
+    template_name,
+    domain,
+    message_id,
+    reply_to,
+    xmailer,
+    total_send,
+    data_file,
+    search_replace,
+    interval_time,
+  } = req.body;
+
+  if (!from_email || !mailing_ip || !interval_time) {
+    return res.status(400).json({
+      message: "Missing required fields: from_email, mailing_ip, interval_time",
+    });
+  }
+
+  if (!emails && !data_file) {
+    return res.status(400).json({
+      message: "Either paste emails or provide a Data File name.",
+    });
+  }
+
+  try {
+    const ipPool = parseIpPool(mailing_ip);
+    if (ipPool.length === 0) {
+      return res.status(400).json({ message: "No valid IPs found." });
+    }
+
+    let rawEmailList = "";
+    if (data_file && data_file.trim()) {
+      const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
+      const fs = require("fs");
+      const nodePath = require("path");
+
+      const df = data_file.trim();
+      const primaryPath = nodePath.isAbsolute(df)
+        ? df
+        : nodePath.join(DATA_PATH, df);
+      const bufferFallbackPath = nodePath.join(
+        BUFFER_PATH,
+        nodePath.basename(df),
+      );
+
+      let finalPath = null;
+      if (fs.existsSync(primaryPath)) finalPath = primaryPath;
+      else if (fs.existsSync(bufferFallbackPath))
+        finalPath = bufferFallbackPath;
+
+      if (finalPath) {
+        try {
+          rawEmailList = fs.readFileSync(finalPath, "utf-8");
+        } catch (fileErr) {
+          rawEmailList = emails || "";
+        }
+      } else {
+        rawEmailList = emails || "";
+      }
+    } else {
+      rawEmailList = emails || "";
+    }
+
+    let targetEmails = rawEmailList
+      .split("\n")
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (targetEmails.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No valid email addresses found." });
+    }
+
+    // Determine how many to send
+    const limit = parseInt(total_send, 10);
+    if (limit && limit > 0 && limit < targetEmails.length) {
+      targetEmails = targetEmails.slice(0, limit);
+    }
+
+    const campaign = new Campaign({
+      type: "space_sending",
+      mode: "space",
+      sen_t: "auto",
+      from_email,
+      from_name,
+      headers,
+      subject,
+      message_html,
+      message_plain,
+      emails: targetEmails.join("\n"),
+      status: "Running",
+      total_emails: targetEmails.length,
+      success_count: 0,
+      error_count: 0,
+      inbox_count: 0,
+      spam_count: 0,
+      promo_count: 0,
+      bounce_count: 0,
+    });
+
+    await campaign.save();
+
+    // Create the initial CampaignLog
+    await CampaignLog.create({
+      campaign: campaign._id,
+      event: "Started",
+      message: `Space Sending campaign started. Total targets: ${targetEmails.length}, Interval: ${interval_time}s`,
+    });
+
+    // Queue ONLY the first email to start the loop
+    const firstEmail = targetEmails[0];
+    const jobData = {
+      email: firstEmail,
+      mailing_ip: ipPool[0].ip, // emailWorker expects just 'mailing_ip' string
+      campaign_id: campaign._id.toString(),
+      from_email,
+      from_name,
+      headers,
+      subject,
+      body_html: message_html,
+      body_plain: message_plain,
+      subject_enc,
+      from_enc,
+      msg_type,
+      charset,
+      encoding,
+      charset_alt,
+      encoding_alt,
+      offer_id,
+      template_name,
+      domain,
+      reply_to,
+      xmailer,
+      search_replace,
+      spaceOpts: {
+        // Unique props for the drip loop
+        interval_time: parseInt(interval_time, 10),
+        targetEmails,
+        currentIndex: 0,
+        ipPool,
+      },
+    };
+
+    if (message_id) jobData.msgId = message_id;
+
+    await spaceEmailQueue.add(`space-email-${campaign._id}-0`, jobData, {
+      removeOnComplete: true,
+      removeOnFail: 100, // Keep some failed jobs for debugging
+    });
+
+    res.status(200).json({
+      message: `Space Sending started successfully. Configured for ${targetEmails.length} emails.`,
+      campaignId: campaign._id,
+    });
+  } catch (error) {
+    console.error("[startSpaceSending] Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+/**
+ * POST /api/email/stop-space-sending
+ * Stops the drip feed campaign
+ */
+const stopSpaceSending = async (req, res) => {
+  try {
+    const { campaignId } = req.body;
+    if (!campaignId) {
+      return res.status(400).json({ message: "Campaign ID required." });
+    }
+
+    const campaign = await Campaign.findById(campaignId);
+    if (!campaign) {
+      return res.status(404).json({ message: "Campaign not found." });
+    }
+
+    campaign.status = "Stopped";
+    await campaign.save();
+
+    await CampaignLog.create({
+      campaign: campaign._id,
+      event: "Stopped",
+      message: "Space Sending campaign manually stopped.",
+    });
+
+    res.status(200).json({ message: "Space Sending campaign stopped." });
+  } catch (error) {
+    console.error("[stopSpaceSending] Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   sendEmail,
   getCampaigns,
@@ -793,4 +1007,6 @@ module.exports = {
   getInboxPatterns,
   validateOffer,
   getCampaignStatus,
+  startSpaceSending,
+  stopSpaceSending,
 };

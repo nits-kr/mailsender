@@ -8,6 +8,8 @@ const {
   getInboxPatterns,
   validateOffer,
   getCampaignStatus,
+  startSpaceSending,
+  stopSpaceSending,
 } = require("../controllers/emailController");
 
 const router = express.Router();
@@ -20,5 +22,7 @@ router.get("/logs/:campaignId", getCampaignLogs);
 router.get("/patterns", getInboxPatterns);
 router.get("/validate-offer/:offerId", validateOffer);
 router.get("/campaign-status/:id", getCampaignStatus);
+router.post("/start-space-sending", startSpaceSending);
+router.post("/stop-space-sending", stopSpaceSending);
 
 module.exports = router;

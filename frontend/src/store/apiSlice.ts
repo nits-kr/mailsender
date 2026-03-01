@@ -166,6 +166,14 @@ export const apiSlice = createApi({
       query: (payload) => ({ url: '/email/send', method: 'POST', body: payload }),
       invalidatesTags: ['Campaign'],
     }),
+    startSpaceSending: builder.mutation({
+      query: (payload) => ({ url: '/email/start-space-sending', method: 'POST', body: payload }),
+      invalidatesTags: ['Campaign'],
+    }),
+    stopSpaceSending: builder.mutation({
+      query: (body) => ({ url: '/email/stop-space-sending', method: 'POST', body }),
+      invalidatesTags: ['Campaign'],
+    }),
     getDefaultIps: builder.query<{ ips: string }, void>({
       query: () => '/email/default-ips',
     }),
@@ -439,6 +447,8 @@ export const {
   // Dashboard
   useGetDashboardLogsQuery,
   useGetDashboardStatsQuery,
+  useStartSpaceSendingMutation,
+  useStopSpaceSendingMutation,
   // Data Count
   useGetDataCountQuery,
   useDownloadDataMutation,

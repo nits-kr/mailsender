@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 const { Worker } = require("bullmq");
 const { connection } = require("./queues/emailQueue");
 const emailWorker = require("./queues/emailWorker");
+const spaceEmailWorkerProcessor = require("./queues/spaceEmailWorker");
 const logger = require("./utils/logger");
 const { startImapScannerJob } = require("./queues/imapQueue");
 
@@ -18,6 +19,20 @@ worker.on("completed", (job) => {
 });
 worker.on("failed", (job, err) => {
   logger.error(`Email job failed: ${job?.id || "unknown"} - ${err.message}`);
+});
+
+// Start BullMQ worker for Space Sending (Concurrency: 1 to ensure strict pacing per loop, though BullMQ handles delays natively)
+const spaceWorker = new Worker("space-email-queue", spaceEmailWorkerProcessor, {
+  connection,
+  concurrency: 5, // Can handle 5 concurrent space campaigns, each delays itself
+});
+spaceWorker.on("completed", (job) => {
+  logger.info(`Space email job completed: ${job.id}`);
+});
+spaceWorker.on("failed", (job, err) => {
+  logger.error(
+    `Space email job failed: ${job?.id || "unknown"} - ${err.message}`,
+  );
 });
 
 // Connect to database
