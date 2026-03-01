@@ -189,6 +189,19 @@ const emailWorker = async (job) => {
       });
     }
 
+    const getValidEncoding = (enc) => {
+      if (!enc) return undefined; // NodeMailer defaults to 7bit or calculates automatically
+      const e = enc.toLowerCase();
+      if (e === "base64" || e === "quoted-printable") {
+        return e;
+      }
+      return undefined; // If '8bit' or '7bit', let NodeMailer auto-handle building the content stream.
+    };
+
+    // Determine valid encodings for HTML and plain text parts
+    const htmlEncoding = getValidEncoding(encoding);
+    const plainEncoding = getValidEncoding(encoding_alt);
+
     if (msg_type === "html" || msg_type === "mime") {
       let mutatedHtml = transformTags(body_html);
 
@@ -237,7 +250,7 @@ const emailWorker = async (job) => {
       mailOptions.html = {
         content: mutatedHtml,
         charset: charset || "UTF-8",
-        encoding: encoding || "8bit",
+        encoding: htmlEncoding, // Use the validated encoding
       };
     }
 
@@ -247,13 +260,13 @@ const emailWorker = async (job) => {
         mailOptions.text = {
           content: textContent,
           charset: charset_alt || "UTF-8",
-          encoding: encoding_alt || "8bit",
+          encoding: plainEncoding, // Use the validated encoding
         };
       } else {
         mailOptions.text = {
           content: textContent,
           charset: charset || "UTF-8",
-          encoding: encoding || "8bit",
+          encoding: htmlEncoding, // Use the validated encoding (assuming primary encoding for plain if not mime)
         };
       }
     }
