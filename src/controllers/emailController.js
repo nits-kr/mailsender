@@ -888,7 +888,9 @@ const startSpaceSending = async (req, res) => {
     const campaign = new Campaign({
       type: "space_sending",
       mode: "space",
-      sen_t: "auto",
+      type: "space_sending",
+      template_name: template_name || "Space_Sending", // MongoDB schema requires this
+      domain,
       from_email,
       from_name,
       headers,
