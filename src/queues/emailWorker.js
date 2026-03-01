@@ -4,6 +4,7 @@ const SmtpDetail = require("../models/SmtpDetail");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const Log = require("../models/Log");
+const crypto = require("crypto");
 const { evaluate: guardianEvaluate } = require("../services/guardianService");
 const imagePolymorphismService = require("../services/intelligence/ImagePolymorphismService");
 const path = require("path");
@@ -36,6 +37,7 @@ const emailWorker = async (job) => {
   } = job.data;
 
   let smtpConfig = null;
+  let messageFingerprint = "";
   try {
     // Check if campaign is stopped
     if (campaign_id) {
@@ -169,11 +171,17 @@ const emailWorker = async (job) => {
       messageId: msgId || undefined,
     };
 
-    if (campaign_id) {
-      mailOptions.headers["X-Campaign-Fingerprint"] = require("crypto")
-        .createHash("md5")
-        .update(`${campaign_id}:${email}`)
-        .digest("hex");
+    messageFingerprint = campaign_id
+      ? crypto
+          .createHash("md5")
+          .update(
+            `${campaign_id}:${email}:${String(job.id || "")}:${String(msgId || "")}:${Date.now()}`,
+          )
+          .digest("hex")
+      : "";
+
+    if (campaign_id && messageFingerprint) {
+      mailOptions.headers["X-Campaign-Fingerprint"] = messageFingerprint;
     }
 
     // Add custom headers
@@ -300,6 +308,7 @@ const emailWorker = async (job) => {
         sent: totalSent,
         mail_status: `${email} success`,
         inbox_percent: Number(inboxPercent.toFixed(1)),
+        fingerprint: messageFingerprint,
       });
 
       // Guardian Evaluation
@@ -364,6 +373,7 @@ const emailWorker = async (job) => {
         sent: totalSent,
         mail_status: `${email} error`,
         inbox_percent: 0,
+        fingerprint: messageFingerprint,
       });
 
       // Guardian Evaluation

@@ -16,6 +16,7 @@ const campaignLogSchema = mongoose.Schema({
   received: { type: Number, default: 0 }, // IMAP received count (future)
   mail_status: { type: String, default: "" }, // e.g. "email@x.com success"
   inbox_percent: { type: Number, default: 0 },
+  fingerprint: { type: String, default: "" }, // unique per sent message for IMAP reconciliation
 });
 
 module.exports = mongoose.model("CampaignLog", campaignLogSchema);

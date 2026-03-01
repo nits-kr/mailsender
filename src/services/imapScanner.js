@@ -44,7 +44,7 @@ const updateIntelligenceScore = async (campaign, type, value, location) => {
   await rep.save();
 };
 
-const scanTestId = async (testIdDoc, activeCampaigns) => {
+const scanTestId = async (testIdDoc) => {
   return new Promise((resolve, reject) => {
     const imap = new Imap({
       user: testIdDoc.email,
@@ -164,45 +164,36 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
                         "x-campaign-fingerprint",
                       );
                       if (fingerprint) {
-                        for (const campaign of activeCampaigns) {
-                          const expectedFingerprint = crypto
-                            .createHash("md5")
-                            .update(`${campaign._id}:${testIdDoc.email}`)
-                            .digest("hex");
+                        const determinePlacement = (fName) => {
+                          const f = fName.toLowerCase();
+                          if (
+                            f.includes("spam") ||
+                            f.includes("junk") ||
+                            f.includes("bulk")
+                          )
+                            return "spam";
+                          if (
+                            f.includes("promo") ||
+                            f.includes("social") ||
+                            f.includes("update") ||
+                            f.includes("advertising") ||
+                            f.includes("social") ||
+                            f.includes("forum")
+                          )
+                            return "promo";
+                          return "inbox";
+                        };
 
-                          if (fingerprint === expectedFingerprint) {
-                            const determinePlacement = (fName) => {
-                              const f = fName.toLowerCase();
-                              if (
-                                f.includes("spam") ||
-                                f.includes("junk") ||
-                                f.includes("bulk")
-                              )
-                                return "spam";
-                              if (
-                                f.includes("promo") ||
-                                f.includes("social") ||
-                                f.includes("update") ||
-                                f.includes("advertising") ||
-                                f.includes("social") ||
-                                f.includes("forum")
-                              )
-                                return "promo";
-                              return "inbox";
-                            };
+                        const placement = determinePlacement(folderName);
+                        console.log(
+                          `[IMAP] Match found! TestID: ${testIdDoc.email}, Location: ${placement}`,
+                        );
 
-                            const placement = determinePlacement(folderName);
-                            console.log(
-                              `[IMAP] Match found! Campaign: ${campaign._id}, TestID: ${testIdDoc.email}, Location: ${placement}`,
-                            );
-
-                            results.push({
-                              campaignId: campaign._id,
-                              email: testIdDoc.email,
-                              placement,
-                            });
-                          }
-                        }
+                        results.push({
+                          fingerprint,
+                          email: testIdDoc.email,
+                          placement,
+                        });
                       }
                     }
                     tryFinish();
@@ -270,10 +261,11 @@ const runScanner = async () => {
     console.log(
       `Starting IMAP scan for ${activeCampaigns.length} campaigns across ${testIds.length} TestIDs`,
     );
+    const activeCampaignIds = activeCampaigns.map((c) => c._id);
 
     for (const testId of testIds) {
       console.log(`[IMAP] Connecting to ${testId.email}...`);
-      const scanResults = await scanTestId(testId, activeCampaigns).catch(
+      const scanResults = await scanTestId(testId).catch(
         (err) => {
           console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
           return [];
@@ -287,20 +279,49 @@ const runScanner = async () => {
       }
 
       for (const res of scanResults) {
-        // Find the "SENT SUCCESS" log for this email to link the placement
-        // Use a more relaxed regex to catch variations in mail_status
-        const existingLog = await CampaignLog.findOne({
-          campaign_id: res.campaignId,
-          mail_status: { $regex: res.email, $options: "i" },
-        }).sort({ createdAt: -1 });
+        // New flow: use exact per-message fingerprint (supports repeated sends to same email).
+        let existingLog = await CampaignLog.findOne({
+          campaign_id: { $in: activeCampaignIds },
+          fingerprint: res.fingerprint,
+          type: "success",
+          inbox: 0,
+          spam: 0,
+          promo: 0,
+        }).sort({ created_at: -1 });
 
-        // Only count if it hasn't been placed yet (avoid double counting if scanner runs twice)
-        if (
-          existingLog &&
-          !existingLog.inbox &&
-          !existingLog.spam &&
-          !existingLog.promo
-        ) {
+        // Backward compatibility for older campaigns that used campaignId:email fingerprint.
+        if (!existingLog) {
+          let legacyCampaignId = null;
+          for (const campaign of activeCampaigns) {
+            const expectedLegacyFingerprint = crypto
+              .createHash("md5")
+              .update(`${campaign._id}:${res.email}`)
+              .digest("hex");
+            if (res.fingerprint === expectedLegacyFingerprint) {
+              legacyCampaignId = campaign._id;
+              break;
+            }
+          }
+
+          if (legacyCampaignId) {
+            const escapedEmail = res.email.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&",
+            );
+            existingLog = await CampaignLog.findOne({
+              campaign_id: legacyCampaignId,
+              type: "success",
+              mail_status: { $regex: escapedEmail, $options: "i" },
+              inbox: 0,
+              spam: 0,
+              promo: 0,
+            }).sort({ created_at: -1 });
+          }
+        }
+
+        // Only count if an unplaced log was found (avoid double counting if scanner runs twice)
+        if (existingLog) {
+          const campaignId = existingLog.campaign_id;
           const updateField =
             res.placement === "spam"
               ? "spam_count"
@@ -310,7 +331,7 @@ const runScanner = async () => {
 
           // 1. Update Campaign Aggregate Stats
           const campaign = await Campaign.findByIdAndUpdate(
-            res.campaignId,
+            campaignId,
             { $inc: { [updateField]: 1 } },
             { new: true },
           );
@@ -349,7 +370,7 @@ const runScanner = async () => {
 
           try {
             await IntelligenceLog.create({
-              campaignId: res.campaignId,
+              campaignId,
               provider,
               location: res.placement === "promo" ? "inbox" : res.placement,
               testEmail: res.email,
@@ -357,7 +378,7 @@ const runScanner = async () => {
             });
 
             const campaign = activeCampaigns.find(
-              (c) => c._id.toString() === res.campaignId.toString(),
+              (c) => c._id.toString() === campaignId.toString(),
             );
             if (campaign) {
               // Extract IP from recent log since campaign.server isn't always reliable
