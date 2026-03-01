@@ -238,10 +238,18 @@ const runScanner = async () => {
         { status: "Completed", updatedAt: { $gte: fifteenMinsAgo } },
       ],
     });
-    if (!activeCampaigns.length) return;
+    if (!activeCampaigns.length) {
+      console.log(
+        "[IMAP Scanner] No active or recently completed campaigns found. Skipping.",
+      );
+      return;
+    }
 
     const testIds = await TestId.find({ status: "A" });
-    if (!testIds.length) return;
+    if (!testIds.length) {
+      console.log("[IMAP Scanner] No active TestIDs found in DB. Skipping.");
+      return;
+    }
 
     console.log(
       `Starting IMAP scan for ${activeCampaigns.length} campaigns across ${testIds.length} TestIDs`,
