@@ -936,7 +936,8 @@ const Interface = () => {
                       color: "#94a3b8",
                     },
                     ...(liveStatus.type === "test_auto" ||
-                    liveStatus.type === "bulk_auto"
+                    liveStatus.type === "bulk_auto" ||
+                    liveStatus.type === "space_sending"
                       ? [
                           {
                             label: "Inbox",

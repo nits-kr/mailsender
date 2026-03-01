@@ -171,17 +171,30 @@ const scanTestId = async (testIdDoc, activeCampaigns) => {
                             .digest("hex");
 
                           if (fingerprint === expectedFingerprint) {
-                            const placement =
-                              folderName.toLowerCase().includes("spam") ||
-                              folderName.toLowerCase().includes("junk")
-                                ? "spam"
-                                : folderName.toLowerCase().includes("promo") ||
-                                    folderName
-                                      .toLowerCase()
-                                      .includes("social") ||
-                                    folderName.toLowerCase().includes("update")
-                                  ? "promo"
-                                  : "inbox";
+                            const determinePlacement = (fName) => {
+                              const f = fName.toLowerCase();
+                              if (
+                                f.includes("spam") ||
+                                f.includes("junk") ||
+                                f.includes("bulk")
+                              )
+                                return "spam";
+                              if (
+                                f.includes("promo") ||
+                                f.includes("social") ||
+                                f.includes("update") ||
+                                f.includes("advertising") ||
+                                f.includes("social") ||
+                                f.includes("forum")
+                              )
+                                return "promo";
+                              return "inbox";
+                            };
+
+                            const placement = determinePlacement(folderName);
+                            console.log(
+                              `[IMAP] Match found! Campaign: ${campaign._id}, TestID: ${testIdDoc.email}, Location: ${placement}`,
+                            );
 
                             results.push({
                               campaignId: campaign._id,
@@ -272,10 +285,11 @@ const runScanner = async () => {
 
       for (const res of scanResults) {
         // Find the "SENT SUCCESS" log for this email to link the placement
+        // Use a more relaxed regex to catch variations in mail_status
         const existingLog = await CampaignLog.findOne({
           campaign_id: res.campaignId,
-          mail_status: new RegExp(`${res.email} success`, "i"),
-        });
+          mail_status: { $regex: res.email, $options: "i" },
+        }).sort({ createdAt: -1 });
 
         // Only count if it hasn't been placed yet (avoid double counting if scanner runs twice)
         if (

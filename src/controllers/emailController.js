@@ -779,6 +779,15 @@ const getCampaignStatus = async (req, res) => {
       "status type mode sen_t success_count error_count total_emails inbox_count spam_count promo_count bounce_count total_queued guardian_logs",
     );
     if (!campaign) return res.status(404).json({ message: "Not found" });
+
+    // Debug logging for field verification
+    console.log(`[API] Campaign Status ${req.params.id}:`, {
+      sent: campaign.success_count,
+      inbox: campaign.inbox_count,
+      spam: campaign.spam_count,
+      promo: campaign.promo_count,
+    });
+
     res.json(campaign);
   } catch (error) {
     res.status(500).json({ message: error.message });
