@@ -166,6 +166,7 @@ const emailWorker = async (job) => {
         "X-Mailer": xmailer === "1" ? "V-Mailer" : undefined,
         "Reply-To": reply_to === "1" ? from_email : undefined,
       },
+      messageId: msgId || undefined,
     };
 
     if (campaign_id) {

@@ -244,6 +244,7 @@ class CampaignAutoRunner {
           encoding: emailOpts.encoding,
           charset_alt: emailOpts.charset_alt,
           encoding_alt: emailOpts.encoding_alt,
+          msgId: emailOpts.message_id,
           reply_to: emailOpts.reply_to,
           xmailer: emailOpts.xmailer,
           offer_id: emailOpts.offer_id,

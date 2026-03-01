@@ -113,6 +113,7 @@ const queueEmail = async (email, currentIp, campaignId, opts) => {
     search_replace,
     wait_time,
     dashboardLogId,
+    message_id,
   } = opts;
 
   const replaceTags = buildReplaceTags(email.trim(), {
@@ -141,6 +142,7 @@ const queueEmail = async (email, currentIp, campaignId, opts) => {
     encoding,
     charset_alt,
     encoding_alt,
+    msgId: message_id,
     reply_to,
     xmailer,
     offer_id,
@@ -323,6 +325,7 @@ const sendEmail = async (req, res) => {
       offer_id,
       search_replace,
       wait_time: Number(wait_time) || 0,
+      message_id: message_id || "",
     };
 
     const { campaign_id: existingCampaignId } = req.body;
@@ -513,12 +516,10 @@ const sendEmail = async (req, res) => {
 
     if (campaignType === "bulk_manual") {
       if (!ipPool || ipPool.length === 0) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "No active IPs or SMTP accounts found. Please check your setup.",
-          });
+        return res.status(400).json({
+          message:
+            "No active IPs or SMTP accounts found. Please check your setup.",
+        });
       }
       // ── BULK + MANUAL: Round-robin batch starting from offset ───────────
       const batchSize = Number(limit_to_send) || 500;
@@ -560,12 +561,10 @@ const sendEmail = async (req, res) => {
 
     if (campaignType === "bulk_auto") {
       if (!ipPool || ipPool.length === 0) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "No active IPs or SMTP accounts found. Please check your setup.",
-          });
+        return res.status(400).json({
+          message:
+            "No active IPs or SMTP accounts found. Please check your setup.",
+        });
       }
       // ── BULK + AUTO: First batch + start AutoRunner from offset ────────
       const batchSize = Number(mail_after) || 100;
