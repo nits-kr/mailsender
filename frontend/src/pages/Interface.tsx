@@ -16,6 +16,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+const formatCompactNumber = (num: number): string => {
+  if (num >= 100000) {
+    return (num / 100000).toFixed(num % 100000 === 0 ? 0 : 1) + "L";
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + "K";
+  }
+  return num.toString();
+};
+
 const interfaceSchema = z.object({
   accs: z.string().min(1, "IPs/Accounts are required"),
   headers: z.string().optional().nullable(),
@@ -1072,7 +1082,7 @@ const Interface = () => {
                       width: "100%",
                       paddingRight:
                         dataFileCount !== null || isFetchingFileInfo
-                          ? "60px"
+                          ? `${Math.max(50, formatCompactNumber(dataFileCount || 0).length * 8 + 25)}px`
                           : "8px",
                     }}
                   />
@@ -1082,37 +1092,22 @@ const Interface = () => {
                     </span>
                   )}
                   {isFetchingFileInfo ? (
-                    <span
-                      style={{
-                        position: "absolute",
-                        right: "10px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        display: "flex",
-                        alignItems: "center",
-                        pointerEvents: "none",
-                      }}
-                    >
+                    <span className="input-count-badge success">
                       <Loader2
                         className="animate-spin"
-                        size={14}
-                        color="#3b82f6"
+                        size={12}
+                        color="white"
                       />
                     </span>
                   ) : (
                     dataFileCount !== null && (
                       <span
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          fontSize: "11px",
-                          fontWeight: "bold",
-                          color: dataFileCount > 0 ? "#10b981" : "#ef4444",
-                          pointerEvents: dataFileCount === 0 ? "auto" : "none",
-                          cursor: dataFileCount === 0 ? "pointer" : "default",
-                        }}
+                        className={`input-count-badge ${dataFileCount > 0 ? "success" : "error"}`}
+                        title={
+                          dataFileCount === 0
+                            ? "Click to clear invalid file"
+                            : `${dataFileCount.toLocaleString()} emails found`
+                        }
                         onClick={() => {
                           if (dataFileCount === 0) {
                             setValue("data_file", "");
@@ -1121,9 +1116,9 @@ const Interface = () => {
                         }}
                       >
                         {dataFileCount > 0 ? (
-                          dataFileCount.toLocaleString()
+                          formatCompactNumber(dataFileCount)
                         ) : (
-                          <X size={14} />
+                          <X size={12} />
                         )}
                       </span>
                     )
