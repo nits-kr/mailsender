@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Send, Cpu, MousePointerClick } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Interface.css";
 import RichTextEditor from "../components/RichTextEditor";
@@ -27,7 +27,7 @@ const interfaceSchema = z.object({
   subject_enc: z.string().optional().nullable(),
   from_name: z.string().min(1, "From name is required"),
   from_enc: z.string().optional().nullable(),
-  emails: z.string().min(1, "Test emails are required"),
+  emails: z.string().optional(),
   msg_type: z.string().optional().nullable(),
   data_file: z.string().min(1, "Data file is required"),
   total_send: z.string().min(1, "Total send is required"),
@@ -698,38 +698,40 @@ const Interface = () => {
                 onClick={handleSubmit(onSend)}
                 disabled={sending}
               >
-                {sending ? "SENDING..." : "SEND"}
+                {sending ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    SENDING...
+                  </>
+                ) : (
+                  <>
+                    <Send size={20} />
+                    SEND
+                  </>
+                )}
               </button>
-              {/* Mode badge */}
-              <span
-                style={{
-                  marginLeft: "10px",
-                  fontSize: "11px",
-                  fontWeight: "bold",
-                  padding: "3px 8px",
-                  borderRadius: "4px",
-                  backgroundColor:
-                    formData.sen_t === "auto" ? "#6366f1" : "#0ea5e9",
-                  color: "white",
-                  textTransform: "uppercase",
-                }}
+
+              {/* Enhanced Mode badge */}
+              <div
+                className={`mode-badge ${formData.sen_t === "auto" ? "auto" : "manual"}`}
+                title={`${(formData.mode || "TEST").toUpperCase()} MODE: ${formData.sen_t === "auto" ? "System runs automatically based on your set intervals." : "Each batch must be triggered manually by you."}`}
               >
-                {formData.mode} + {formData.sen_t}
-              </span>
+                {formData.sen_t === "auto" ? (
+                  <Cpu size={14} />
+                ) : (
+                  <MousePointerClick size={14} />
+                )}
+                {formData.mode || "TEST"} + {formData.sen_t}
+              </div>
+
               {status && (
-                <span
-                  style={{
-                    marginLeft: "10px",
-                    fontSize: "11px",
-                    fontWeight: "bold",
-                    padding: "3px 8px",
-                    borderRadius: "4px",
-                    backgroundColor: "#0ea5e9",
-                    color: "white",
-                  }}
+                <div
+                  className="mode-badge manual"
+                  style={{ background: "#3b82f6" }}
+                  title={`Current Live Status: ${status}`}
                 >
                   {status}
-                </span>
+                </div>
               )}
             </div>
 
