@@ -825,6 +825,11 @@ const startSpaceSending = async (req, res) => {
     data_file,
     search_replace,
     interval_time,
+    wait_time,
+    inbox_percent,
+    mail_after,
+    limit_to_send,
+    sleep_time,
   } = req.body;
 
   if (!from_email || !mailing_ip || !interval_time) {
@@ -897,8 +902,8 @@ const startSpaceSending = async (req, res) => {
     const campaign = new Campaign({
       type: "space_sending",
       mode: "space",
-      type: "space_sending",
-      template_name: template_name || "Space_Sending", // MongoDB schema requires this
+      offer_id,
+      template_name: template_name || "Space_Sending",
       domain,
       from_email,
       from_name,
@@ -915,6 +920,28 @@ const startSpaceSending = async (req, res) => {
       spam_count: 0,
       promo_count: 0,
       bounce_count: 0,
+
+      // Save configuration snapshot
+      accs: mailing_ip,
+      subject_enc: subject_enc || "reset",
+      from_enc: from_enc || "reset",
+      msg_type: msg_type || "html",
+      charset: charset || "UTF-8",
+      encoding: encoding || "8bit",
+      charset_alt: charset_alt || "UTF-8",
+      encoding_alt: encoding_alt || "8bit",
+      message_id,
+      reply_to: reply_to || "0",
+      xmailer: xmailer || "0",
+      interval_time,
+      search_replace,
+      total_send,
+      data_file,
+      wait_time: wait_time || "2",
+      inbox_percent: Number(inbox_percent) || 50,
+      mail_after: Number(mail_after) || 100,
+      limit_to_send: Number(limit_to_send) || 500,
+      sleep_time: Number(sleep_time) || 5,
     });
 
     await campaign.save();
@@ -951,6 +978,7 @@ const startSpaceSending = async (req, res) => {
       reply_to,
       xmailer,
       search_replace,
+      wait_time,
       spaceOpts: {
         // Unique props for the drip loop
         interval_time: parseInt(interval_time, 10),
