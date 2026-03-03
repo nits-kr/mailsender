@@ -55,8 +55,11 @@ const getImapScreens = async (req, res) => {
       const part = line.trim().split("\t")[0];
       if (!part) continue;
 
-      const pid = part.split(".")[0];
-      const fullName = part.split(".")[1];
+      // ⚠️  Split only on FIRST dot — screen names CAN contain dots (e.g. gmail.com_...)
+      const firstDot = part.indexOf(".");
+      if (firstDot === -1) continue;
+      const pid = part.substring(0, firstDot);
+      const fullName = part.substring(firstDot + 1);
       if (!fullName) continue;
 
       const type = fullName.includes("INBOX") ? "INBOX" : "SPAM";
@@ -208,16 +211,16 @@ const createImapScreen = async (req, res) => {
     const email = testIdDoc.email;
     const domain = (testIdDoc.domain || "IMAP").toUpperCase();
 
-    // Build screen names from filenames stored in DB
-    // filenameinbox = "yahoo.com_ronnyzim44_INBOX.php"  → strip .php for screen name
-    const inboxBase = (testIdDoc.filenameinbox || `${domain}_inbox`).replace(
-      /\.php$/i,
-      "",
-    );
-    const spamBase = (testIdDoc.filenamespam || `${domain}_spam`).replace(
-      /\.php$/i,
-      "",
-    );
+    // Sanitize helper: strip .php extension then replace ALL dots with underscores.
+    // Screen names MUST NOT contain dots — the `screen -ls` output format is
+    // "PID.screen_name" so any dot inside the name breaks parsing (and STOP/DELETE).
+    const sanitize = (str) =>
+      (str || "")
+        .replace(/\.php$/i, "") // remove trailing .php
+        .replace(/\./g, "_"); // replace remaining dots with underscores
+
+    const inboxBase = sanitize(testIdDoc.filenameinbox || `${domain}_INBOX`);
+    const spamBase = sanitize(testIdDoc.filenamespam || `${domain}_SPAM`);
 
     // Append the MongoDB _id short suffix so names are unique across re-runs
     const shortId = testIdDoc._id.toString().slice(-4);
