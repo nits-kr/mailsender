@@ -62,6 +62,8 @@ const getImapScreens = async (req, res) => {
       const fullName = part.substring(firstDot + 1);
       if (!fullName) continue;
 
+      const type = fullName.includes("INBOX") ? "INBOX" : "SPAM";
+
       // Extract sno from screen name pattern: DOMAIN_emailuser_TYPE_sno
       // sno is the last segment after the last underscore
       const nameParts = fullName.split("_");
