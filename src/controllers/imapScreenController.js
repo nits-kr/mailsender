@@ -1,7 +1,36 @@
 const TestId = require("../models/TestId");
 const { exec } = require("child_process");
 const util = require("util");
+const path = require("path");
+const fs = require("fs");
 const execPromise = util.promisify(exec);
+
+/**
+ * Parse inbox/spam count from the log file written by advance_imap/inbox.php & spam.php
+ * Log lines look like:  "COUNT : 15 STORED INBOX 2024-01-01 10:00:00 am"
+ *                        "COUNT : 7 STORED SPAM 2024-01-01 10:00:00 am"
+ */
+function parseCountsFromLog(logPath) {
+  let inboxCount = 0;
+  let spamCount = 0;
+  try {
+    if (!fs.existsSync(logPath)) return { inboxCount, spamCount };
+    const content = fs.readFileSync(logPath, "utf8");
+    const lines = content.split("\n");
+
+    // Run through all lines and take the last/highest counts found
+    for (const line of lines) {
+      const inboxMatch = line.match(/COUNT\s*:\s*(\d+)\s+STORED\s+INBOX/i);
+      if (inboxMatch) inboxCount += parseInt(inboxMatch[1], 10);
+
+      const spamMatch = line.match(/COUNT\s*:\s*(\d+)\s+STORED\s+SPAM/i);
+      if (spamMatch) spamCount += parseInt(spamMatch[1], 10);
+    }
+  } catch (e) {
+    // ignore read errors
+  }
+  return { inboxCount, spamCount };
+}
 
 // @desc    Get all IMAP screens from the system
 // @route   GET /api/imap-screens
@@ -30,10 +59,12 @@ const getImapScreens = async (req, res) => {
       const fullName = part.split(".")[1];
       if (!fullName) continue;
 
-      const nameParts = fullName.split("_");
-      const snoWithExt = nameParts[nameParts.length - 1];
-      const sno = snoWithExt.split(".")[0];
       const type = fullName.includes("INBOX") ? "INBOX" : "SPAM";
+
+      // Extract sno from screen name pattern: DOMAIN_emailuser_TYPE_sno
+      // e.g. YAHOO_ronnyzim44_INBOX_1  →  sno = last segment after last _
+      const nameParts = fullName.split("_");
+      const sno = nameParts[nameParts.length - 1];
 
       let cmdId = "---";
       let fullCommand = "---";
@@ -41,10 +72,10 @@ const getImapScreens = async (req, res) => {
         const { stdout: psOut } = await execPromise(
           `sudo ps -el | grep "${pid}" | grep -v 'grep' | awk '{print $4}'`,
         );
-        cmdId = psOut.trim();
-        if (cmdId) {
+        cmdId = psOut.trim() || "---";
+        if (cmdId && cmdId !== "---") {
           const { stdout: commandOut } = await execPromise(
-            `sudo ps -ef | grep "${cmdId}" | grep -v 'bash\\|grep' | awk -F ':' '{print ":"$4}' | sed 's|:[0-9][0-9] ||g'`,
+            `sudo ps -ef | grep "${cmdId}" | grep -v 'bash\\|grep' | awk '{print $8,$9,$10,$11}' | head -1`,
           );
           fullCommand = commandOut.trim() || "---";
         }
@@ -54,34 +85,44 @@ const getImapScreens = async (req, res) => {
 
       // Get metadata from MongoDB TestId
       let email = "---";
-      let count = 0;
+      let inboxCount = 0;
+      let spamCount = 0;
 
       try {
-        // TestId stores _id as MongoDB ObjectId, but sno is a string index
-        // Match by filenameinbox/filenamespam pattern or find by sno field if present
         const testIdDoc = await TestId.findOne({
           $or: [
-            { filenameinbox: { $regex: `_${sno}\\b` } },
-            { filenamespam: { $regex: `_${sno}\\b` } },
+            { filenameinbox: { $regex: `_${sno}` } },
+            { filenamespam: { $regex: `_${sno}` } },
           ],
         });
+
         if (testIdDoc) {
           email = testIdDoc.email;
-          // Count not applicable — return 0
-          count = 0;
+          // Read count from log file
+          const logPath = path.join(
+            __dirname,
+            "../../advance_imap",
+            `${email}.txt`,
+          );
+          const counts = parseCountsFromLog(logPath);
+          inboxCount = counts.inboxCount;
+          spamCount = counts.spamCount;
         }
       } catch (e) {
         // ignore lookup errors
       }
 
       imapScreens.push({
-        _id: pid,
+        _id: `${pid}_${fullName}`,
         screen_id: pid,
         screen_name: fullName,
         cmd_id: cmdId,
         command: fullCommand,
         datafile_name: email,
-        count: count,
+        type: type,
+        inbox_count: inboxCount,
+        spam_count: spamCount,
+        count: type === "INBOX" ? inboxCount : spamCount,
         status: fullCommand !== "---" ? "active" : "inactive",
       });
     }
@@ -95,7 +136,7 @@ const getImapScreens = async (req, res) => {
   }
 };
 
-// @desc    Stop an IMAP screen
+// @desc    Stop an IMAP screen (sends Ctrl+C to the process)
 // @route   POST /api/imap-screens/stop/:name
 const stopImapScreen = async (req, res) => {
   try {
@@ -123,14 +164,26 @@ const deleteImapScreen = async (req, res) => {
   }
 };
 
-// @desc    Get logs for an IMAP screen
+// @desc    Get logs for an IMAP screen (reads the email.txt log file)
 // @route   GET /api/imap-screens/logs/:name
 const getImapLogs = async (req, res) => {
   try {
     const { name } = req.params;
-    const logPath = path.join(__dirname, "../../advance_imap", name);
-    const { stdout } = await execPromise(`tac "${logPath}" | head -100`);
-    res.json({ logs: stdout });
+    // name is the email (e.g. ronnyzim44@yahoo.com.txt  or  ronnyzim44@yahoo.com)
+    const logFile = name.endsWith(".txt") ? name : `${name}.txt`;
+    const logPath = path.join(__dirname, "../../advance_imap", logFile);
+
+    if (!fs.existsSync(logPath)) {
+      return res.json({
+        logs: "Log file not found. Screen may not have started writing yet.",
+      });
+    }
+
+    // Read last 200 lines (equivalent to `tac | head -100` but simpler)
+    const content = fs.readFileSync(logPath, "utf8");
+    const lines = content.split("\n").filter(Boolean);
+    const last200 = lines.slice(-200).join("\n");
+    res.json({ logs: last200 });
   } catch (error) {
     res
       .status(500)
@@ -138,52 +191,70 @@ const getImapLogs = async (req, res) => {
   }
 };
 
-// @desc    Start/Create new IMAP screens
+// @desc    Start/Create new IMAP screens for a test ID
 // @route   POST /api/imap-screens/create
 const createImapScreen = async (req, res) => {
   try {
     const { sno } = req.body;
     if (!sno)
-      return res.status(400).json({ message: "Test ID (sno) is required" });
+      return res.status(400).json({ message: "Test ID (_id) is required" });
 
     // Fetch Test ID from MongoDB
-    const testIdDoc =
-      (await TestId.findById(sno).catch(() => null)) ||
-      (await TestId.findOne({
-        $or: [
-          { filenameinbox: { $regex: `_${sno}\\b` } },
-          { filenamespam: { $regex: `_${sno}\\b` } },
-        ],
-      }));
+    const testIdDoc = await TestId.findById(sno).catch(() => null);
 
     if (!testIdDoc)
-      return res.status(404).json({ message: "Test ID not found" });
+      return res.status(404).json({ message: "Test ID not found in DB" });
 
     const email = testIdDoc.email;
+    const domain = (testIdDoc.domain || "IMAP").toUpperCase();
+
+    // Build screen names from filenames stored in DB
+    // filenameinbox = "yahoo.com_ronnyzim44_INBOX.php"  → strip .php for screen name
+    const inboxBase = (testIdDoc.filenameinbox || `${domain}_inbox`).replace(
+      /\.php$/i,
+      "",
+    );
+    const spamBase = (testIdDoc.filenamespam || `${domain}_spam`).replace(
+      /\.php$/i,
+      "",
+    );
+
+    // Append the MongoDB _id short suffix so names are unique across re-runs
+    const shortId = testIdDoc._id.toString().slice(-4);
+    const sinboxname = `${inboxBase}_${shortId}`;
+    const sspamname = `${spamBase}_${shortId}`;
+
+    const imapDir = path.resolve(__dirname, "../../advance_imap");
+    const logFile = path.join(imapDir, `${email}.txt`);
 
     // Clean up old log file
-    const logFile = path.join(__dirname, "../../advance_imap", `${email}.txt`); // Modified path
-    await execPromise(`rm -rf "${logFile}"`).catch(() => {});
+    try {
+      fs.unlinkSync(logFile);
+    } catch (e) {
+      /* ignore */
+    }
 
-    const inboxBase = testIdDoc.filenameinbox.split(".")[0];
-    const spamBase = testIdDoc.filenamespam.split(".")[0];
-    const sinboxname = `${inboxBase}_${sno}`;
-    const sspamname = `${sno}_${sno}`; // Fixed a potential sno typo here too while at it
-
-    const imapDir = path.join(__dirname, "../../advance_imap"); // Defined imapDir
     const commands = [
-      `sudo screen -dmS ${sinboxname}.php && sudo screen -S ${sinboxname}.php -X stuff "cd ${imapDir} ;php inbox.php ${sno}\n"`, // Modified command
-      `sudo screen -dmS ${sspamname}.php && sudo screen -S ${sspamname}.php -X stuff "cd ${imapDir} ;php spam.php ${sno}\n"`, // Modified command
+      `sudo screen -dmS "${sinboxname}" && sudo screen -S "${sinboxname}" -X stuff "cd ${imapDir} && php inbox.php ${shortId}\\n"`,
+      `sudo screen -dmS "${sspamname}" && sudo screen -S "${sspamname}" -X stuff "cd ${imapDir} && php spam.php ${shortId}\\n"`,
     ];
 
+    const results = [];
     for (const cmd of commands) {
-      await execPromise(cmd);
+      try {
+        await execPromise(cmd);
+        results.push({ cmd, status: "ok" });
+      } catch (e) {
+        results.push({ cmd, status: "error", error: e.message });
+      }
     }
 
     res.json({
       message: "IMAP screens started successfully.",
-      commands: commands,
-      email: email,
+      email,
+      sinboxname,
+      sspamname,
+      results,
     });
   } catch (error) {
     res

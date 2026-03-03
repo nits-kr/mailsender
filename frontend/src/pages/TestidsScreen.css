@@ -1,155 +1,564 @@
-.imap-screen-container {
-    margin: 15px;
-    font-family: Arial, Helvetica, sans-serif;
-}
-.mainbox {
-    padding: 10px;
-    margin: 30px auto;
-    text-align: center;
-    box-shadow: 3px 4px 23px -4px rgba(0, 0, 0, 0.48);
-    background: white;
-    max-width: 1400px;
-    /* min-height: 800px; */
-    border: 1px solid #ddd;
-}
-.mainbox h1 {
-    color: #4D4D4D;
-    font-size: 28px;
-    font-weight: bold;
-    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-    font-style: italic;
-    text-shadow: 4px 3px 3px #b0b0b0;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-.blinking {
-    animation: opacity 0.5s ease-in-out infinite;
-}
-@keyframes opacity {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 0; }
-}
-.refresh-icon {
-    text-align: right;
-    margin-right: 15px;
-    cursor: pointer;
-    font-size: 24px;
-    color: black;
-}
-.mainbox hr {
-    border: 1px solid #f1f1f1;
-    margin-bottom: 25px;
-}
-.btn-create {
-    background: #42d838;
-    border-radius: 4px;
-    width: 250px;
-    text-align: center;
-    margin: 5px;
-    padding: 5px;
-    color: white;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
-    display: block;
-}
-.create-form {
-    width: 96%;
-    height: 100px;
-    margin: 25px auto;
-    padding: 25px;
-    box-shadow: 6px 3px 80px 9px rgb(102 102 102 / 37%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-}
-.create-form select {
-    width: 350px;
-    font-weight: bold;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-.btn {
-    color: white;
-    font-weight: bold;
-    border: none;
-    border-radius: 12px;
-    padding: 5px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    margin: 5px;
-}
-.btn-info { background-color: #2196F3; }
-.btn-info:hover { background-color: #0b7dda; }
-.btn-warning { background-color: #ff9800; }
-.btn-danger { background-color: #f44336; }
+/* ═══════════════════════════════════════════════════════
+   TEST IDs MANAGEMENT  –  TestidsScreen.css
+   Two sections: (1) IMAP Screen Manager  (2) Test IDs CRUD
+   ═══════════════════════════════════════════════════════ */
 
-.imap-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid #ddd;
-    margin-bottom: 20px;
+/* ── Page wrapper ─────────────────────────────────────── */
+.tid-container {
+  margin: 15px;
+  font-family: Arial, Helvetica, sans-serif;
 }
-.imap-table thead th {
-    background-color: #60D6FF;
-    color: white;
-    padding: 10px;
-    text-align: center;
-    border: 1px solid #dee2e6;
-    font-weight: bold;
-    font-size: 15px;
+
+.tid-mainbox {
+  padding: 10px 18px;
+  margin: 30px auto;
+  text-align: center;
+  box-shadow: 3px 4px 23px -4px rgba(0, 0, 0, 0.48);
+  background: white;
+  max-width: 1400px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
-.imap-table tbody td {
-    padding: 8px;
-    text-align: center;
-    border: 1px solid #dee2e6;
-    font-weight: bold;
-    font-size: 14px;
+
+/* ── Title ──────────────────────────────────────────────── */
+.tid-title {
+  color: #4d4d4d;
+  font-size: 28px;
+  font-weight: bold;
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  font-style: italic;
+  text-shadow: 4px 3px 3px #b0b0b0;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
-.imap-table tbody tr:nth-of-type(odd) {
-    background-color: rgba(0,0,0,.05);
+
+/* ── Blink warning bar ──────────────────────────────────── */
+.tid-blink-bar {
+  color: red;
+  font-size: 15px;
+  animation: tid-blink 0.5s ease-in-out infinite;
+  text-align: center;
 }
-.log-area {
-    margin-top: 20px;
-    background: black;
-    color: #10ff00;
-    padding: 20px;
-    min-height: 300px;
-    text-align: left;
-    border-radius: 4px;
-    border: 2px solid #10ff00;
-    overflow-y: auto;
+@keyframes tid-blink {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 0; }
 }
-.log-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #10ff00;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+
+/* ── Refresh row (screen section) ───────────────────────── */
+.tid-refresh-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-right: 10px;
+  margin-bottom: 4px;
 }
-.go-back {
-    background: white;
-    padding: 4px 12px;
-    border-radius: 4px;
-    border: none;
-    color: black;
-    font-size: 20px;
-    font-weight: 600;
-    cursor: pointer;
+
+.tid-hr {
+  border: 1px solid #f1f1f1;
+  margin-bottom: 8px;
 }
-/* Utility classes for remaining inline styles */
-.text-center { text-align: center; }
-.font-red { color: red; }
-.fs-16 { font-size: 16px; }
-.margin-lr-10 { margin: 0 10px; }
-.flex-center-gap-20 { display: flex; align-items: center; gap: 20px; }
-.btn-start { font-size: 25px; font-weight: 600; padding: 10px 20px; }
-.status-active { color: limegreen; }
-.status-inactive { color: red; }
-.no-screens-td { padding: 20px; font-style: italic; font-weight: normal; color: grey; }
-.log-title { margin: 0; color: #10ff00; font-size: 28px; }
-.log-pre { margin: 0; font-size: 20px; white-space: pre-wrap; text-align: left; }
+
+/* ── CREATE NEW SCREEN collapsible ─────────────────────── */
+.tid-details {
+  margin: 0 10px;
+  text-align: left;
+}
+
+.tid-btn-create-screen {
+  background: #42d838;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  width: 220px;
+  text-align: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: inline-block;
+  user-select: none;
+  font-size: 14px;
+}
+.tid-btn-create-screen::-webkit-details-marker { display: none; }
+
+.tid-create-form {
+  width: 96%;
+  min-height: 90px;
+  margin: 20px auto;
+  padding: 20px 25px;
+  box-shadow: 6px 3px 80px 9px rgba(102, 102, 102, 0.37);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* ── Searchable dropdown ────────────────────────────────── */
+.tid-dropdown-wrap {
+  position: relative;
+  width: 350px;
+  font-weight: bold;
+}
+
+.tid-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+.tid-dropdown-trigger:hover {
+  border-color: #60d6ff;
+}
+
+.tid-dropdown-label {
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tid-dropdown-arrow {
+  font-size: 12px;
+  color: #888;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.tid-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  z-index: 999;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.tid-dropdown-search {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.tid-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tid-dropdown-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  text-align: left;
+}
+.tid-dropdown-item:hover {
+  background: #e3f7ff;
+}
+.tid-dropdown-item.selected {
+  background: #60d6ff;
+  color: white;
+  font-weight: bold;
+}
+
+.tid-dropdown-empty {
+  padding: 10px 14px;
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  font-weight: normal;
+}
+
+/* ── START button ───────────────────────────────────────── */
+.tid-btn-start {
+  background: #2196f3;
+  color: white;
+  font-weight: 700;
+  font-size: 22px;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.tid-btn-start:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.tid-btn-start:not(:disabled):hover {
+  background: #0b7dda;
+}
+
+/* ── Header bar (CRUD section) ──────────────────────────── */
+.tid-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 14px;
+  padding: 0 4px;
+}
+
+.tid-btn-add {
+  background: #42d838;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s;
+  white-space: nowrap;
+}
+.tid-btn-add:hover { background: #32b82a; }
+
+.tid-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tid-search-label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #555;
+}
+.tid-search-input {
+  width: 240px;
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.tid-search-input:focus {
+  outline: none;
+  border-color: #60d6ff;
+}
+
+.tid-refresh-btn {
+  background: #607d8b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-size: 22px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.tid-refresh-btn:hover { background: #455a64; }
+
+/* ── Table ──────────────────────────────────────────────── */
+.tid-table-wrap {
+  overflow-x: auto;
+}
+
+.tid-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
+}
+
+.tid-table thead th {
+  background-color: #60d6ff;
+  color: white;
+  padding: 10px 8px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.tid-table tbody td {
+  padding: 8px 6px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.tid-table tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.tid-email-cell  { color: #1a73e8; font-weight: bold !important; }
+.tid-file-cell   { font-size: 12px !important; color: #555; }
+.tid-cmd-cell    { font-size: 11px !important; color: #666; }
+
+.tid-screen-active   { color: limegreen; font-weight: bold; }
+.tid-screen-inactive { color: red; font-weight: bold; }
+
+/* ── Count badge ────────────────────────────────────────── */
+.tid-count-badge {
+  background: #673ab7;
+  color: white;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+/* ── Status badges ──────────────────────────────────────── */
+.tid-badge-active {
+  background: #28a745;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.tid-badge-inactive {
+  background: #dc3545;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* ── Action buttons ─────────────────────────────────────── */
+.tid-btn {
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 2px 2px;
+  transition: opacity 0.15s;
+}
+.tid-btn:hover { opacity: 0.82; }
+
+.tid-btn-edit { background-color: #28a745; }
+.tid-btn-view { background-color: #2196f3; }
+.tid-btn-del  { background-color: #f44336; }
+.tid-btn-stop { background-color: #ff9800; }
+
+/* ── Count bar ──────────────────────────────────────────── */
+.tid-count-bar {
+  text-align: left;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+/* ── Empty row ──────────────────────────────────────────── */
+.tid-empty-td {
+  padding: 28px;
+  font-style: italic;
+  font-weight: normal !important;
+  color: #888;
+  text-align: center;
+}
+
+/* ── Log viewer ─────────────────────────────────────────── */
+.tid-log-area {
+  margin-top: 20px;
+  background: #0d0d0d;
+  color: #10ff00;
+  padding: 20px;
+  min-height: 280px;
+  text-align: left;
+  border-radius: 6px;
+  border: 2px solid #10ff00;
+  overflow-y: auto;
+  max-height: 450px;
+}
+
+.tid-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #10ff00;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.tid-log-title {
+  margin: 0;
+  color: #10ff00;
+  font-size: 22px;
+}
+
+.tid-log-back {
+  background: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: none;
+  color: black;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tid-log-back:hover { background: #eee; }
+
+.tid-log-pre {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: "Courier New", Courier, monospace;
+}
+
+/* ── Modal overlay ──────────────────────────────────────── */
+.tid-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tid-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+  width: 90%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tid-modal-view { max-width: 500px; }
+
+.tid-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 2px solid #60d6ff;
+  background: #f0fbff;
+  border-radius: 8px 8px 0 0;
+}
+.tid-modal-header h4 { margin: 0; font-size: 18px; color: #333; }
+
+.tid-modal-close {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  color: #555;
+  padding: 0 4px;
+}
+.tid-modal-close:hover { color: #d00; }
+
+.tid-modal-body    { padding: 20px 24px; }
+.tid-modal-footer  { padding: 12px 24px; border-top: 1px solid #eee; text-align: right; }
+
+/* ── Form grid ──────────────────────────────────────────── */
+.tid-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+}
+@media (max-width: 520px) {
+  .tid-form-grid { grid-template-columns: 1fr; }
+}
+
+.tid-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+.tid-form-group label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #444;
+}
+.tid-input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.tid-input:focus {
+  outline: none;
+  border-color: #60d6ff;
+  box-shadow: 0 0 0 2px rgba(96, 214, 255, 0.25);
+}
+
+/* ── Modal action buttons ───────────────────────────────── */
+.tid-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.tid-btn-submit {
+  background: #28a745;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.tid-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.tid-btn-submit:not(:disabled):hover { background: #218838; }
+
+.tid-btn-cancel {
+  background: #6c757d;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.tid-btn-cancel:hover { background: #545b62; }
+
+/* ── View modal table ───────────────────────────────────── */
+.tid-view-table { width: 100%; border-collapse: collapse; }
+.tid-view-table tr:nth-child(odd) { background: #f8f9fa; }
+.tid-view-label {
+  font-weight: bold;
+  font-size: 13px;
+  color: #333;
+  padding: 10px 14px;
+  border: 1px solid #dee2e6;
+  width: 38%;
+  vertical-align: top;
+}
+.tid-view-value {
+  font-size: 13px;
+  color: #555;
+  padding: 10px 14px;
+  border: 1px solid #dee2e6;
+  word-break: break-all;
+}
