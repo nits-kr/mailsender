@@ -15,11 +15,11 @@ const addTestId = async (req, res) => {
   const { domain, email, password, inboxhostname, spamhostname, port, status } =
     req.body;
   try {
-    // Legacy filename parity logic
+    // Generate a clean MERN-style slug identifier (no .php extension)
     const dataemail = email.split("@");
     const dataemails = (dataemail[0] || "").trim().replace(/[._-]/g, "");
-    const filenameinbox = `${domain}_${dataemails}_INBOX.php`;
-    const filenamespam = `${domain}_${dataemails}_SPAM.php`;
+    const filenameinbox = `${domain}_${dataemails}_INBOX`;
+    const filenamespam = `${domain}_${dataemails}_SPAM`;
 
     const newTestId = new TestId({
       domain,
@@ -46,11 +46,11 @@ const updateTestId = async (req, res) => {
   const { domain, email, password, inboxhostname, spamhostname, port, status } =
     req.body;
   try {
-    // Generate filenames again in case domain/email changed
+    // Generate a clean MERN-style slug identifier (no .php extension)
     const dataemail = email.split("@");
     const dataemails = (dataemail[0] || "").trim().replace(/[._-]/g, "");
-    const filenameinbox = `${domain}_${dataemails}_INBOX.php`;
-    const filenamespam = `${domain}_${dataemails}_SPAM.php`;
+    const filenameinbox = `${domain}_${dataemails}_INBOX`;
+    const filenamespam = `${domain}_${dataemails}_SPAM`;
 
     const updatedTestId = await TestId.findByIdAndUpdate(
       req.params.id,

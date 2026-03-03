@@ -218,13 +218,9 @@ const createImapScreen = async (req, res) => {
     const email = testIdDoc.email;
     const domain = (testIdDoc.domain || "IMAP").toUpperCase();
 
-    // Sanitize helper: strip .php extension. Dots are now safe in screen names.
-    // Screen names MUST NOT contain dots — the `screen -ls` output format is
-    // "PID.screen_name" so any dot inside the name breaks parsing (and STOP/DELETE).
-    const sanitize = (str) => (str || "").replace(/\.php$/i, ""); // remove trailing .php (dots are safe now)
-
-    const inboxBase = sanitize(testIdDoc.filenameinbox || `${domain}_INBOX`);
-    const spamBase = sanitize(testIdDoc.filenamespam || `${domain}_SPAM`);
+    // Screen name base: use stored slug directly (no .php stripping needed)
+    const inboxBase = testIdDoc.filenameinbox || `${domain}_INBOX`;
+    const spamBase = testIdDoc.filenamespam || `${domain}_SPAM`;
 
     // Use current working directory (usually the project root)
     const rootDir = path.resolve(__dirname, "../../");
