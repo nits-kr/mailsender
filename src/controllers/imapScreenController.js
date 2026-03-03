@@ -18,13 +18,13 @@ function parseCountsFromLog(logPath) {
     const content = fs.readFileSync(logPath, "utf8");
     const lines = content.split("\n");
 
-    // Take the LATEST count from the log (don't sum them)
+    // Sum counts to represent total newly processed messages
     for (const line of lines) {
       const inboxMatch = line.match(/COUNT\s*:\s*(\d+)\s+STORED\s+INBOX/i);
-      if (inboxMatch) inboxCount = parseInt(inboxMatch[1], 10);
+      if (inboxMatch) inboxCount += parseInt(inboxMatch[1], 10);
 
       const spamMatch = line.match(/COUNT\s*:\s*(\d+)\s+STORED\s+SPAM/i);
-      if (spamMatch) spamCount = parseInt(spamMatch[1], 10);
+      if (spamMatch) spamCount += parseInt(spamMatch[1], 10);
     }
   } catch (e) {
     // ignore read errors
@@ -73,10 +73,9 @@ const getImapScreens = async (req, res) => {
       let fullCommand = "---";
 
       try {
-        // Search for the specific Node.js worker process
-        const workerScript = "src/workers/imapMonitorWorker.js";
+        // Search for the specific Node.js worker process via sno and type
         const { stdout: psOut } = await execPromise(
-          `sudo ps -ef | grep "node ${workerScript} ${sno} ${type}" | grep -v "grep" | head -1`,
+          `sudo ps -ef | grep "imapMonitorWorker.js ${sno} ${type}" | grep -v "grep" | head -1`,
         ).catch(() => ({ stdout: "" }));
 
         if (psOut.trim()) {

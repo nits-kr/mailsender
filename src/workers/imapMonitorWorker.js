@@ -137,7 +137,7 @@ async function startMonitoring() {
               log(`FOUND ${newUids.length} NEW MAILS`);
 
               const fetch = imap.fetch(newUids, {
-                bodies: ["HEADER", "TEXT"],
+                bodies: "HEADER", // Fetch headers only for speed and bandwidth efficiency
                 struct: true,
               });
 
@@ -151,7 +151,21 @@ async function startMonitoring() {
 
                 msg.on("body", (stream, info) => {
                   simpleParser(stream, async (err, parsed) => {
-                    if (err) return;
+                    const onMessageDone = () => {
+                      processedCount++;
+                      if (processedCount === newUids.length) {
+                        log(`COUNT : ${newUids.length} STORED ${scanType}`);
+                        log(
+                          `_________________________________________________________________________________`,
+                        );
+                        setTimeout(scanLoop, 5000);
+                      }
+                    };
+
+                    if (err) {
+                      log(`PARSE ERROR: ${err.message}`);
+                      return onMessageDone();
+                    }
 
                     // Extract IP from Received headers (similar to PHP logic)
                     let senderIp = "0.0.0.0";
@@ -161,9 +175,8 @@ async function startMonitoring() {
                         ? receivedHeaders
                         : [receivedHeaders];
                       for (const header of headersArray) {
-                        const ipMatch = header.match(
-                          /\[(\d+\.\d+\.\d+\.\d+)\]/,
-                        );
+                        const str = String(header); // robust conversion
+                        const ipMatch = str.match(/\[(\d+\.\d+\.\d+\.\d+)\]/);
                         if (ipMatch) {
                           senderIp = ipMatch[1];
                           break;
@@ -178,7 +191,7 @@ async function startMonitoring() {
                         subject: parsed.subject,
                         from: parsed.from?.text,
                         to: parsed.to?.text,
-                        date: parsed.date,
+                        date: parsed.date || new Date(),
                         message_id: parsed.messageId,
                         uid: attributes?.uid || 0,
                         ip: senderIp,
@@ -188,14 +201,7 @@ async function startMonitoring() {
                       // ignore duplicate uid or other errors
                     }
 
-                    processedCount++;
-                    if (processedCount === newUids.length) {
-                      log(`COUNT : ${newUids.length} STORED ${scanType}`);
-                      log(
-                        `_________________________________________________________________________________`,
-                      );
-                      setTimeout(scanLoop, 5000);
-                    }
+                    onMessageDone();
                   });
                 });
               });
