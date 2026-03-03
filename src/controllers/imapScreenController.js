@@ -18,13 +18,13 @@ function parseCountsFromLog(logPath) {
     const content = fs.readFileSync(logPath, "utf8");
     const lines = content.split("\n");
 
-    // Run through all lines and take the last/highest counts found
+    // Take the LATEST count from the log (don't sum them)
     for (const line of lines) {
       const inboxMatch = line.match(/COUNT\s*:\s*(\d+)\s+STORED\s+INBOX/i);
-      if (inboxMatch) inboxCount += parseInt(inboxMatch[1], 10);
+      if (inboxMatch) inboxCount = parseInt(inboxMatch[1], 10);
 
       const spamMatch = line.match(/COUNT\s*:\s*(\d+)\s+STORED\s+SPAM/i);
-      if (spamMatch) spamCount += parseInt(spamMatch[1], 10);
+      if (spamMatch) spamCount = parseInt(spamMatch[1], 10);
     }
   } catch (e) {
     // ignore read errors
@@ -71,20 +71,18 @@ const getImapScreens = async (req, res) => {
 
       let cmdId = "---";
       let fullCommand = "---";
-      try {
-        // Find exact shell PID (-w for whole word match)
-        const { stdout: psOut } = await execPromise(
-          `sudo ps -el | grep -w "${pid}" | grep -v 'grep' | awk '{print $4}'`,
-        );
-        cmdId = psOut.trim() || "---";
 
-        if (cmdId !== "---") {
-          // Find the actual command running under that shell (PHP script)
-          // We look for children of that shell PID
-          const { stdout: commandOut } = await execPromise(
-            `sudo ps -ef | grep -w "${cmdId}" | grep -v 'bash\\|grep' | awk '{$1=$2=$3=$4=$5=$6=$7=""; print $0}' | head -1`,
-          );
-          fullCommand = commandOut.trim() || "---";
+      try {
+        // Search for the specific Node.js worker process
+        const workerScript = "src/workers/imapMonitorWorker.js";
+        const { stdout: psOut } = await execPromise(
+          `sudo ps -ef | grep "node ${workerScript} ${sno} ${type}" | grep -v "grep" | head -1`,
+        ).catch(() => ({ stdout: "" }));
+
+        if (psOut.trim()) {
+          const parts = psOut.trim().split(/\s+/);
+          cmdId = parts[1]; // PID is second column
+          fullCommand = parts.slice(7).join(" "); // The actual command string
         }
       } catch (e) {
         // ps might fail if screen/process is already gone
@@ -124,7 +122,11 @@ const getImapScreens = async (req, res) => {
         screen_name: fullName,
         cmd_id: cmdId,
         command: fullCommand,
-        datafile_name: email,
+        datafile_name:
+          type === "INBOX"
+            ? testIdDoc?.filenameinbox || "---"
+            : testIdDoc?.filenamespam || "---",
+        email: email,
         type: type,
         inbox_count: inboxCount,
         spam_count: spamCount,
@@ -222,6 +224,11 @@ const createImapScreen = async (req, res) => {
     const inboxBase = sanitize(testIdDoc.filenameinbox || `${domain}_INBOX`);
     const spamBase = sanitize(testIdDoc.filenamespam || `${domain}_SPAM`);
 
+    // Use current working directory (usually the project root)
+    const rootDir = path.resolve(__dirname, "../../");
+    const imapDir = path.join(rootDir, "advance_imap");
+    const workerScript = path.join(rootDir, "src/workers/imapMonitorWorker.js");
+
     // Append the MongoDB _id short suffix so names are unique across re-runs
     const shortId = testIdDoc._id.toString().slice(-4);
     const sinboxname = `${inboxBase}_${shortId}`;
@@ -238,8 +245,8 @@ const createImapScreen = async (req, res) => {
     }
 
     const commands = [
-      `sudo screen -dmS "${sinboxname}" && sudo screen -S "${sinboxname}" -X stuff "cd ${imapDir} && php inbox.php ${shortId}\\n"`,
-      `sudo screen -dmS "${sspamname}" && sudo screen -S "${sspamname}" -X stuff "cd ${imapDir} && php spam.php ${shortId}\\n"`,
+      `sudo screen -dmS "${sinboxname}" && sudo screen -S "${sinboxname}" -X stuff "cd ${rootDir} && node ${workerScript} ${shortId} INBOX\\n"`,
+      `sudo screen -dmS "${sspamname}" && sudo screen -S "${sspamname}" -X stuff "cd ${rootDir} && node ${workerScript} ${shortId} SPAM\\n"`,
     ];
 
     const results = [];
@@ -274,12 +281,12 @@ const restartImapScreen = async (req, res) => {
     if (!name || !type || !sno)
       return res.status(400).json({ message: "Missing params" });
 
-    const imapDir = path.resolve(__dirname, "../../advance_imap");
-    const script = type === "INBOX" ? "inbox.php" : "spam.php";
+    const rootDir = path.resolve(__dirname, "../../");
+    const workerScript = path.join(rootDir, "src/workers/imapMonitorWorker.js");
 
     // Stuff the command into the existing screen
     await execPromise(
-      `sudo screen -S "${name}" -X stuff "cd ${imapDir} && php ${script} ${sno}\\n"`,
+      `sudo screen -S "${name}" -X stuff "cd ${rootDir} && node ${workerScript} ${sno} ${type}\\n"`,
     );
 
     res.json({ message: `Screen ${name} restarted successfully` });

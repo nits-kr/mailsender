@@ -301,13 +301,13 @@ const TestidsScreen = () => {
             <thead>
               <tr>
                 <th style={{ width: "8%" }}>Screen Id</th>
-                <th style={{ width: "16%" }}>Screen Name</th>
-                <th style={{ width: "8%" }}>Status</th>
-                <th style={{ width: "8%" }}>CMD Id</th>
-                <th style={{ width: "17%" }}>COMMAND</th>
+                <th style={{ width: "20%" }}>Screen Name</th>
+                <th style={{ width: "10%" }}>Status</th>
+                <th style={{ width: "10%" }}>CMD Id</th>
+                <th style={{ width: "15%" }}>COMMAND</th>
                 <th style={{ width: "15%" }}>DATAFILE NAME</th>
-                <th style={{ width: "6%" }}>COUNT</th>
-                <th style={{ width: "22%" }}>ACTION</th>
+                <th style={{ width: "5%" }}>COUNT</th>
+                <th style={{ width: "17%" }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
@@ -331,11 +331,14 @@ const TestidsScreen = () => {
                       {s.screen_name}
                     </td>
                     <td>
-                      {s.status === "active" ? (
-                        <span className="tid-badge-active">ACTIVE</span>
-                      ) : (
-                        <span className="tid-badge-inactive">INACTIVE</span>
-                      )}
+                      <div className="tid-status-cell">
+                        <span className={`tid-status-dot ${s.status}`}></span>
+                        {s.status === "active" ? (
+                          <span className="tid-badge-active">ACTIVE</span>
+                        ) : (
+                          <span className="tid-badge-inactive">INACTIVE</span>
+                        )}
+                      </div>
                     </td>
                     <td>{s.cmd_id}</td>
                     <td className="tid-cmd-cell">{s.command}</td>
