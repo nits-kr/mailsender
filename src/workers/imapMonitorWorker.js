@@ -25,10 +25,7 @@ if (!sno) {
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mailsender", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mailsender")
   .then(() => startMonitoring())
   .catch((err) => {
     console.error("MongoDB connection error:", err);
