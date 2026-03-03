@@ -233,7 +233,6 @@ const createImapScreen = async (req, res) => {
     const sinboxname = `${inboxBase}_${shortId}`;
     const sspamname = `${spamBase}_${shortId}`;
 
-    const imapDir = path.resolve(__dirname, "../../advance_imap");
     const logFile = path.join(imapDir, `${email}.txt`);
 
     // Clean up old log file
