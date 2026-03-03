@@ -51,8 +51,12 @@ const getImapScreens = async (req, res) => {
 
     const imapScreens = [];
 
+    // Optimize: Fetch all test IDs once outside the loop
+    const allTestIds = await TestId.find({});
+
     for (const line of screenLines) {
-      const part = line.trim().split("\t")[0];
+      // Split on whitespace to handle varying formats robustly
+      const part = line.trim().split(/\s+/)[0];
       if (!part) continue;
 
       // ⚠️  Split only on FIRST dot — screen names CAN contain dots
@@ -65,7 +69,6 @@ const getImapScreens = async (req, res) => {
       const type = fullName.includes("INBOX") ? "INBOX" : "SPAM";
 
       // Extract sno from screen name pattern: DOMAIN_emailuser_TYPE_sno
-      // sno is the last segment after the last underscore
       const nameParts = fullName.split("_");
       const sno = nameParts[nameParts.length - 1];
 
@@ -91,13 +94,11 @@ const getImapScreens = async (req, res) => {
       let email = "---";
       let inboxCount = 0;
       let spamCount = 0;
+      let testIdDoc = null;
 
       try {
-        // Fetch all test IDs and find the one whose _id suffix matches sno
-        const allTestIds = await TestId.find({});
-        const testIdDoc = allTestIds.find(
-          (t) => t._id.toString().slice(-4) === sno,
-        );
+        // Use the pre-fetched allTestIds
+        testIdDoc = allTestIds.find((t) => t._id.toString().slice(-4) === sno);
 
         if (testIdDoc) {
           email = testIdDoc.email;
@@ -137,9 +138,11 @@ const getImapScreens = async (req, res) => {
     res.json(imapScreens);
   } catch (error) {
     console.error("Error fetching IMAP screens:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching IMAP screens", error: error.message });
+    res.status(500).json({
+      message: "Error fetching IMAP screens",
+      error: error.message,
+      stack: process.env.NODE_ENV === "production" ? null : error.stack,
+    });
   }
 };
 
