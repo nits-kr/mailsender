@@ -46,7 +46,7 @@ const getImapScreens = async (req, res) => {
 
     const lines = screenOutput.split("\n");
     const screenLines = lines.filter(
-      (line) => line.includes("SPAM_") || line.includes("INBOX_"),
+      (line) => line.includes("SPAM") || line.includes("INBOX"),
     );
 
     const imapScreens = [];
