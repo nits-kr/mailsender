@@ -92,12 +92,11 @@ const getImapScreens = async (req, res) => {
       let spamCount = 0;
 
       try {
-        const testIdDoc = await TestId.findOne({
-          $or: [
-            { filenameinbox: { $regex: `_${sno}` } },
-            { filenamespam: { $regex: `_${sno}` } },
-          ],
-        });
+        // Fetch all test IDs and find the one whose _id suffix matches sno
+        const allTestIds = await TestId.find({});
+        const testIdDoc = allTestIds.find(
+          (t) => t._id.toString().slice(-4) === sno,
+        );
 
         if (testIdDoc) {
           email = testIdDoc.email;
