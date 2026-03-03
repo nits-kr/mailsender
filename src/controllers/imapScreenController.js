@@ -210,13 +210,10 @@ const createImapScreen = async (req, res) => {
     const email = testIdDoc.email;
     const domain = (testIdDoc.domain || "IMAP").toUpperCase();
 
-    // Sanitize helper: strip .php extension then replace ALL dots with underscores.
+    // Sanitize helper: strip .php extension. Dots are now safe in screen names.
     // Screen names MUST NOT contain dots — the `screen -ls` output format is
     // "PID.screen_name" so any dot inside the name breaks parsing (and STOP/DELETE).
-    const sanitize = (str) =>
-      (str || "")
-        .replace(/\.php$/i, "") // remove trailing .php
-        .replace(/\./g, "_"); // replace remaining dots with underscores
+    const sanitize = (str) => (str || "").replace(/\.php$/i, ""); // remove trailing .php (dots are safe now)
 
     const inboxBase = sanitize(testIdDoc.filenameinbox || `${domain}_INBOX`);
     const spamBase = sanitize(testIdDoc.filenamespam || `${domain}_SPAM`);
