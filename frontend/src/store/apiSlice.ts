@@ -380,6 +380,14 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Legacy"],
     }),
+    restartImapScreen: builder.mutation<any, { name: string; type: string; sno: string }>({
+      query: (body) => ({
+        url: "/imap-screens/restart",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Legacy"],
+    }),
     deleteImapScreen: builder.mutation<any, string>({
       query: (name) => ({
         url: `/imap-screens/${name}`,
@@ -525,6 +533,7 @@ export const {
   useGetImapScreensQuery,
   useGetImapLogsQuery,
   useStopImapScreenMutation,
+  useRestartImapScreenMutation,
   useDeleteImapScreenMutation,
   useCreateImapScreenMutation,
   // IMAP Mailbox

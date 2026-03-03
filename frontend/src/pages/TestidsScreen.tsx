@@ -7,6 +7,7 @@ import {
   useGetImapScreensQuery,
   useGetImapLogsQuery,
   useStopImapScreenMutation,
+  useRestartImapScreenMutation,
   useDeleteImapScreenMutation,
   useCreateImapScreenMutation,
 } from "../store/apiSlice";
@@ -47,6 +48,7 @@ const TestidsScreen = () => {
   const [updateTestId] = useUpdateTestIdMutation();
   const [deleteTestId] = useDeleteTestIdMutation();
   const [stopScreen] = useStopImapScreenMutation();
+  const [restartScreen] = useRestartImapScreenMutation();
   const [deleteScreen] = useDeleteImapScreenMutation();
   const [createScreen] = useCreateImapScreenMutation();
 
@@ -108,6 +110,20 @@ const TestidsScreen = () => {
       refetchScreens();
     } catch (err: any) {
       alert("Stop error: " + (err?.data?.message || err?.message));
+    }
+  };
+
+  const handleRestart = async (screen: any) => {
+    try {
+      await restartScreen({
+        name: screen.screen_name,
+        type: screen.type,
+        sno: screen.screen_name.split("_").pop() || "",
+      }).unwrap();
+      alert(`✅ Restart command sent to ${screen.screen_name}`);
+      refetchScreens();
+    } catch (err: any) {
+      alert("Restart error: " + (err?.data?.message || err?.message));
     }
   };
 
@@ -285,18 +301,19 @@ const TestidsScreen = () => {
             <thead>
               <tr>
                 <th style={{ width: "8%" }}>Screen Id</th>
-                <th style={{ width: "20%" }}>Screen Name</th>
+                <th style={{ width: "16%" }}>Screen Name</th>
+                <th style={{ width: "8%" }}>Status</th>
                 <th style={{ width: "8%" }}>CMD Id</th>
-                <th style={{ width: "20%" }}>COMMAND</th>
+                <th style={{ width: "17%" }}>COMMAND</th>
                 <th style={{ width: "15%" }}>DATAFILE NAME</th>
-                <th style={{ width: "7%" }}>COUNT</th>
+                <th style={{ width: "6%" }}>COUNT</th>
                 <th style={{ width: "22%" }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
               {screensLoading ? (
                 <tr>
-                  <td colSpan={7} className="tid-empty-td">
+                  <td colSpan={8} className="tid-empty-td">
                     Loading screens…
                   </td>
                 </tr>
@@ -313,6 +330,13 @@ const TestidsScreen = () => {
                     >
                       {s.screen_name}
                     </td>
+                    <td>
+                      {s.status === "active" ? (
+                        <span className="tid-badge-active">ACTIVE</span>
+                      ) : (
+                        <span className="tid-badge-inactive">INACTIVE</span>
+                      )}
+                    </td>
                     <td>{s.cmd_id}</td>
                     <td className="tid-cmd-cell">{s.command}</td>
                     <td className="tid-email-cell">{s.datafile_name}</td>
@@ -326,12 +350,21 @@ const TestidsScreen = () => {
                       >
                         LOG
                       </button>
-                      <button
-                        className="tid-btn tid-btn-stop"
-                        onClick={() => handleStop(s.screen_name)}
-                      >
-                        STOP Process
-                      </button>
+                      {s.status === "active" ? (
+                        <button
+                          className="tid-btn tid-btn-stop"
+                          onClick={() => handleStop(s.screen_name)}
+                        >
+                          STOP Process
+                        </button>
+                      ) : (
+                        <button
+                          className="tid-btn tid-btn-edit"
+                          onClick={() => handleRestart(s)}
+                        >
+                          RESTART
+                        </button>
+                      )}
                       <button
                         className="tid-btn tid-btn-del"
                         onClick={() => handleDeleteScreen(s.screen_name)}
@@ -343,7 +376,7 @@ const TestidsScreen = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="tid-empty-td">
+                  <td colSpan={8} className="tid-empty-td">
                     No running IMAP screens found.
                   </td>
                 </tr>

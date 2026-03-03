@@ -55,35 +55,37 @@ const getImapScreens = async (req, res) => {
       const part = line.trim().split("\t")[0];
       if (!part) continue;
 
-      // ⚠️  Split only on FIRST dot — screen names CAN contain dots (e.g. gmail.com_...)
+      // ⚠️  Split only on FIRST dot — screen names CAN contain dots
       const firstDot = part.indexOf(".");
       if (firstDot === -1) continue;
       const pid = part.substring(0, firstDot);
       const fullName = part.substring(firstDot + 1);
       if (!fullName) continue;
 
-      const type = fullName.includes("INBOX") ? "INBOX" : "SPAM";
-
       // Extract sno from screen name pattern: DOMAIN_emailuser_TYPE_sno
-      // e.g. YAHOO_ronnyzim44_INBOX_1  →  sno = last segment after last _
+      // sno is the last segment after the last underscore
       const nameParts = fullName.split("_");
       const sno = nameParts[nameParts.length - 1];
 
       let cmdId = "---";
       let fullCommand = "---";
       try {
+        // Find exact shell PID (-w for whole word match)
         const { stdout: psOut } = await execPromise(
-          `sudo ps -el | grep "${pid}" | grep -v 'grep' | awk '{print $4}'`,
+          `sudo ps -el | grep -w "${pid}" | grep -v 'grep' | awk '{print $4}'`,
         );
         cmdId = psOut.trim() || "---";
-        if (cmdId && cmdId !== "---") {
+
+        if (cmdId !== "---") {
+          // Find the actual command running under that shell (PHP script)
+          // We look for children of that shell PID
           const { stdout: commandOut } = await execPromise(
-            `sudo ps -ef | grep "${cmdId}" | grep -v 'bash\\|grep' | awk '{print $8,$9,$10,$11}' | head -1`,
+            `sudo ps -ef | grep -w "${cmdId}" | grep -v 'bash\\|grep' | awk '{$1=$2=$3=$4=$5=$6=$7=""; print $0}' | head -1`,
           );
           fullCommand = commandOut.trim() || "---";
         }
       } catch (e) {
-        // ps might fail if screen is gone
+        // ps might fail if screen/process is already gone
       }
 
       // Get metadata from MongoDB TestId
@@ -262,10 +264,35 @@ const createImapScreen = async (req, res) => {
   }
 };
 
+// @desc    Restart an IMAP screen (stuff the command again if it stopped)
+// @route   POST /api/imap-screens/restart
+const restartImapScreen = async (req, res) => {
+  try {
+    const { name, type, sno } = req.body;
+    if (!name || !type || !sno)
+      return res.status(400).json({ message: "Missing params" });
+
+    const imapDir = path.resolve(__dirname, "../../advance_imap");
+    const script = type === "INBOX" ? "inbox.php" : "spam.php";
+
+    // Stuff the command into the existing screen
+    await execPromise(
+      `sudo screen -S "${name}" -X stuff "cd ${imapDir} && php ${script} ${sno}\\n"`,
+    );
+
+    res.json({ message: `Screen ${name} restarted successfully` });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error restarting screen", error: error.message });
+  }
+};
+
 module.exports = {
   getImapScreens,
   stopImapScreen,
   deleteImapScreen,
   getImapLogs,
   createImapScreen,
+  restartImapScreen,
 };
