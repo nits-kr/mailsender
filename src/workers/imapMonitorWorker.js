@@ -37,9 +37,14 @@ mongoose
 
 async function startMonitoring() {
   try {
-    const testIdDoc = await TestId.findOne({ sno: sno });
+    // Fetch all TestIDs and find the one whose _id suffix matches sno
+    const allTestIds = await TestId.find({});
+    const testIdDoc = allTestIds.find(
+      (t) => t._id.toString().slice(-4) === sno,
+    );
+
     if (!testIdDoc) {
-      console.error(`TestId with sno ${sno} not found.`);
+      console.error(`TestId with sno suffix ${sno} not found.`);
       process.exit(1);
     }
 

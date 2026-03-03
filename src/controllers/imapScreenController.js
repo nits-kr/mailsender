@@ -78,7 +78,7 @@ const getImapScreens = async (req, res) => {
       try {
         // Search for the specific Node.js worker process via sno and type
         const { stdout: psOut } = await execPromise(
-          `sudo ps -ef | grep "imapMonitorWorker.js ${sno} ${type}" | grep -v "grep" | head -1`,
+          `sudo ps -ef | grep "imapMonitorWorker" | grep " ${sno} ${type}" | grep -v "grep" | head -1`,
         ).catch(() => ({ stdout: "" }));
 
         if (psOut.trim()) {
