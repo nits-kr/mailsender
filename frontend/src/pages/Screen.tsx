@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react";
 import {
   useGetScreensQuery,
   useStopScreenMutation,
+  useResumeScreenMutation,
   useDeleteScreenMutation,
 } from "../store/apiSlice";
 import "./Screen.css";
@@ -11,28 +12,38 @@ import "./Screen.css";
 const Screen = () => {
   const navigate = useNavigate();
 
-  // Poll every 10 seconds automatically
+  // Poll every 5 seconds automatically
   const {
     data: screens = [],
     isLoading,
     isFetching,
     refetch: refetchScreens,
   } = useGetScreensQuery(undefined, {
-    pollingInterval: 10000,
+    pollingInterval: 5000,
   });
   const [stopScreen] = useStopScreenMutation();
+  const [resumeScreen] = useResumeScreenMutation();
   const [deleteScreen] = useDeleteScreenMutation();
 
   const handleLogClick = (screen: any) => {
     navigate(`/screens/${screen._id}/logs`);
   };
 
-  const handleStop = async (id: string) => {
-    if (!window.confirm("Are you sure you want to stop this process?")) return;
+  const handleStop = async (id: string, name: string) => {
+    if (!window.confirm(`Stop campaign "${name}"?`)) return;
     try {
       await stopScreen(id).unwrap();
     } catch (error) {
       console.error("Error stopping screen", error);
+    }
+  };
+
+  const handleResume = async (id: string, name: string) => {
+    if (!window.confirm(`Resume campaign "${name}"?`)) return;
+    try {
+      await resumeScreen(id).unwrap();
+    } catch (error) {
+      console.error("Error resuming screen", error);
     }
   };
 
@@ -43,6 +54,30 @@ const Screen = () => {
     } catch (error) {
       console.error("Error deleting screen", error);
     }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const s = status || "Running";
+    let bg = "#10b981"; // green = Running
+    if (s === "Stopped") bg = "#ef4444";
+    else if (s === "Completed") bg = "#3b82f6";
+    else if (s === "Pending") bg = "#f59e0b";
+
+    return (
+      <span
+        style={{
+          display: "inline-block",
+          padding: "2px 8px",
+          borderRadius: "4px",
+          fontSize: "11px",
+          fontWeight: "bold",
+          color: "white",
+          backgroundColor: bg,
+        }}
+      >
+        {s}
+      </span>
+    );
   };
 
   return (
@@ -124,12 +159,13 @@ const Screen = () => {
             <thead>
               <tr>
                 <th style={{ width: "8%" }}>Screen Id</th>
-                <th style={{ width: "18%" }}>Screen Name</th>
+                <th style={{ width: "15%" }}>Screen Name</th>
                 <th style={{ width: "8%" }}>Temp ID</th>
-                <th style={{ width: "12%" }}>MAILER</th>
-                <th style={{ width: "22%" }}>DATAFILE NAME</th>
-                <th style={{ width: "7%" }}>COUNT</th>
-                <th style={{ width: "25%" }}>ACTION</th>
+                <th style={{ width: "10%" }}>MAILER</th>
+                <th style={{ width: "18%" }}>DATAFILE NAME</th>
+                <th style={{ width: "6%" }}>COUNT</th>
+                <th style={{ width: "9%" }}>STATUS</th>
+                <th style={{ width: "26%" }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
@@ -168,6 +204,12 @@ const Screen = () => {
                       />
                     </td>
                     <td>
+                      <div
+                        className="skeleton-cell sk-text"
+                        style={{ width: "70px" }}
+                      />
+                    </td>
+                    <td>
                       <div className="skeleton-cell sk-btn" />
                       <div className="skeleton-cell sk-btn" />
                       <div className="skeleton-cell sk-btn" />
@@ -175,42 +217,64 @@ const Screen = () => {
                   </tr>
                 ))
               ) : screens.length > 0 ? (
-                screens.map((row: any) => (
-                  <tr key={row._id}>
-                    <td>{row._id.substring(18) || "N/A"}</td>
-                    <td className="text-limegreen">{row.template_name}</td>
-                    <td>{row.offer_id || "---"}</td>
-                    <td>{row.mailer || "---"}</td>
-                    <td>{row.data_file || "NULL"}</td>
-                    <td>{row.total_emails || "NULL"}</td>
-                    <td>
-                      <button className="screen-btn screen-btn-details">
-                        DETAILS
-                      </button>
-                      <button
-                        className="screen-btn screen-btn-info"
-                        onClick={() => handleLogClick(row)}
-                      >
-                        LOG
-                      </button>
-                      <button
-                        className="screen-btn screen-btn-warning"
-                        onClick={() => handleStop(row._id)}
-                      >
-                        STOP Process
-                      </button>
-                      <button
-                        className="screen-btn screen-btn-danger"
-                        onClick={() => handleDelete(row._id)}
-                      >
-                        DELETE
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                screens.map((row: any) => {
+                  const isStopped =
+                    row.status === "Stopped" || row.status === "Completed";
+                  return (
+                    <tr key={row._id}>
+                      <td>{row._id.substring(18) || "N/A"}</td>
+                      <td className="text-limegreen">{row.template_name}</td>
+                      <td>{row.offer_id || "---"}</td>
+                      <td>{row.mailer || "---"}</td>
+                      <td>{row.data_file || "NULL"}</td>
+                      <td>{row.total_emails || "NULL"}</td>
+                      <td>{getStatusBadge(row.status)}</td>
+                      <td>
+                        <button className="screen-btn screen-btn-details">
+                          DETAILS
+                        </button>
+                        <button
+                          className="screen-btn screen-btn-info"
+                          onClick={() => handleLogClick(row)}
+                        >
+                          LOG
+                        </button>
+                        {isStopped ? (
+                          <button
+                            className="screen-btn screen-btn-success"
+                            style={{
+                              backgroundColor: "#10b981",
+                              color: "white",
+                            }}
+                            onClick={() =>
+                              handleResume(row._id, row.template_name)
+                            }
+                          >
+                            ▶ RESUME
+                          </button>
+                        ) : (
+                          <button
+                            className="screen-btn screen-btn-warning"
+                            onClick={() =>
+                              handleStop(row._id, row.template_name)
+                            }
+                          >
+                            ■ STOP
+                          </button>
+                        )}
+                        <button
+                          className="screen-btn screen-btn-danger"
+                          onClick={() => handleDelete(row._id)}
+                        >
+                          DELETE
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={7} className="no-screens-td">
+                  <td colSpan={8} className="no-screens-td">
                     No running screens found.
                   </td>
                 </tr>

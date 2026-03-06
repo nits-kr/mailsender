@@ -211,6 +211,10 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/screens/${id}/stop`, method: 'PATCH' }),
       invalidatesTags: ['Screen'],
     }),
+    resumeScreen: builder.mutation<void, string>({
+      query: (id) => ({ url: `/screens/${id}/resume`, method: 'PATCH' }),
+      invalidatesTags: ['Screen'],
+    }),
     deleteScreen: builder.mutation<void, string>({
       query: (id) => ({ url: `/screens/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Screen'],
@@ -494,6 +498,7 @@ export const {
   useGetScreenLogsQuery,
   useGetCampaignStatsQuery,
   useStopScreenMutation,
+  useResumeScreenMutation,
   useDeleteScreenMutation,
   // Offers
   useGetOffersQuery,

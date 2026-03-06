@@ -80,10 +80,33 @@ const stopScreen = async (req, res) => {
   }
 };
 
+// @desc    Resume a stopped campaign (Screen)
+// @route   PATCH /api/screens/:id/resume
+const resumeScreen = async (req, res) => {
+  try {
+    const campaign = await Campaign.findByIdAndUpdate(
+      req.params.id,
+      { status: "Running" },
+      { new: true },
+    );
+    if (!campaign)
+      return res.status(404).json({ message: "Campaign not found" });
+    res.json({
+      message: "Screen resumed successfully",
+      status: campaign.status,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error resuming screen", error: error.message });
+  }
+};
+
 module.exports = {
   getScreens,
   getScreenLogs,
   getCampaignStats,
   deleteScreen,
   stopScreen,
+  resumeScreen,
 };
