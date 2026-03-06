@@ -4,6 +4,7 @@ import {
   useGetScreenLogsQuery,
   useGetCampaignStatsQuery,
   useStopScreenMutation,
+  useClearCampaignLogsMutation,
 } from "../store/apiSlice";
 import "./ScreenLogPage.css";
 
@@ -28,6 +29,7 @@ const ScreenLogPage = () => {
   });
 
   const [stopScreen] = useStopScreenMutation();
+  const [clearLogs, { isLoading: isClearing }] = useClearCampaignLogsMutation();
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -46,6 +48,23 @@ const ScreenLogPage = () => {
     if (!window.confirm("Stop this campaign?")) return;
     await stopScreen(id).unwrap().catch(console.error);
     setPolling(false);
+  };
+
+  const handleClearLogs = async () => {
+    if (!id) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to permanently clear all logs for this campaign?",
+      )
+    )
+      return;
+    try {
+      await clearLogs(id).unwrap();
+      // The polling interval will auto-refresh the empty payload
+    } catch (error) {
+      console.error("Failed to clear logs", error);
+      alert("Error clearing logs");
+    }
   };
 
   const formatLogLine = (log: any) => {
@@ -91,6 +110,18 @@ const ScreenLogPage = () => {
       <div className="slp-header">
         <button className="slp-back-btn" onClick={() => navigate("/screen")}>
           ← Go Back
+        </button>
+        <button
+          className="slp-back-btn"
+          onClick={handleClearLogs}
+          disabled={isClearing}
+          style={{
+            marginLeft: "10px",
+            borderColor: "#ef4444",
+            color: "#fca5a5",
+          }}
+        >
+          {isClearing ? "Clearing..." : "🗑️ Clear Logs"}
         </button>
         <h2 className="slp-title">{stats?.template_name ?? id}</h2>
         <div className="slp-actions">

@@ -744,6 +744,21 @@ const getCampaignLogs = async (req, res) => {
   }
 };
 
+const clearCampaignLogs = async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    await CampaignLog.deleteMany({ campaign_id: campaignId });
+    // Keep stats on the campaign itself, but optionally we could zero them out.
+    // The user specifically asked to "clear logs" on the log screen, implying clearing the live feed.
+    res.json({ message: "Logs cleared successfully" });
+  } catch (error) {
+    console.error("Error clearing campaign logs", error);
+    res
+      .status(500)
+      .json({ message: "Error clearing logs", error: error.message });
+  }
+};
+
 const getInboxPatterns = async (req, res) => {
   try {
     const patterns = Array.from({ length: 24 }, (_, i) => ({
@@ -1043,6 +1058,7 @@ module.exports = {
   getCampaignDetails,
   getDefaultIps,
   getCampaignLogs,
+  clearCampaignLogs,
   getInboxPatterns,
   validateOffer,
   getCampaignStatus,

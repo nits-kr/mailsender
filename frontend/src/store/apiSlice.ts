@@ -181,6 +181,13 @@ export const apiSlice = createApi({
       query: (campaignId) => `/email/logs/${campaignId}`,
       providesTags: (result, error, id) => [{ type: 'Campaign', id }],
     }),
+    clearCampaignLogs: builder.mutation<any, string>({
+      query: (campaignId) => ({
+        url: `/email/logs/${campaignId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, id) => [{ type: 'Campaign', id }],
+    }),
     getPatterns: builder.query<any[], void>({
       query: () => '/email/patterns',
     }),
@@ -478,6 +485,7 @@ export const {
   useGetDefaultIpsQuery,
   useSendEmailMutation,
   useGetCampaignLogsQuery,
+  useClearCampaignLogsMutation,
   useGetPatternsQuery,
   useValidateOfferQuery,
   useLazyValidateOfferQuery,
