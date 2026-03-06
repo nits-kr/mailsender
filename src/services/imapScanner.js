@@ -346,7 +346,9 @@ const runScanner = async () => {
             );
 
             if (campaign) {
+              // Preserve the original chronological 'Sent' number of this specific email
               const totalSent =
+                existingLog.sent ||
                 (campaign.success_count || 0) + (campaign.error_count || 0);
               const received =
                 (campaign.inbox_count || 0) +
