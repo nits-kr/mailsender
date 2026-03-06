@@ -82,17 +82,21 @@ const scanTestId = async (testIdDoc) => {
         };
         processBoxes("", boxes);
 
-        // Filter folders we want to check
+        // Outlook/Hotmail uses "Junk", "Junk Email"
+        // AOL uses "Spam" or "Bulk Mail"
+        // iCloud uses "Junk"
         const targetKeywords = [
           "inbox",
           "spam",
-          "junk",
+          "junk", // Outlook, Hotmail, iCloud
+          "bulk", // Yahoo, AOL
           "promo",
           "social",
           "update",
           "advertising",
           "oferta",
           "publicidad",
+          "quarantine", // Some corporate filters
         ];
         const foldersToScan = availableFolders.filter((f) =>
           targetKeywords.some((k) => f.toLowerCase().includes(k)),
@@ -167,9 +171,10 @@ const scanTestId = async (testIdDoc) => {
                         const determinePlacement = (fName) => {
                           const f = fName.toLowerCase();
                           if (
-                            f.includes("spam") ||
-                            f.includes("junk") ||
-                            f.includes("bulk")
+                            f.includes("spam") || // Gmail, AOL
+                            f.includes("junk") || // Outlook, Hotmail, iCloud
+                            f.includes("bulk") || // Yahoo, AOL
+                            f.includes("quarantine") // Corporate Filters
                           )
                             return "spam";
                           if (
@@ -177,7 +182,6 @@ const scanTestId = async (testIdDoc) => {
                             f.includes("social") ||
                             f.includes("update") ||
                             f.includes("advertising") ||
-                            f.includes("social") ||
                             f.includes("forum")
                           )
                             return "promo";
@@ -277,44 +281,30 @@ const runScanner = async () => {
       }
 
       for (const res of scanResults) {
-        // New flow: use exact per-message fingerprint (supports repeated sends to same email).
+        const escapedEmail = res.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        // PRIMARY: Match by recipient email in mail_status — always reliable.
+        // X-Campaign-Fingerprint is stripped by Gmail/Yahoo so fingerprint matching
+        // often fails. Using mail_status (set by emailWorker as "email success") is safe.
         let existingLog = await CampaignLog.findOne({
           campaign_id: { $in: activeCampaignIds },
-          fingerprint: res.fingerprint,
           type: "success",
+          mail_status: { $regex: escapedEmail, $options: "i" },
           inbox: { $in: [0, null] },
           spam: { $in: [0, null] },
           promo: { $in: [0, null] },
         }).sort({ created_at: -1 });
 
-        // Backward compatibility for older campaigns that used campaignId:email fingerprint.
-        if (!existingLog) {
-          let legacyCampaignId = null;
-          for (const campaign of activeCampaigns) {
-            const expectedLegacyFingerprint = crypto
-              .createHash("md5")
-              .update(`${campaign._id}:${res.email}`)
-              .digest("hex");
-            if (res.fingerprint === expectedLegacyFingerprint) {
-              legacyCampaignId = campaign._id;
-              break;
-            }
-          }
-
-          if (legacyCampaignId) {
-            const escapedEmail = res.email.replace(
-              /[.*+?^${}()|[\]\\]/g,
-              "\\$&",
-            );
-            existingLog = await CampaignLog.findOne({
-              campaign_id: legacyCampaignId,
-              type: "success",
-              mail_status: { $regex: escapedEmail, $options: "i" },
-              inbox: { $in: [0, null] },
-              spam: { $in: [0, null] },
-              promo: { $in: [0, null] },
-            }).sort({ created_at: -1 });
-          }
+        // SECONDARY: Fingerprint match (works when header survives transit)
+        if (!existingLog && res.fingerprint) {
+          existingLog = await CampaignLog.findOne({
+            campaign_id: { $in: activeCampaignIds },
+            fingerprint: res.fingerprint,
+            type: "success",
+            inbox: { $in: [0, null] },
+            spam: { $in: [0, null] },
+            promo: { $in: [0, null] },
+          }).sort({ created_at: -1 });
         }
 
         // Only count if an unplaced log was found (avoid double counting if scanner runs twice)

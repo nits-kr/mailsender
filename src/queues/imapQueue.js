@@ -11,7 +11,7 @@ const connection = new ioredis(
 
 const imapQueue = new Queue("imap-scanner-queue", { connection });
 
-// Imap Worker - runs every minute to scan TestIDs
+// Imap Worker - runs every 15 seconds to scan TestIDs
 const imapWorker = new Worker(
   "imap-scanner-queue",
   async (job) => {
@@ -24,19 +24,19 @@ const imapWorker = new Worker(
 
 // Helper to schedule the periodic job
 const startImapScannerJob = async () => {
-  // Add a repeatable job that runs every 60 seconds
+  // Add a repeatable job that runs every 15 seconds for near-real-time detection
   await imapQueue.add(
     "scan-testids",
     {},
     {
       repeat: {
-        every: 60000,
+        every: 15000,
       },
       removeOnComplete: true,
       removeOnFail: true,
     },
   );
-  console.log("IMAP Scanner periodic job scheduled (every 60s)");
+  console.log("IMAP Scanner periodic job scheduled (every 15s)");
 };
 
 module.exports = { imapQueue, startImapScannerJob };
