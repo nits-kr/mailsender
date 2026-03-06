@@ -411,43 +411,59 @@ const runScanner = async () => {
                   ? "promo_count"
                   : "inbox_count";
 
-            // 1. Update Campaign Aggregate Stats
-            const campaign = await Campaign.findByIdAndUpdate(
-              campaignId,
-              { $inc: { [updateField]: 1 } },
-              { new: true },
-            );
+            // Grab the live total sent before updating so we can preserve sequential text mapping
+            const tempCampaign = await Campaign.findById(campaignId);
+            const liveCampaignTotalSent = tempCampaign
+              ? (tempCampaign.success_count || 0) +
+                (tempCampaign.error_count || 0)
+              : 0;
+            const totalSentText = existingLog.sent || liveCampaignTotalSent;
 
-            if (campaign) {
-              // Preserve the original chronological 'Sent' number of this specific email for visual log mapping
-              const liveCampaignTotalSent =
-                (campaign.success_count || 0) + (campaign.error_count || 0);
-
-              const totalSentText = existingLog.sent || liveCampaignTotalSent;
-
-              const received =
-                (campaign.inbox_count || 0) +
-                Math.max(0, campaign.spam_count || 0) +
-                Math.max(0, campaign.promo_count || 0);
-
-              const inboxPercent =
-                liveCampaignTotalSent > 0
-                  ? (campaign.inbox_count / liveCampaignTotalSent) * 100
-                  : 0;
-
-              const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${Math.max(0, campaign.spam_count || 0)} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
-
-              // 2. Update the specific Log Entry
-              await CampaignLog.findByIdAndUpdate(existingLog._id, {
+            // 1. Update the specific Log Entry FIRST
+            const updatedLog = await CampaignLog.findByIdAndUpdate(
+              existingLog._id,
+              {
                 $set: {
                   [res.placement]: 1,
                   mail_status: `${res.email} ${res.placement}`,
-                  log_text: newLogText,
-                  inbox_percent: Number(inboxPercent.toFixed(1)),
-                  sent: totalSent,
-                  received: received,
+                  // log_text is calculated below after we get the Campaign aggregates
+                  sent: totalSentText,
                 },
-              });
+              },
+              { new: true }, // Return the updated document
+            );
+
+            if (updatedLog) {
+              // 2. ONLY Update Campaign Aggregate Stats if the log was successfully claimed
+              // (Prevents IMAP race conditions from double-counting the aggregate if the UNSEEN flag was slow to sync)
+              const campaign = await Campaign.findByIdAndUpdate(
+                campaignId,
+                { $inc: { [updateField]: 1 } },
+                { new: true },
+              );
+
+              if (campaign) {
+                const received =
+                  (campaign.inbox_count || 0) +
+                  Math.max(0, campaign.spam_count || 0) +
+                  Math.max(0, campaign.promo_count || 0);
+
+                const inboxPercent =
+                  liveCampaignTotalSent > 0
+                    ? (campaign.inbox_count / liveCampaignTotalSent) * 100
+                    : 0;
+
+                const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${Math.max(0, campaign.spam_count || 0)} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
+
+                // 3. Finalize the Log Entry with the live math text
+                await CampaignLog.findByIdAndUpdate(existingLog._id, {
+                  $set: {
+                    log_text: newLogText,
+                    inbox_percent: Number(inboxPercent.toFixed(1)),
+                    received: received,
+                  },
+                });
+              }
             }
 
             // ── Synchronize with Inbox Intelligence Engine ───────────────
