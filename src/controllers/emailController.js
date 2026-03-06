@@ -748,9 +748,21 @@ const clearCampaignLogs = async (req, res) => {
   try {
     const { campaignId } = req.params;
     await CampaignLog.deleteMany({ campaign_id: campaignId });
-    // Keep stats on the campaign itself, but optionally we could zero them out.
-    // The user specifically asked to "clear logs" on the log screen, implying clearing the live feed.
-    res.json({ message: "Logs cleared successfully" });
+
+    // Crucial: Reset the campaign aggregates back to zero, otherwise the new logs
+    // will show inherited inflated percentages from previous test runs.
+    await Campaign.findByIdAndUpdate(campaignId, {
+      $set: {
+        success_count: 0,
+        error_count: 0,
+        inbox_count: 0,
+        spam_count: 0,
+        promo_count: 0,
+        open_count: 0,
+      },
+    });
+
+    res.json({ message: "Logs and campaign stats cleared successfully" });
   } catch (error) {
     console.error("Error clearing campaign logs", error);
     res

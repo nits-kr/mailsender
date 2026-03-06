@@ -114,7 +114,8 @@ const scanTestId = async (testIdDoc) => {
           }
 
           const folderName = foldersToScan[folderIdx++];
-          imap.openBox(folderName, true, (err, box) => {
+          imap.openBox(folderName, false, (err, box) => {
+            // false = read/write so we can mark seen
             if (err) {
               // Folder might not exist or other error, skip
               return checkNextFolder();
@@ -131,11 +132,10 @@ const scanTestId = async (testIdDoc) => {
               `[IMAP] Scanning ${folderName} (${box.messages.total} msgs) for ${testIdDoc.email}...`,
             );
 
-            // Search for messages with our fingerprint header
-            // Note: Not all IMAP servers support Searching custom headers, so we fallback to recent
-            const searchCriteria = ["ALL"];
+            // ONLY process UNSEEN messages so we don't double-count across multiple test runs!
+            const searchCriteria = ["UNSEEN"];
             const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
+            yesterday.setDate(yesterday.getDate() - 2);
             searchCriteria.push(["SINCE", yesterday]);
 
             imap.search(searchCriteria, (err, searchResults) => {
@@ -148,6 +148,7 @@ const scanTestId = async (testIdDoc) => {
               // Fetch standard TO header (Yahoo strips custom X-headers so we must use TO)
               const fetch = imap.fetch(finalIds, {
                 bodies: "HEADER.FIELDS (TO X-CAMPAIGN-FINGERPRINT)",
+                markSeen: true, // Marks email as read so we never double count it!
               });
 
               let pendingParsers = 0;
