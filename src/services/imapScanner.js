@@ -212,9 +212,6 @@ const scanTestId = async (testIdDoc) => {
                         };
 
                         const placement = determinePlacement(folderName);
-                        console.log(
-                          `[IMAP] Match found! TestID: ${testIdDoc.email}, Location: ${placement}`,
-                        );
 
                         results.push({
                           fingerprint: fingerprint || "",
@@ -330,6 +327,9 @@ const runScanner = async () => {
 
           // Only count if an unplaced log was found (avoid double counting if scanner runs twice)
           if (existingLog) {
+            console.log(
+              `[IMAP] Verified DB Match! TestID: ${res.email}, DB Log ID: ${existingLog._id}, Location: ${res.placement}`,
+            );
             const campaignId = existingLog.campaign_id;
             const updateField =
               res.placement === "spam"
