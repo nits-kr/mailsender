@@ -376,8 +376,8 @@ const runScanner = async () => {
                 const newLogText =
                   `Total Mail Sent : ${totalSentText} || ` +
                   `Total Mail Received : ${received} || ` +
-                  `INBOX : ${correctedCampaign.inbox_count || 0} || ` +
-                  `SPAM : ${Math.max(0, correctedCampaign.spam_count || 0)} || ` +
+                  `INBOX : 1 || ` +
+                  `SPAM : 0 || ` +
                   `MAIL STATUS : ${res.email} inbox || ` +
                   `Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
 
@@ -453,7 +453,10 @@ const runScanner = async () => {
                     ? (campaign.inbox_count / liveCampaignTotalSent) * 100
                     : 0;
 
-                const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${Math.max(0, campaign.spam_count || 0)} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
+                const inboxCountLine = res.placement === "inbox" ? 1 : 0;
+                const spamCountLine = res.placement === "spam" ? 1 : 0;
+
+                const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${inboxCountLine} || SPAM : ${spamCountLine} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
 
                 // 3. Finalize the Log Entry with the live math text
                 await CampaignLog.findByIdAndUpdate(existingLog._id, {
