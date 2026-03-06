@@ -325,6 +325,73 @@ const runScanner = async () => {
             }).sort({ created_at: -1 });
           }
 
+          // TERTIARY: Reclassification check — email was previously marked as wrong placement
+          // (e.g. first scan found it in [Bulk]/Spam, but email was actually delivered to Inbox)
+          // This corrects the campaign aggregate counts and the log entry.
+          if (!existingLog && res.placement === "inbox") {
+            const wronglyClassified = await CampaignLog.findOne({
+              campaign_id: { $in: activeCampaignIds },
+              type: "success",
+              mail_status: {
+                $in: [`${res.email} spam`, `${res.email} promo`],
+              },
+            }).sort({ created_at: -1 });
+
+            if (wronglyClassified) {
+              const oldPlacement =
+                wronglyClassified.spam === 1 ? "spam" : "promo";
+              const oldCountField =
+                oldPlacement === "spam" ? "spam_count" : "promo_count";
+              console.log(
+                `[IMAP] Reclassifying ${res.email}: ${oldPlacement} → inbox (correcting counts)`,
+              );
+
+              // Correct the campaign aggregate stats atomically
+              const correctedCampaign = await Campaign.findByIdAndUpdate(
+                wronglyClassified.campaign_id,
+                { $inc: { inbox_count: 1, [oldCountField]: -1 } },
+                { new: true },
+              );
+
+              if (correctedCampaign) {
+                const received =
+                  (correctedCampaign.inbox_count || 0) +
+                  Math.max(0, correctedCampaign.spam_count || 0) +
+                  Math.max(0, correctedCampaign.promo_count || 0);
+                const inboxPercent =
+                  received > 0
+                    ? (correctedCampaign.inbox_count / received) * 100
+                    : 0;
+                const totalSent =
+                  wronglyClassified.sent ||
+                  (correctedCampaign.success_count || 0) +
+                    (correctedCampaign.error_count || 0);
+
+                const newLogText =
+                  `Total Mail Sent : ${totalSent} || ` +
+                  `Total Mail Received : ${received} || ` +
+                  `INBOX : ${correctedCampaign.inbox_count || 0} || ` +
+                  `SPAM : ${Math.max(0, correctedCampaign.spam_count || 0)} || ` +
+                  `MAIL STATUS : ${res.email} inbox || ` +
+                  `Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
+
+                await CampaignLog.findByIdAndUpdate(wronglyClassified._id, {
+                  $set: {
+                    inbox: 1,
+                    spam: 0,
+                    promo: 0,
+                    mail_status: `${res.email} inbox`,
+                    log_text: newLogText,
+                    inbox_percent: Number(inboxPercent.toFixed(1)),
+                    received: received,
+                  },
+                });
+              }
+              // Skip normal placement flow — already handled
+              continue;
+            }
+          }
+
           // Only count if an unplaced log was found (avoid double counting if scanner runs twice)
           if (existingLog) {
             console.log(

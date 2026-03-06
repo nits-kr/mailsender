@@ -218,6 +218,8 @@ const Screen = () => {
                 ))
               ) : screens.length > 0 ? (
                 screens.map((row: any) => {
+                  // Only show RESUME if campaign was explicitly stopped or completed.
+                  // New campaigns (null/undefined/"Running"/legacy "0","1","2") should show STOP.
                   const isStopped =
                     row.status === "Stopped" || row.status === "Completed";
                   return (

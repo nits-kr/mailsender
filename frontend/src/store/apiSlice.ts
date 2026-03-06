@@ -186,7 +186,10 @@ export const apiSlice = createApi({
         url: `/email/logs/${campaignId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Campaign', id }],
+      invalidatesTags: (result, error, id) => [
+        { type: 'Campaign', id },
+        { type: 'ScreenLog', id },
+      ],
     }),
     getPatterns: builder.query<any[], void>({
       query: () => '/email/patterns',
