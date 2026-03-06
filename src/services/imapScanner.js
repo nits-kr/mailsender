@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const { evaluate: guardianEvaluate } = require("./guardianService");
 const IntelligenceLog = require("../models/IntelligenceLog");
 const ReputationScore = require("../models/ReputationScore");
+const socketService = require("./socketService");
 
 /**
  * Modern IMAP Scanner Service
@@ -381,17 +382,27 @@ const runScanner = async () => {
                   `MAIL STATUS : ${res.email} inbox || ` +
                   `Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
 
-                await CampaignLog.findByIdAndUpdate(wronglyClassified._id, {
-                  $set: {
-                    inbox: 1,
-                    spam: 0,
-                    promo: 0,
-                    mail_status: `${res.email} inbox`,
-                    log_text: newLogText,
-                    inbox_percent: Number(inboxPercent.toFixed(1)),
-                    received: received,
+                await CampaignLog.findByIdAndUpdate(
+                  wronglyClassified._id,
+                  {
+                    $set: {
+                      inbox: 1,
+                      spam: 0,
+                      promo: 0,
+                      mail_status: `${res.email} inbox`,
+                      log_text: newLogText,
+                      inbox_percent: Number(inboxPercent.toFixed(1)),
+                      received: received,
+                    },
                   },
-                });
+                  { new: true },
+                );
+                if (finalLog) {
+                  socketService.emitLog(
+                    wronglyClassified.campaign_id,
+                    finalLog,
+                  );
+                }
               }
               // Skip normal placement flow — already handled
               continue;
@@ -459,13 +470,20 @@ const runScanner = async () => {
                 const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${inboxCountLine} || SPAM : ${spamCountLine} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
 
                 // 3. Finalize the Log Entry with the live math text
-                await CampaignLog.findByIdAndUpdate(existingLog._id, {
-                  $set: {
-                    log_text: newLogText,
-                    inbox_percent: Number(inboxPercent.toFixed(1)),
-                    received: received,
+                const finalLog = await CampaignLog.findByIdAndUpdate(
+                  existingLog._id,
+                  {
+                    $set: {
+                      log_text: newLogText,
+                      inbox_percent: Number(inboxPercent.toFixed(1)),
+                      received: received,
+                    },
                   },
-                });
+                  { new: true },
+                );
+                if (finalLog) {
+                  socketService.emitLog(campaignId, finalLog);
+                }
               }
             }
 

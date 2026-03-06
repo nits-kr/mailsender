@@ -1,4 +1,6 @@
 const express = require("express");
+const http = require("http");
+const { Server: SocketIOServer } = require("socket.io");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
@@ -9,6 +11,7 @@ const emailWorker = require("./queues/emailWorker");
 const spaceEmailWorkerProcessor = require("./queues/spaceEmailWorker");
 const logger = require("./utils/logger");
 const { startImapScannerJob } = require("./queues/imapQueue");
+const socketService = require("./services/socketService");
 
 dotenv.config();
 
@@ -128,7 +131,21 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, async () => {
+// Create HTTP server so both Express and Socket.io share the same port
+const httpServer = http.createServer(app);
+
+// Initialize Socket.io with CORS matching the Express layer
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// Populate the singleton so workers can call emitLog anywhere
+socketService.init(io);
+
+httpServer.listen(PORT, async () => {
   logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   // Start the background IMAP scanner job
   await startImapScannerJob();

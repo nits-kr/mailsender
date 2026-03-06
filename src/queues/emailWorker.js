@@ -9,6 +9,7 @@ const { evaluate: guardianEvaluate } = require("../services/guardianService");
 const imagePolymorphismService = require("../services/intelligence/ImagePolymorphismService");
 const path = require("path");
 const fs = require("fs-extra");
+const socketService = require("../services/socketService");
 
 const emailWorker = async (job) => {
   const {
@@ -323,7 +324,7 @@ const emailWorker = async (job) => {
         totalSent > 0 ? (updatedCampaign.inbox_count / totalSent) * 100 : 0;
 
       const transcriptText = smtpTranscript.join("\n");
-      await CampaignLog.create({
+      const newLog = await CampaignLog.create({
         campaign_id,
         log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : 0 || SPAM : 0 || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
         type: "success",
@@ -332,6 +333,7 @@ const emailWorker = async (job) => {
         inbox_percent: Number(inboxPercent.toFixed(1)),
         fingerprint: messageFingerprint,
       });
+      socketService.emitLog(campaign_id, newLog);
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});
@@ -388,7 +390,7 @@ const emailWorker = async (job) => {
         });
       }
 
-      await CampaignLog.create({
+      const errorLog = await CampaignLog.create({
         campaign_id,
         log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : 0 || INBOX : 0 | SPAM : 0 || MAIL STATUS : ${email} error || Inbox Percentage : 0%`,
         type: "error",
@@ -397,6 +399,7 @@ const emailWorker = async (job) => {
         inbox_percent: 0,
         fingerprint: messageFingerprint,
       });
+      socketService.emitLog(campaign_id, errorLog);
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});

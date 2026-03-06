@@ -6,6 +6,8 @@ import {
   useStopScreenMutation,
   useClearCampaignLogsMutation,
 } from "../store/apiSlice";
+import API_BASE_URL from "../config/api";
+import { io, Socket } from "socket.io-client";
 import "./ScreenLogPage.css";
 
 const ScreenLogPage = () => {
@@ -14,14 +16,23 @@ const ScreenLogPage = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [polling, setPolling] = useState(true);
 
-  const { data: logs = [], isFetching: logsFetching } = useGetScreenLogsQuery(
-    id!,
-    {
+  // Live Socket Logs
+  const [liveLogs, setLiveLogs] = useState<any[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+
+  // We only fetch the initial batch of logs (no polling for logs anymore)
+  const { data: initialLogs = [], isFetching: logsFetching } =
+    useGetScreenLogsQuery(id!, {
       skip: !id,
-      pollingInterval: polling ? 1000 : 0,
       refetchOnMountOrArgChange: true,
-    },
-  );
+    });
+
+  // Initialize liveLogs immediately when initialLogs load
+  useEffect(() => {
+    if (initialLogs.length > 0 && liveLogs.length === 0) {
+      setLiveLogs(initialLogs);
+    }
+  }, [initialLogs]);
 
   const { data: stats } = useGetCampaignStatsQuery(id!, {
     skip: !id,
@@ -34,14 +45,42 @@ const ScreenLogPage = () => {
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+  }, [liveLogs]);
 
-  // Stop polling when campaign is done
+  // Stop polling stats when campaign is done
   useEffect(() => {
     if (stats?.status === "Completed" || stats?.status === "Stopped") {
       setPolling(false);
     }
   }, [stats]);
+
+  // Socket.io Connection Hook
+  useEffect(() => {
+    if (!id) return;
+
+    socketRef.current = io(API_BASE_URL);
+
+    socketRef.current.on("connect", () => {
+      console.log("Connected to Real-time Logs");
+      socketRef.current?.emit("join_campaign", id);
+    });
+
+    socketRef.current.on("new_log", (newLog) => {
+      setLiveLogs((prev) => {
+        // Prepend new log and strictly cap at 1000 items to prevent browser memory crash
+        const next = [newLog, ...prev];
+        if (next.length > 1000) return next.slice(0, 1000);
+        return next;
+      });
+    });
+
+    return () => {
+      if (socketRef.current && id) {
+        socketRef.current.emit("leave_campaign", id);
+        socketRef.current.disconnect();
+      }
+    };
+  }, [id]);
 
   const handleStop = async () => {
     if (!id) return;
@@ -60,7 +99,7 @@ const ScreenLogPage = () => {
       return;
     try {
       await clearLogs(id).unwrap();
-      // The polling interval will auto-refresh the empty payload
+      setLiveLogs([]);
     } catch (error) {
       console.error("Failed to clear logs", error);
       alert("Error clearing logs");
@@ -200,13 +239,13 @@ const ScreenLogPage = () => {
 
       {/* Terminal Window */}
       <div className="slp-terminal">
-        {logs.length === 0 && logsFetching && (
+        {liveLogs.length === 0 && logsFetching && (
           <div className="slp-loading">Connecting to campaign logs...</div>
         )}
-        {logs.length === 0 && !logsFetching && (
+        {liveLogs.length === 0 && !logsFetching && (
           <div className="slp-loading">No logs yet for this campaign.</div>
         )}
-        {logs.map((log: any, i: number) => (
+        {liveLogs.map((log: any, i: number) => (
           <div
             key={log._id || i}
             className={`slp-log-line ${lineClass(log.type)}`}

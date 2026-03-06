@@ -8,6 +8,7 @@ const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const ReputationScore = require("../models/ReputationScore");
 const { emailQueue } = require("../queues/emailQueue");
+const socketService = require("./socketService");
 
 // Import email queueing helper (copied pattern from emailController)
 const crypto = require("crypto");
@@ -104,21 +105,23 @@ class CampaignAutoRunner {
 
     for (let batchNum = 0; batchNum < batches.length; batchNum++) {
       if (handle.stop) {
-        await CampaignLog.create({
+        const stopLog = await CampaignLog.create({
           campaign_id: campaignId,
           log_text: `[BULK+AUTO] Runner stopped manually at batch ${batchNum + 1}.`,
           type: "info",
         });
+        socketService.emitLog(campaignId, stopLog);
         break;
       }
 
       const campaign = await Campaign.findById(campaignId);
       if (!campaign || campaign.status === "Stopped") {
-        await CampaignLog.create({
+        const haltLog = await CampaignLog.create({
           campaign_id: campaignId,
           log_text: `[BULK+AUTO] Campaign stopped or not found. Halting AutoRunner.`,
           type: "info",
         });
+        socketService.emitLog(campaignId, haltLog);
         break;
       }
 
@@ -144,11 +147,12 @@ class CampaignAutoRunner {
 
       if (poolWithRep.length === 0) {
         await Campaign.findByIdAndUpdate(campaignId, { status: "Stopped" });
-        await CampaignLog.create({
+        const zeroRepLog = await CampaignLog.create({
           campaign_id: campaignId,
           log_text: `[BULK+AUTO] All IPs are paused or have 0 reputation. Campaign auto-stopped.`,
           type: "error",
         });
+        socketService.emitLog(campaignId, zeroRepLog);
         break;
       }
 
@@ -161,11 +165,12 @@ class CampaignAutoRunner {
           .map((e) => e.ip)
           .join(", ");
         if (removedIps) {
-          await CampaignLog.create({
+          const removedIpsLog = await CampaignLog.create({
             campaign_id: campaignId,
             log_text: `[BULK+AUTO] Reputation guard active. IPs removed: ${removedIps}.`,
             type: "info",
           });
+          socketService.emitLog(campaignId, removedIpsLog);
         }
       }
 
@@ -176,11 +181,12 @@ class CampaignAutoRunner {
       });
       if (domRep) {
         await Campaign.findByIdAndUpdate(campaignId, { status: "Stopped" });
-        await CampaignLog.create({
+        const domRepLog = await CampaignLog.create({
           campaign_id: campaignId,
           log_text: `[BULK+AUTO] Domain ${campaign.domain} reputation paused. Campaign auto-stopped.`,
           type: "error",
         });
+        socketService.emitLog(campaignId, domRepLog);
         break;
       }
 
@@ -192,11 +198,12 @@ class CampaignAutoRunner {
             : 0;
         if (currentInboxRate < inboxPercentThreshold) {
           await Campaign.findByIdAndUpdate(campaignId, { status: "Stopped" });
-          await CampaignLog.create({
+          const dropLog = await CampaignLog.create({
             campaign_id: campaignId,
             log_text: `[BULK+AUTO] Overall Inbox rate ${currentInboxRate.toFixed(1)}% dropped below threshold ${inboxPercentThreshold}%. Auto-stopping.`,
             type: "error",
           });
+          socketService.emitLog(campaignId, dropLog);
           break;
         }
       }
@@ -263,11 +270,12 @@ class CampaignAutoRunner {
       const distLog = Object.entries(stats)
         .map(([ip, count]) => `${ip}: ${count}`)
         .join(", ");
-      await CampaignLog.create({
+      const batchLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[BULK+AUTO] Batch ${batchNum + 1}/${batches.length}: Queued ${batch.length} emails. Weighted Distribution -> ${distLog}. Sleeping ${sleepSeconds}s...`,
         type: "info",
       });
+      socketService.emitLog(campaignId, batchLog);
 
       if (batchNum < batches.length - 1) {
         await sleep(sleepSeconds);
@@ -281,11 +289,12 @@ class CampaignAutoRunner {
         status: "Completed",
         end_time: new Date(),
       });
-      await CampaignLog.create({
+      const endLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[BULK+AUTO] AutoRunner finished. Total runner-queued: ${totalQueuedInRunner}. Final Offset: ${currentOffset}.`,
         type: "success",
       });
+      socketService.emitLog(campaignId, endLog);
     }
 
     this.runningCampaigns.delete(String(campaignId));
