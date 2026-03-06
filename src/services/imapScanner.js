@@ -145,8 +145,9 @@ const scanTestId = async (testIdDoc) => {
 
               // Limit to last 100 messages to avoid timeouts
               const finalIds = searchResults.slice(-100);
+              // Fetch standard TO header (Yahoo strips custom X-headers so we must use TO)
               const fetch = imap.fetch(finalIds, {
-                bodies: "HEADER.FIELDS (X-CAMPAIGN-FINGERPRINT)",
+                bodies: "HEADER.FIELDS (TO X-CAMPAIGN-FINGERPRINT)",
               });
 
               let pendingParsers = 0;
@@ -167,7 +168,29 @@ const scanTestId = async (testIdDoc) => {
                       const fingerprint = parsed.headers.get(
                         "x-campaign-fingerprint",
                       );
-                      if (fingerprint) {
+
+                      const toHeader = parsed.headers.get("to");
+                      let toEmail = "";
+                      if (toHeader) {
+                        if (toHeader.value && toHeader.value[0]) {
+                          toEmail = (toHeader.value[0].address || "")
+                            .toLowerCase()
+                            .trim();
+                        } else {
+                          toEmail = String(toHeader).toLowerCase().trim();
+                        }
+                      }
+
+                      const testEmail = testIdDoc.email.toLowerCase().trim();
+
+                      // If we have a fingerprint OR if the email was sent TO this TestId
+                      // (Yahoo/AOL strip fingerprints, so we MUST fall back to To-matching)
+                      if (
+                        fingerprint ||
+                        (toEmail &&
+                          (toEmail === testEmail ||
+                            toEmail.includes(testEmail)))
+                      ) {
                         const determinePlacement = (fName) => {
                           const f = fName.toLowerCase();
                           if (
@@ -194,7 +217,7 @@ const scanTestId = async (testIdDoc) => {
                         );
 
                         results.push({
-                          fingerprint,
+                          fingerprint: fingerprint || "",
                           email: testIdDoc.email,
                           placement,
                         });
