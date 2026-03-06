@@ -358,14 +358,16 @@ const runScanner = async () => {
                   (correctedCampaign.inbox_count || 0) +
                   Math.max(0, correctedCampaign.spam_count || 0) +
                   Math.max(0, correctedCampaign.promo_count || 0);
-                const inboxPercent =
-                  received > 0
-                    ? (correctedCampaign.inbox_count / received) * 100
-                    : 0;
+
                 const totalSent =
                   wronglyClassified.sent ||
                   (correctedCampaign.success_count || 0) +
                     (correctedCampaign.error_count || 0);
+
+                const inboxPercent =
+                  totalSent > 0
+                    ? (correctedCampaign.inbox_count / totalSent) * 100
+                    : 0;
 
                 const newLogText =
                   `Total Mail Sent : ${totalSent} || ` +
@@ -419,10 +421,11 @@ const runScanner = async () => {
                 (campaign.success_count || 0) + (campaign.error_count || 0);
               const received =
                 (campaign.inbox_count || 0) +
-                (campaign.spam_count || 0) +
-                (campaign.promo_count || 0);
+                Math.max(0, campaign.spam_count || 0) +
+                Math.max(0, campaign.promo_count || 0);
+
               const inboxPercent =
-                received > 0 ? (campaign.inbox_count / received) * 100 : 0;
+                totalSent > 0 ? (campaign.inbox_count / totalSent) * 100 : 0;
 
               const newLogText = `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
 

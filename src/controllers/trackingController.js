@@ -53,8 +53,8 @@ const PIXEL_GIF = Buffer.from(
   "base64",
 );
 
-// @desc    Track email opens via pixel
-// @route   GET /t/open
+// @desc    Track email opens via pixel (bypasses query param stripping by image proxies)
+// @route   GET /t/open/:cid/:e
 // @access  Public
 const handleOpenPixel = async (req, res) => {
   // Serve the transparent pixel immediately (no delay for recipient)
@@ -65,20 +65,40 @@ const handleOpenPixel = async (req, res) => {
   res.send(PIXEL_GIF);
 
   // Process tracking asynchronously (don't block the response)
-  const { cid, e } = req.query;
-  if (!cid) return;
+  const cid = req.params.cid || req.query.cid;
+  const e = req.params.e || req.query.e;
+
+  if (!cid) {
+    console.log("[Tracking] Open pixel missed - no cid provided");
+    return;
+  }
 
   try {
-    await Campaign.findByIdAndUpdate(cid, { $inc: { open_count: 1 } });
-    await Tracking.create({
+    // 1. Check if we already logged this OPEN to prevent double-counting from proxy pre-fetches
+    const existingTracking = await Tracking.findOne({
       oid: cid,
       emailid: e || "unknown",
       category: "Open",
-      ip: req.ip || req.headers["x-forwarded-for"],
-      user_agent: req.headers["user-agent"],
     });
+
+    if (!existingTracking) {
+      const camp = await Campaign.findByIdAndUpdate(cid, {
+        $inc: { open_count: 1 },
+      });
+      if (!camp)
+        console.log(`[Tracking] Open pixel warned: Campaign ${cid} not found`);
+
+      await Tracking.create({
+        oid: cid,
+        emailid: e || "unknown",
+        category: "Open",
+        ip: req.ip || req.headers["x-forwarded-for"],
+        user_agent: req.headers["user-agent"],
+      });
+      console.log(`[Tracking] Registered OPEN for ${e} on campaign ${cid}`);
+    }
   } catch (err) {
-    console.error("[Tracking] Open pixel error:", err.message);
+    console.error(`[Tracking] Open pixel error for ${e}:`, err.message);
   }
 };
 

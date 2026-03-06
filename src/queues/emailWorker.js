@@ -263,7 +263,9 @@ const emailWorker = async (job) => {
         if (camp && camp.domain) trackingDomain = camp.domain;
       }
 
-      const openPixelUrl = `http://${trackingDomain}/t/open?cid=${campaign_id || ""}&e=${encodeURIComponent(email)}`;
+      const cid = campaign_id || "null";
+      const encEmail = encodeURIComponent(email);
+      const openPixelUrl = `http://${trackingDomain}/t/open/${cid}/${encEmail}`;
       const pixelTag = `<img src="${openPixelUrl}" width="1" height="1" alt="" style="display:none;" />`;
 
       // Insert right before </body> if present, else append to the end
@@ -313,15 +315,16 @@ const emailWorker = async (job) => {
 
       const received =
         (updatedCampaign.inbox_count || 0) +
-        (updatedCampaign.spam_count || 0) +
-        (updatedCampaign.promo_count || 0);
+        Math.max(0, updatedCampaign.spam_count || 0) +
+        Math.max(0, updatedCampaign.promo_count || 0);
+
       const inboxPercent =
-        received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 0;
+        totalSent > 0 ? (updatedCampaign.inbox_count / totalSent) * 100 : 0;
 
       const transcriptText = smtpTranscript.join("\n");
       await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+        log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${Math.max(0, updatedCampaign.spam_count || 0)} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
         type: "success",
         sent: totalSent,
         mail_status: `${email} success`,
