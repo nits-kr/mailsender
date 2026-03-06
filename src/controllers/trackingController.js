@@ -47,8 +47,6 @@ const handleTracking = async (req, res) => {
   }
 };
 
-module.exports = { handleTracking, handleOpenPixel };
-
 // 1x1 transparent GIF (exact bytes)
 const PIXEL_GIF = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
@@ -83,3 +81,5 @@ const handleOpenPixel = async (req, res) => {
     console.error("[Tracking] Open pixel error:", err.message);
   }
 };
+
+module.exports = { handleTracking, handleOpenPixel };
