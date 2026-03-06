@@ -265,12 +265,10 @@ const runScanner = async () => {
 
     for (const testId of testIds) {
       console.log(`[IMAP] Connecting to ${testId.email}...`);
-      const scanResults = await scanTestId(testId).catch(
-        (err) => {
-          console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
-          return [];
-        },
-      );
+      const scanResults = await scanTestId(testId).catch((err) => {
+        console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
+        return [];
+      });
 
       if (scanResults.length > 0) {
         console.log(
@@ -284,9 +282,9 @@ const runScanner = async () => {
           campaign_id: { $in: activeCampaignIds },
           fingerprint: res.fingerprint,
           type: "success",
-          inbox: 0,
-          spam: 0,
-          promo: 0,
+          inbox: { $in: [0, null] },
+          spam: { $in: [0, null] },
+          promo: { $in: [0, null] },
         }).sort({ created_at: -1 });
 
         // Backward compatibility for older campaigns that used campaignId:email fingerprint.
@@ -312,9 +310,9 @@ const runScanner = async () => {
               campaign_id: legacyCampaignId,
               type: "success",
               mail_status: { $regex: escapedEmail, $options: "i" },
-              inbox: 0,
-              spam: 0,
-              promo: 0,
+              inbox: { $in: [0, null] },
+              spam: { $in: [0, null] },
+              promo: { $in: [0, null] },
             }).sort({ created_at: -1 });
           }
         }
