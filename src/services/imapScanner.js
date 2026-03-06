@@ -359,18 +359,21 @@ const runScanner = async () => {
                   Math.max(0, correctedCampaign.spam_count || 0) +
                   Math.max(0, correctedCampaign.promo_count || 0);
 
-                const totalSent =
-                  wronglyClassified.sent ||
+                const currentLiveTotalSent =
                   (correctedCampaign.success_count || 0) +
-                    (correctedCampaign.error_count || 0);
+                  (correctedCampaign.error_count || 0);
+
+                const totalSentText =
+                  wronglyClassified.sent || currentLiveTotalSent; // keep chronological text mapping but use live sent for math
 
                 const inboxPercent =
-                  totalSent > 0
-                    ? (correctedCampaign.inbox_count / totalSent) * 100
+                  currentLiveTotalSent > 0
+                    ? (correctedCampaign.inbox_count / currentLiveTotalSent) *
+                      100
                     : 0;
 
                 const newLogText =
-                  `Total Mail Sent : ${totalSent} || ` +
+                  `Total Mail Sent : ${totalSentText} || ` +
                   `Total Mail Received : ${received} || ` +
                   `INBOX : ${correctedCampaign.inbox_count || 0} || ` +
                   `SPAM : ${Math.max(0, correctedCampaign.spam_count || 0)} || ` +
@@ -415,19 +418,23 @@ const runScanner = async () => {
             );
 
             if (campaign) {
-              // Preserve the original chronological 'Sent' number of this specific email
-              const totalSent =
-                existingLog.sent ||
+              // Preserve the original chronological 'Sent' number of this specific email for visual log mapping
+              const liveCampaignTotalSent =
                 (campaign.success_count || 0) + (campaign.error_count || 0);
+
+              const totalSentText = existingLog.sent || liveCampaignTotalSent;
+
               const received =
                 (campaign.inbox_count || 0) +
                 Math.max(0, campaign.spam_count || 0) +
                 Math.max(0, campaign.promo_count || 0);
 
               const inboxPercent =
-                totalSent > 0 ? (campaign.inbox_count / totalSent) * 100 : 0;
+                liveCampaignTotalSent > 0
+                  ? (campaign.inbox_count / liveCampaignTotalSent) * 100
+                  : 0;
 
-              const newLogText = `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
+              const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${Math.max(0, campaign.spam_count || 0)} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
 
               // 2. Update the specific Log Entry
               await CampaignLog.findByIdAndUpdate(existingLog._id, {

@@ -265,7 +265,8 @@ const emailWorker = async (job) => {
 
       const cid = campaign_id || "null";
       const encEmail = encodeURIComponent(email);
-      const openPixelUrl = `http://${trackingDomain}/t/open/${cid}/${encEmail}`;
+      const cacheBust = Date.now() + Math.floor(Math.random() * 10000);
+      const openPixelUrl = `http://${trackingDomain}/t/open/${cid}/${encEmail}?cb=${cacheBust}`;
       const pixelTag = `<img src="${openPixelUrl}" width="1" height="1" alt="" style="display:none;" />`;
 
       // Insert right before </body> if present, else append to the end

@@ -77,8 +77,8 @@ const ScreenLogPage = () => {
     const inboxPct =
       log.inbox_percent != null
         ? log.inbox_percent
-        : received > 0
-          ? ((inbox / received) * 100).toFixed(2)
+        : sentTotal > 0
+          ? ((inbox / sentTotal) * 100).toFixed(2)
           : "0";
     const status =
       log.mail_status || (log.type === "success" ? "success" : "error");

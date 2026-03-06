@@ -74,29 +74,23 @@ const handleOpenPixel = async (req, res) => {
   }
 
   try {
-    // 1. Check if we already logged this OPEN to prevent double-counting from proxy pre-fetches
-    const existingTracking = await Tracking.findOne({
+    // We do NOT block duplicates here, because the user may legitimately receive multiple emails
+    // to the same address in the same campaign (especially during testing), and open all of them.
+    // The timestamp cache-buster prevents image caching, so each open is a real request.
+    const camp = await Campaign.findByIdAndUpdate(cid, {
+      $inc: { open_count: 1 },
+    });
+    if (!camp) {
+      console.log(`[Tracking] Open pixel warned: Campaign ${cid} not found`);
+    }
+
+    await Tracking.create({
       oid: cid,
       emailid: e || "unknown",
       category: "Open",
+      ip: req.ip || req.headers["x-forwarded-for"],
+      user_agent: req.headers["user-agent"],
     });
-
-    if (!existingTracking) {
-      const camp = await Campaign.findByIdAndUpdate(cid, {
-        $inc: { open_count: 1 },
-      });
-      if (!camp)
-        console.log(`[Tracking] Open pixel warned: Campaign ${cid} not found`);
-
-      await Tracking.create({
-        oid: cid,
-        emailid: e || "unknown",
-        category: "Open",
-        ip: req.ip || req.headers["x-forwarded-for"],
-        user_agent: req.headers["user-agent"],
-      });
-      console.log(`[Tracking] Registered OPEN for ${e} on campaign ${cid}`);
-    }
   } catch (err) {
     console.error(`[Tracking] Open pixel error for ${e}:`, err.message);
   }
