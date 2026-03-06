@@ -82,4 +82,7 @@ const campaignSchema = mongoose.Schema(
   { timestamps: true },
 );
 
+// Index to allow fast retrieval of active/recently completed campaigns
+campaignSchema.index({ status: 1, updatedAt: -1 });
+
 module.exports = mongoose.model("Campaign", campaignSchema);

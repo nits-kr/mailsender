@@ -298,7 +298,7 @@ const emailWorker = async (job) => {
         (updatedCampaign.spam_count || 0) +
         (updatedCampaign.promo_count || 0);
       const inboxPercent =
-        received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 100;
+        received > 0 ? (updatedCampaign.inbox_count / received) * 100 : 0;
 
       const transcriptText = smtpTranscript.join("\n");
       await CampaignLog.create({

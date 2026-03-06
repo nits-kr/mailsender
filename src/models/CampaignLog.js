@@ -20,4 +20,23 @@ const campaignLogSchema = mongoose.Schema({
   fingerprint: { type: String, default: "" }, // unique per sent message for IMAP reconciliation
 });
 
+// Database Indexes for High-Scale IMAP Scanning
+// Without these, looking up untested logs (inbox=0/spam=0) scans the entire DB.
+campaignLogSchema.index({
+  campaign_id: 1,
+  type: 1,
+  mail_status: 1,
+  inbox: 1,
+  spam: 1,
+  promo: 1,
+});
+campaignLogSchema.index({
+  campaign_id: 1,
+  type: 1,
+  fingerprint: 1,
+  inbox: 1,
+  spam: 1,
+  promo: 1,
+});
+
 module.exports = mongoose.model("CampaignLog", campaignLogSchema);

@@ -267,134 +267,138 @@ const runScanner = async () => {
     );
     const activeCampaignIds = activeCampaigns.map((c) => c._id);
 
-    for (const testId of testIds) {
-      console.log(`[IMAP] Connecting to ${testId.email}...`);
-      const scanResults = await scanTestId(testId).catch((err) => {
-        console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
-        return [];
-      });
+    await Promise.allSettled(
+      testIds.map(async (testId) => {
+        console.log(`[IMAP] Connecting to ${testId.email}...`);
+        const scanResults = await scanTestId(testId).catch((err) => {
+          console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
+          return [];
+        });
 
-      if (scanResults.length > 0) {
-        console.log(
-          `[IMAP] Found ${scanResults.length} fingerprint matches in ${testId.email}`,
-        );
-      }
+        if (scanResults.length > 0) {
+          console.log(
+            `[IMAP] Found ${scanResults.length} fingerprint matches in ${testId.email}`,
+          );
+        }
 
-      for (const res of scanResults) {
-        const escapedEmail = res.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-        // PRIMARY: Match by recipient email in mail_status — always reliable.
-        // X-Campaign-Fingerprint is stripped by Gmail/Yahoo so fingerprint matching
-        // often fails. Using mail_status (set by emailWorker as "email success") is safe.
-        let existingLog = await CampaignLog.findOne({
-          campaign_id: { $in: activeCampaignIds },
-          type: "success",
-          mail_status: { $regex: escapedEmail, $options: "i" },
-          inbox: { $in: [0, null] },
-          spam: { $in: [0, null] },
-          promo: { $in: [0, null] },
-        }).sort({ created_at: -1 });
-
-        // SECONDARY: Fingerprint match (works when header survives transit)
-        if (!existingLog && res.fingerprint) {
-          existingLog = await CampaignLog.findOne({
+        for (const res of scanResults) {
+          // PRIMARY: Match by exact recipient email in mail_status — extremely fast with indexes.
+          // We know emailWorker saves this exactly as "user@domain.com success".
+          let existingLog = await CampaignLog.findOne({
             campaign_id: { $in: activeCampaignIds },
-            fingerprint: res.fingerprint,
             type: "success",
+            mail_status: `${res.email} success`,
             inbox: { $in: [0, null] },
             spam: { $in: [0, null] },
             promo: { $in: [0, null] },
           }).sort({ created_at: -1 });
-        }
 
-        // Only count if an unplaced log was found (avoid double counting if scanner runs twice)
-        if (existingLog) {
-          const campaignId = existingLog.campaign_id;
-          const updateField =
-            res.placement === "spam"
-              ? "spam_count"
-              : res.placement === "promo"
-                ? "promo_count"
-                : "inbox_count";
-
-          // 1. Update Campaign Aggregate Stats
-          const campaign = await Campaign.findByIdAndUpdate(
-            campaignId,
-            { $inc: { [updateField]: 1 } },
-            { new: true },
-          );
-
-          if (campaign) {
-            const totalSent =
-              (campaign.success_count || 0) + (campaign.error_count || 0);
-            const received =
-              (campaign.inbox_count || 0) +
-              (campaign.spam_count || 0) +
-              (campaign.promo_count || 0);
-            const inboxPercent =
-              received > 0 ? (campaign.inbox_count / received) * 100 : 100;
-
-            const newLogText = `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
-
-            // 2. Update the specific Log Entry
-            await CampaignLog.findByIdAndUpdate(existingLog._id, {
-              $set: {
-                [res.placement]: 1,
-                mail_status: `${res.email} ${res.placement}`,
-                log_text: newLogText,
-                inbox_percent: Number(inboxPercent.toFixed(1)),
-                sent: totalSent,
-                received: received,
-              },
-            });
+          // SECONDARY: Fingerprint match (works when header survives transit)
+          if (!existingLog && res.fingerprint) {
+            existingLog = await CampaignLog.findOne({
+              campaign_id: { $in: activeCampaignIds },
+              fingerprint: res.fingerprint,
+              type: "success",
+              inbox: { $in: [0, null] },
+              spam: { $in: [0, null] },
+              promo: { $in: [0, null] },
+            }).sort({ created_at: -1 });
           }
 
-          // ── Synchronize with Inbox Intelligence Engine ───────────────
-          const providerMatch =
-            res.email.split("@")[1]?.split(".")[0] || "other";
-          const provider = ["gmail", "yahoo", "outlook"].includes(providerMatch)
-            ? providerMatch
-            : "other";
+          // Only count if an unplaced log was found (avoid double counting if scanner runs twice)
+          if (existingLog) {
+            const campaignId = existingLog.campaign_id;
+            const updateField =
+              res.placement === "spam"
+                ? "spam_count"
+                : res.placement === "promo"
+                  ? "promo_count"
+                  : "inbox_count";
 
-          try {
-            await IntelligenceLog.create({
+            // 1. Update Campaign Aggregate Stats
+            const campaign = await Campaign.findByIdAndUpdate(
               campaignId,
-              provider,
-              location: res.placement === "promo" ? "inbox" : res.placement,
-              testEmail: res.email,
-              subject: existingLog.log_text || "Automated IMAP Scan",
-            });
-
-            const campaign = activeCampaigns.find(
-              (c) => c._id.toString() === campaignId.toString(),
+              { $inc: { [updateField]: 1 } },
+              { new: true },
             );
+
             if (campaign) {
-              // Extract IP from recent log since campaign.server isn't always reliable
-              const ipMatch = existingLog.log_text
-                ? existingLog.log_text.match(/\d+\.\d+\.\d+\.\d+/)
-                : null;
-              const ip = ipMatch ? ipMatch[0] : campaign.server;
-              if (ip)
-                await updateIntelligenceScore(
-                  campaign,
-                  "ip",
-                  ip,
-                  res.placement,
-                );
-              if (campaign.domain)
-                await updateIntelligenceScore(
-                  campaign,
-                  "domain",
-                  campaign.domain,
-                  res.placement,
-                );
+              const totalSent =
+                (campaign.success_count || 0) + (campaign.error_count || 0);
+              const received =
+                (campaign.inbox_count || 0) +
+                (campaign.spam_count || 0) +
+                (campaign.promo_count || 0);
+              const inboxPercent =
+                received > 0 ? (campaign.inbox_count / received) * 100 : 0;
+
+              const newLogText = `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
+
+              // 2. Update the specific Log Entry
+              await CampaignLog.findByIdAndUpdate(existingLog._id, {
+                $set: {
+                  [res.placement]: 1,
+                  mail_status: `${res.email} ${res.placement}`,
+                  log_text: newLogText,
+                  inbox_percent: Number(inboxPercent.toFixed(1)),
+                  sent: totalSent,
+                  received: received,
+                },
+              });
             }
-          } catch (intelErr) {
-            console.error("[IMAP] Intelligence Sync Error:", intelErr.message);
+
+            // ── Synchronize with Inbox Intelligence Engine ───────────────
+            const providerMatch =
+              res.email.split("@")[1]?.split(".")[0] || "other";
+            const provider = ["gmail", "yahoo", "outlook"].includes(
+              providerMatch,
+            )
+              ? providerMatch
+              : "other";
+
+            try {
+              await IntelligenceLog.create({
+                campaignId,
+                provider,
+                location: res.placement === "promo" ? "inbox" : res.placement,
+                testEmail: res.email,
+                subject: existingLog.log_text || "Automated IMAP Scan",
+              });
+
+              const campaign = activeCampaigns.find(
+                (c) => c._id.toString() === campaignId.toString(),
+              );
+              if (campaign) {
+                // Extract IP from recent log since campaign.server isn't always reliable
+                const ipMatch = existingLog.log_text
+                  ? existingLog.log_text.match(/\d+\.\d+\.\d+\.\d+/)
+                  : null;
+                const ip = ipMatch ? ipMatch[0] : campaign.server;
+                if (ip)
+                  await updateIntelligenceScore(
+                    campaign,
+                    "ip",
+                    ip,
+                    res.placement,
+                  );
+                if (campaign.domain)
+                  await updateIntelligenceScore(
+                    campaign,
+                    "domain",
+                    campaign.domain,
+                    res.placement,
+                  );
+              }
+            } catch (intelErr) {
+              console.error(
+                "[IMAP] Intelligence Sync Error:",
+                intelErr.message,
+              );
+            }
           }
         }
-      }
-    }
+      }),
+    );
 
     // After all scans, evaluate Guardian thresholds for all active campaigns
     for (const campaign of activeCampaigns) {
