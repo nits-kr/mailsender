@@ -94,7 +94,7 @@ const ScreenLogPage = () => {
       });
 
       // Update local stats so the top bar feels "live" without needing a refresh
-      setLocalStats((prev) => {
+      setLocalStats((prev: any) => {
         const next = { ...prev };
 
         // Example: logic to parse newLog values into stats if they are present
