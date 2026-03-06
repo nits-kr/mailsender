@@ -67,6 +67,14 @@ const ScreenLogPage = () => {
 
     socketRef.current.on("new_log", (newLog) => {
       setLiveLogs((prev) => {
+        // Check if log already exists to prevent duplicates (and allow updates like success -> inbox)
+        const existingIdx = prev.findIndex((log) => log._id === newLog._id);
+        if (existingIdx !== -1) {
+          const next = [...prev];
+          next[existingIdx] = newLog;
+          return next;
+        }
+
         // Prepend new log and strictly cap at 1000 items to prevent browser memory crash
         const next = [newLog, ...prev];
         if (next.length > 1000) return next.slice(0, 1000);
