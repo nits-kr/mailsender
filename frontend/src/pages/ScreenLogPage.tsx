@@ -68,8 +68,11 @@ const ScreenLogPage = () => {
   };
 
   const formatLogLine = (log: any) => {
-    if (log.type === "info") return log.log_text;
+    // The backend already completely formats the log string with accurate aggregate mathematics.
+    // If it exists, use it directly.
+    if (log.log_text) return log.log_text;
 
+    // Fallback for very old unformatted logs
     const sentTotal = log.sent ?? 0;
     const inbox = log.inbox ?? 0;
     const spam = log.spam ?? 0;
