@@ -333,7 +333,7 @@ const emailWorker = async (job) => {
         inbox_percent: Number(inboxPercent.toFixed(1)),
         fingerprint: messageFingerprint,
       });
-      socketService.emitLog(campaign_id, newLog);
+      socketService.emitLog(campaign_id, newLog, updatedCampaign);
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});
@@ -399,7 +399,7 @@ const emailWorker = async (job) => {
         inbox_percent: 0,
         fingerprint: messageFingerprint,
       });
-      socketService.emitLog(campaign_id, errorLog);
+      socketService.emitLog(campaign_id, errorLog, updatedCampaign);
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});

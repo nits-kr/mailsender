@@ -77,7 +77,11 @@ const ScreenLogPage = () => {
       socketRef.current?.emit("join_campaign", id);
     });
 
-    socketRef.current.on("new_log", (newLog) => {
+    socketRef.current.on("new_log", (payload) => {
+      // The backend now sends { log, stats } so we can have perfect absolute synchronization
+      const newLog = payload.log || payload; // fallback for older events
+      const incomingStats = payload.stats;
+
       setLiveLogs((prev) => {
         // Check if log already exists to prevent duplicates
         const existingIdx = prev.findIndex((log) => log._id === newLog._id);
@@ -94,20 +98,12 @@ const ScreenLogPage = () => {
       });
 
       // Update local stats so the top bar feels "live" without needing a refresh
-      setLocalStats((prev: any) => {
-        const next = { ...prev };
-
-        // Example: logic to parse newLog values into stats if they are present
-        if (newLog.type === "success")
-          next.success_count = (next.success_count || 0) + 1;
-        if (newLog.type === "error")
-          next.error_count = (next.error_count || 0) + 1;
-        if (newLog.inbox > 0) next.inbox_count = (next.inbox_count || 0) + 1;
-        if (newLog.spam > 0) next.spam_count = (next.spam_count || 0) + 1;
-        if (newLog.promo > 0) next.promo_count = (next.promo_count || 0) + 1;
-
-        return next;
-      });
+      if (incomingStats) {
+        setLocalStats((prev: any) => ({
+          ...prev, // Keep template_name, total_emails, etc.
+          ...incomingStats, // Immediately overwrite the mutable counters with the Absolute Truth from DB
+        }));
+      }
     });
 
     return () => {

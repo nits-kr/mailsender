@@ -401,6 +401,7 @@ const runScanner = async () => {
                   socketService.emitLog(
                     wronglyClassified.campaign_id,
                     finalLog,
+                    correctedCampaign,
                   );
                 }
               }
@@ -482,7 +483,7 @@ const runScanner = async () => {
                   { new: true },
                 );
                 if (finalLog) {
-                  socketService.emitLog(campaignId, finalLog);
+                  socketService.emitLog(campaignId, finalLog, campaign);
                 }
               }
             }

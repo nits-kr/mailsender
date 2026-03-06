@@ -294,7 +294,7 @@ class CampaignAutoRunner {
         log_text: `[BULK+AUTO] AutoRunner finished. Total runner-queued: ${totalQueuedInRunner}. Final Offset: ${currentOffset}.`,
         type: "success",
       });
-      socketService.emitLog(campaignId, endLog);
+      socketService.emitLog(campaignId, endLog, finalCampaign);
     }
 
     this.runningCampaigns.delete(String(campaignId));

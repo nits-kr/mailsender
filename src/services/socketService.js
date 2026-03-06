@@ -49,10 +49,11 @@ const getIo = () => _io;
  * No-ops silently if the socket server isn't ready yet.
  * @param {string} campaignId
  * @param {object} log
+ * @param {object} [stats] - Optional campaign aggregate stats for live top-bar updating
  */
-const emitLog = (campaignId, log) => {
+const emitLog = (campaignId, log, stats = null) => {
   if (_io && campaignId && log) {
-    _io.to(String(campaignId)).emit("new_log", log);
+    _io.to(String(campaignId)).emit("new_log", { log, stats });
   }
 };
 
