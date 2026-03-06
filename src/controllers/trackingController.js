@@ -1,6 +1,6 @@
 const Link = require("../models/Link");
-// We can use Log or create a more specific ClickLog
 const Tracking = require("../models/Tracking");
+const Campaign = require("../models/Campaign");
 
 // @desc    Handle public click tracking and redirect
 // @route   GET /t/:pattern
@@ -47,4 +47,39 @@ const handleTracking = async (req, res) => {
   }
 };
 
-module.exports = { handleTracking };
+module.exports = { handleTracking, handleOpenPixel };
+
+// 1x1 transparent GIF (exact bytes)
+const PIXEL_GIF = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64",
+);
+
+// @desc    Track email opens via pixel
+// @route   GET /t/open
+// @access  Public
+const handleOpenPixel = async (req, res) => {
+  // Serve the transparent pixel immediately (no delay for recipient)
+  res.set("Content-Type", "image/gif");
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  res.send(PIXEL_GIF);
+
+  // Process tracking asynchronously (don't block the response)
+  const { cid, e } = req.query;
+  if (!cid) return;
+
+  try {
+    await Campaign.findByIdAndUpdate(cid, { $inc: { open_count: 1 } });
+    await Tracking.create({
+      oid: cid,
+      emailid: e || "unknown",
+      category: "Open",
+      ip: req.ip || req.headers["x-forwarded-for"],
+      user_agent: req.headers["user-agent"],
+    });
+  } catch (err) {
+    console.error("[Tracking] Open pixel error:", err.message);
+  }
+};

@@ -18,14 +18,14 @@ const ScreenLogPage = () => {
     id!,
     {
       skip: !id,
-      pollingInterval: polling ? 2000 : 0,
+      pollingInterval: polling ? 1000 : 0,
       refetchOnMountOrArgChange: true,
     },
   );
 
   const { data: stats } = useGetCampaignStatsQuery(id!, {
     skip: !id,
-    pollingInterval: polling ? 2000 : 0,
+    pollingInterval: polling ? 1000 : 0,
   });
 
   const [stopScreen] = useStopScreenMutation();
@@ -159,6 +159,13 @@ const ScreenLogPage = () => {
           <span className="slp-stat-label">INBOX</span>
           <span className="slp-stat-value slp-green">
             {stats?.inbox_count ?? 0}
+          </span>
+        </span>
+        <span className="slp-stat-sep">|</span>
+        <span className="slp-stat">
+          <span className="slp-stat-label">OPENS</span>
+          <span className="slp-stat-value" style={{ color: "#a855f7" }}>
+            {stats?.open_count ?? 0}
           </span>
         </span>
         <span className="slp-stat-sep">|</span>

@@ -255,6 +255,24 @@ const emailWorker = async (job) => {
         }
       }
 
+      // Inject Open Tracking Pixel
+      // We look up the campaign domain or default to the host API
+      let trackingDomain = "185.211.6.101"; // Fallback to current host
+      if (campaign_id) {
+        const camp = await Campaign.findById(campaign_id).select("domain");
+        if (camp && camp.domain) trackingDomain = camp.domain;
+      }
+
+      const openPixelUrl = `http://${trackingDomain}/t/open?cid=${campaign_id || ""}&e=${encodeURIComponent(email)}`;
+      const pixelTag = `<img src="${openPixelUrl}" width="1" height="1" alt="" style="display:none;" />`;
+
+      // Insert right before </body> if present, else append to the end
+      if (mutatedHtml.includes("</body>")) {
+        mutatedHtml = mutatedHtml.replace("</body>", `${pixelTag}</body>`);
+      } else {
+        mutatedHtml += pixelTag;
+      }
+
       mailOptions.html = {
         content: mutatedHtml,
         charset: charset || "UTF-8",

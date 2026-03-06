@@ -12,14 +12,14 @@ import "./Screen.css";
 const Screen = () => {
   const navigate = useNavigate();
 
-  // Poll every 5 seconds automatically
+  // Poll every 1 second automatically
   const {
     data: screens = [],
     isLoading,
     isFetching,
     refetch: refetchScreens,
   } = useGetScreensQuery(undefined, {
-    pollingInterval: 5000,
+    pollingInterval: 1000,
   });
   const [stopScreen] = useStopScreenMutation();
   const [resumeScreen] = useResumeScreenMutation();
