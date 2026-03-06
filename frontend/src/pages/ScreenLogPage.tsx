@@ -36,8 +36,17 @@ const ScreenLogPage = () => {
 
   const { data: stats } = useGetCampaignStatsQuery(id!, {
     skip: !id,
-    pollingInterval: polling ? 1000 : 0,
+    refetchOnMountOrArgChange: true,
   });
+
+  const [localStats, setLocalStats] = useState<any>(null);
+
+  // Initialize local stats completely once RTK query finishes
+  useEffect(() => {
+    if (stats && !localStats) {
+      setLocalStats(stats);
+    }
+  }, [stats]);
 
   const [stopScreen] = useStopScreenMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearCampaignLogsMutation();
@@ -49,10 +58,13 @@ const ScreenLogPage = () => {
 
   // Stop polling stats when campaign is done
   useEffect(() => {
-    if (stats?.status === "Completed" || stats?.status === "Stopped") {
+    if (
+      localStats?.status === "Completed" ||
+      localStats?.status === "Stopped"
+    ) {
       setPolling(false);
     }
-  }, [stats]);
+  }, [localStats]);
 
   // Socket.io Connection Hook
   useEffect(() => {
@@ -67,7 +79,7 @@ const ScreenLogPage = () => {
 
     socketRef.current.on("new_log", (newLog) => {
       setLiveLogs((prev) => {
-        // Check if log already exists to prevent duplicates (and allow updates like success -> inbox)
+        // Check if log already exists to prevent duplicates
         const existingIdx = prev.findIndex((log) => log._id === newLog._id);
         if (existingIdx !== -1) {
           const next = [...prev];
@@ -75,9 +87,25 @@ const ScreenLogPage = () => {
           return next;
         }
 
-        // Prepend new log and strictly cap at 1000 items to prevent browser memory crash
-        const next = [newLog, ...prev];
-        if (next.length > 1000) return next.slice(0, 1000);
+        // Append new log at the bottom and keep only the last 1000 items
+        const next = [...prev, newLog];
+        if (next.length > 1000) return next.slice(-1000);
+        return next;
+      });
+
+      // Update local stats so the top bar feels "live" without needing a refresh
+      setLocalStats((prev) => {
+        const next = { ...prev };
+
+        // Example: logic to parse newLog values into stats if they are present
+        if (newLog.type === "success")
+          next.success_count = (next.success_count || 0) + 1;
+        if (newLog.type === "error")
+          next.error_count = (next.error_count || 0) + 1;
+        if (newLog.inbox > 0) next.inbox_count = (next.inbox_count || 0) + 1;
+        if (newLog.spam > 0) next.spam_count = (next.spam_count || 0) + 1;
+        if (newLog.promo > 0) next.promo_count = (next.promo_count || 0) + 1;
+
         return next;
       });
     });
@@ -149,10 +177,10 @@ const ScreenLogPage = () => {
     return "log-line-info";
   };
 
-  const sent = stats?.success_count ?? 0;
-  const errors = stats?.error_count ?? 0;
-  const total = stats?.total_emails ?? 0;
-  const status = stats?.status ?? "—";
+  const sent = localStats?.success_count ?? 0;
+  const errors = localStats?.error_count ?? 0;
+  const total = localStats?.total_emails ?? 0;
+  const status = localStats?.status ?? "—";
 
   return (
     <div className="slp-container">
@@ -173,7 +201,7 @@ const ScreenLogPage = () => {
         >
           {isClearing ? "Clearing..." : "🗑️ Clear Logs"}
         </button>
-        <h2 className="slp-title">{stats?.template_name ?? id}</h2>
+        <h2 className="slp-title">{localStats?.template_name ?? id}</h2>
         <div className="slp-actions">
           {polling ? (
             <span className="slp-live-badge">● LIVE</span>
@@ -208,28 +236,28 @@ const ScreenLogPage = () => {
         <span className="slp-stat">
           <span className="slp-stat-label">INBOX</span>
           <span className="slp-stat-value slp-green">
-            {stats?.inbox_count ?? 0}
+            {localStats?.inbox_count ?? 0}
           </span>
         </span>
         <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">OPENS</span>
           <span className="slp-stat-value" style={{ color: "#a855f7" }}>
-            {stats?.open_count ?? 0}
+            {localStats?.open_count ?? 0}
           </span>
         </span>
         <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">SPAM</span>
           <span className="slp-stat-value slp-red">
-            {Math.max(0, stats?.spam_count ?? 0)}
+            {Math.max(0, localStats?.spam_count ?? 0)}
           </span>
         </span>
         <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">PROMO</span>
           <span className="slp-stat-value slp-orange">
-            {stats?.promo_count ?? 0}
+            {localStats?.promo_count ?? 0}
           </span>
         </span>
         {total > 0 && (
