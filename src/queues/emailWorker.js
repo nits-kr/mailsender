@@ -332,6 +332,14 @@ const emailWorker = async (job) => {
           { status: "Completed", end_time: new Date() },
           { new: true },
         );
+        // Explicit completion log
+        const completionLog = await CampaignLog.create({
+          campaign_id,
+          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED || Total Sent: ${totalSent} || Inbox: ${updatedCampaign.inbox_count || 0}`,
+          type: "info",
+          sent: totalSent,
+        });
+        socketService.emitLog(campaign_id, completionLog, updatedCampaign);
       }
 
       const transcriptText = smtpTranscript.join("\n");
@@ -393,6 +401,14 @@ const emailWorker = async (job) => {
           { status: "Completed", end_time: new Date() },
           { new: true },
         );
+        // Explicit completion log
+        const completionLog = await CampaignLog.create({
+          campaign_id,
+          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED (with errors) || Total Sent: ${totalSent} || Inbox: ${updatedCampaign.inbox_count || 0}`,
+          type: "info",
+          sent: totalSent,
+        });
+        socketService.emitLog(campaign_id, completionLog, updatedCampaign);
       }
 
       const received =
