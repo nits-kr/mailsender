@@ -338,9 +338,26 @@ const sendEmail = async (req, res) => {
       campaign = await Campaign.findById(existingCampaignId);
     }
 
+    // USER REQUIREMENT: "If same template name then show logs in same"
+    // If the frontend didn't pass an ID (or it did but we want to be safe),
+    // and we have a template_name, look for an existing Campaign run with that name.
+    if (!campaign && template_name) {
+      campaign = await Campaign.findOne({ template_name }).sort({
+        createdAt: -1,
+      });
+    }
+
     // Only reset stats if the campaign reached "Completed" or if it's a brand new campaign.
     // If it's "Stopped" or "Running", we consider this a continuation of the same job.
-    const shouldReset = !campaign || campaign.status === "Completed";
+    // However, if the user explicitly changed the Template Name in the UI, we force a reset.
+    const nameMismatch =
+      campaign &&
+      campaign.template_name &&
+      template_name &&
+      campaign.template_name !== template_name;
+
+    const shouldReset =
+      !campaign || campaign.status === "Completed" || nameMismatch;
 
     const updateData = {
       template_name: template_name || "Manual Sending",
@@ -403,20 +420,19 @@ const sendEmail = async (req, res) => {
     }
 
     const shouldCreateNew =
-      shouldReset ||
-      (campaign &&
-        campaign.template_name &&
+      !campaign ||
+      (campaign.template_name &&
         template_name &&
         campaign.template_name !== template_name);
 
-    if (campaign && !shouldCreateNew) {
-      // Resume existing Stopped/Pending run
+    if (shouldCreateNew) {
+      // Create a brand-new run (new name, clean stats)
+      campaign = await Campaign.create(updateData);
+    } else {
+      // Resume or merge into existing run with the EXACT SAME template name
       campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
         new: true,
       });
-    } else {
-      // Create a brand-new run (new report, clean stats)
-      campaign = await Campaign.create(updateData);
     }
 
     // ── PHP-parity: Auto-save template on every send with a new name ──────
