@@ -325,6 +325,15 @@ const emailWorker = async (job) => {
           ? (updatedCampaign.inbox_count / updatedCampaign.total_emails) * 100
           : 0;
 
+      // Auto-complete if finished
+      if (totalSent >= (updatedCampaign.total_emails || 0)) {
+        updatedCampaign = await Campaign.findByIdAndUpdate(
+          campaign_id,
+          { status: "Completed", end_time: new Date() },
+          { new: true },
+        );
+      }
+
       const transcriptText = smtpTranscript.join("\n");
       const newLog = await CampaignLog.create({
         campaign_id,
@@ -340,14 +349,6 @@ const emailWorker = async (job) => {
 
       // Guardian Evaluation
       await guardianEvaluate(campaign_id).catch(() => {});
-
-      // Auto-complete if finished
-      if (totalSent >= (updatedCampaign.total_emails || 0)) {
-        await Campaign.findByIdAndUpdate(campaign_id, {
-          status: "Completed",
-          end_time: new Date(),
-        });
-      }
     }
 
     // ── Update Dashboard Log (Incremental) ──────────────────────────────
@@ -387,10 +388,11 @@ const emailWorker = async (job) => {
         console.log(
           `Campaign ${campaign_id} reaching end (${totalSent}/${updatedCampaign.total_emails}). Setting to Completed.`,
         );
-        await Campaign.findByIdAndUpdate(campaign_id, {
-          status: "Completed",
-          end_time: new Date(),
-        });
+        updatedCampaign = await Campaign.findByIdAndUpdate(
+          campaign_id,
+          { status: "Completed", end_time: new Date() },
+          { new: true },
+        );
       }
 
       const received =

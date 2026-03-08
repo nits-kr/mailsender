@@ -283,12 +283,13 @@ class CampaignAutoRunner {
     }
 
     // Mark campaign complete if we finished all batches
-    const finalCampaign = await Campaign.findById(campaignId);
+    let finalCampaign = await Campaign.findById(campaignId);
     if (finalCampaign && finalCampaign.status !== "Stopped") {
-      await Campaign.findByIdAndUpdate(campaignId, {
-        status: "Completed",
-        end_time: new Date(),
-      });
+      finalCampaign = await Campaign.findByIdAndUpdate(
+        campaignId,
+        { status: "Completed", end_time: new Date() },
+        { new: true },
+      );
       const endLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[BULK+AUTO] AutoRunner finished. Total runner-queued: ${totalQueuedInRunner}. Final Offset: ${currentOffset}.`,
