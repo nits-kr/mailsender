@@ -417,7 +417,8 @@ const sendEmail = async (req, res) => {
         name: template_name,
       });
       if (!existingTemplate) {
-        CampaignTemplate.create({
+        // Must AWAIT this so the frontend's immediate refetchCampaigns catches the newly saved row
+        await CampaignTemplate.create({
           name: template_name,
           accs: accs || mailing_ip || "",
           headers: headers || "",
