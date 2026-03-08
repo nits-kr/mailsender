@@ -735,7 +735,7 @@ const getCampaignLogs = async (req, res) => {
     const logs = await CampaignLog.find({ campaign_id: req.params.campaignId })
       .sort({ created_at: -1 })
       .limit(100);
-    res.json(logs.reverse());
+    res.json(logs);
   } catch (error) {
     console.error("Error fetching campaign logs", error);
     res

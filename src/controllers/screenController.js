@@ -21,7 +21,7 @@ const getScreenLogs = async (req, res) => {
     const logs = await CampaignLog.find({ campaign_id: req.params.id })
       .sort({ created_at: -1 })
       .limit(500);
-    res.json(logs.reverse());
+    res.json(logs);
   } catch (error) {
     res
       .status(500)

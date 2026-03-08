@@ -77,34 +77,35 @@ const ScreenLogPage = () => {
       socketRef.current?.emit("join_campaign", id);
     });
 
-    socketRef.current.on("new_log", (payload) => {
-      // The backend now sends { log, stats } so we can have perfect absolute synchronization
-      const newLog = payload.log || payload; // fallback for older events
-      const incomingStats = payload.stats;
+    socketRef.current.on(
+      "campaign_log",
+      (data: { log: any; campaign: any }) => {
+        const newLog = data.log;
+        if (!newLog) return;
 
-      setLiveLogs((prev) => {
-        // Check if log already exists to prevent duplicates
-        const existingIdx = prev.findIndex((log) => log._id === newLog._id);
-        if (existingIdx !== -1) {
-          const next = [...prev];
-          next[existingIdx] = newLog;
+        setLiveLogs((prev) => {
+          // Check if log already exists (IMAP scanner might have updated it)
+          const existingIndex = prev.findIndex((l) => l._id === newLog._id);
+
+          if (existingIndex !== -1) {
+            // Update existing log in place
+            const next = [...prev];
+            next[existingIndex] = newLog;
+            return next;
+          }
+
+          // Prepend new log at the top and keep only the last 1000 items
+          const next = [newLog, ...prev];
+          if (next.length > 1000) return next.slice(0, 1000);
           return next;
+        });
+
+        // Update header stats in sync with the log update
+        if (data.campaign) {
+          setLocalStats(data.campaign);
         }
-
-        // Append new log at the bottom and keep only the last 1000 items
-        const next = [...prev, newLog];
-        if (next.length > 1000) return next.slice(-1000);
-        return next;
-      });
-
-      // Update local stats so the top bar feels "live" without needing a refresh
-      if (incomingStats) {
-        setLocalStats((prev: any) => ({
-          ...prev, // Keep template_name, total_emails, etc.
-          ...incomingStats, // Immediately overwrite the mutable counters with the Absolute Truth from DB
-        }));
-      }
-    });
+      },
+    );
 
     return () => {
       if (socketRef.current && id) {
