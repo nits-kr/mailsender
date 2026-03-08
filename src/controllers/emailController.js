@@ -403,9 +403,19 @@ const sendEmail = async (req, res) => {
     }
 
     if (campaign) {
-      campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
-        new: true,
-      });
+      // If the user changed the template name in the UI, do NOT overwrite the old run!
+      // Create a brand-new run instead, so past history is preserved.
+      if (
+        campaign.template_name &&
+        template_name &&
+        campaign.template_name !== template_name
+      ) {
+        campaign = await Campaign.create(updateData);
+      } else {
+        campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
+          new: true,
+        });
+      }
     } else {
       campaign = await Campaign.create(updateData);
     }
@@ -708,18 +718,35 @@ const getCampaigns = async (req, res) => {
     const templates = await CampaignTemplate.find({}).sort({ createdAt: -1 });
     const campaigns = await Campaign.find({}).sort({ createdAt: -1 });
 
-    const combined = [
-      ...templates.map((t) => ({
-        id: t._id,
-        name: `${t.name}`,
-        isTemplate: true,
-      })),
-      ...campaigns.map((c) => ({
-        id: c._id,
-        name: `${c.template_name}`,
-        isTemplate: false,
-      })),
-    ];
+    const combinedMap = new Map();
+
+    // 1. Add Campaigns (Run history) first
+    campaigns.forEach((c) => {
+      const name = c.template_name;
+      if (name) {
+        combinedMap.set(name, {
+          id: c._id,
+          name: name,
+          isTemplate: false,
+        });
+      }
+    });
+
+    // 2. Add Templates (Overwrites campaigns with the exact same name)
+    // This removes duplicates from the dropdown, preferring the true Template object.
+    templates.forEach((t) => {
+      const name = t.name;
+      if (name) {
+        combinedMap.set(name, {
+          id: t._id,
+          name: name,
+          isTemplate: true,
+        });
+      }
+    });
+
+    // Convert Map values to array
+    const combined = Array.from(combinedMap.values());
 
     res.json(combined);
   } catch (error) {
