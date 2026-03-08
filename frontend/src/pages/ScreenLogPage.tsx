@@ -27,27 +27,15 @@ const ScreenLogPage = () => {
       refetchOnMountOrArgChange: true,
     });
 
-  // Robustly sort logs DESC (newest first based on last activity)
-  const sortLogsDesc = (logs: any[]) => {
-    return [...logs].sort((a, b) => {
-      const getVal = (val: any) => {
-        const d = new Date(
-          val.updatedAt ||
-            val.updated_at ||
-            val.createdAt ||
-            val.created_at ||
-            0,
-        ).getTime();
-        return isNaN(d) ? 0 : d;
-      };
-      return getVal(b) - getVal(a);
-    });
-  };
-
   // Initialize liveLogs immediately when initialLogs load
   useEffect(() => {
     if (initialLogs.length > 0) {
-      setLiveLogs(sortLogsDesc(initialLogs));
+      // Robustly sort descending by created_at
+      const sorted = [...initialLogs].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+      setLiveLogs(sorted);
     }
   }, [initialLogs]);
 
@@ -92,18 +80,13 @@ const ScreenLogPage = () => {
     socketRef.current = io(API_BASE_URL);
 
     socketRef.current.on("connect", () => {
-      console.log("✅ Connected to Real-time Logs", socketRef.current?.id);
+      console.log("Connected to Real-time Logs");
       socketRef.current?.emit("join_campaign", id);
-    });
-
-    socketRef.current.on("connect_error", (err) => {
-      console.error("❌ Socket Connection Error:", err.message);
     });
 
     socketRef.current.on(
       "campaign_log",
       (data: { log: any; campaign: any }) => {
-        console.log("📩 Received Real-time Log:", data);
         const newLog = data.log;
         if (!newLog) return;
 
@@ -111,6 +94,7 @@ const ScreenLogPage = () => {
           // Check if log already exists (IMAP scanner might have updated it)
           const existingIndex = prev.findIndex((l) => l._id === newLog._id);
 
+          // Add/Update log and Robustly sort DESC by created_at for a "smooth" experience
           let next = [...prev];
           if (existingIndex !== -1) {
             next[existingIndex] = newLog;
@@ -118,9 +102,15 @@ const ScreenLogPage = () => {
             next = [newLog, ...next];
           }
 
-          // Sort DESC and keep only last 1000
-          const sorted = sortLogsDesc(next);
-          return sorted.slice(0, 1000);
+          // Force newest-first order based on timestamp
+          next.sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime(),
+          );
+
+          if (next.length > 1000) return next.slice(0, 1000);
+          return next;
         });
 
         // Update header stats in sync with the log update

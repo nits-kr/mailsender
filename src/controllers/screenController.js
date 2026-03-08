@@ -19,7 +19,7 @@ const getScreens = async (req, res) => {
 const getScreenLogs = async (req, res) => {
   try {
     const logs = await CampaignLog.find({ campaign_id: req.params.id })
-      .sort({ updatedAt: -1 })
+      .sort({ created_at: -1 })
       .limit(500);
     res.json(logs);
   } catch (error) {
