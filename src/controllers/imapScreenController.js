@@ -189,11 +189,11 @@ const getImapLogs = async (req, res) => {
       });
     }
 
-    // Read last 200 lines (equivalent to `tac | head -100` but simpler)
+    // Read last 200 lines and reverse to show newest at top
     const content = fs.readFileSync(logPath, "utf8");
     const lines = content.split("\n").filter(Boolean);
-    const last200 = lines.slice(-200).join("\n");
-    res.json({ logs: last200 });
+    const last200Reversed = lines.slice(-200).reverse().join("\n");
+    res.json({ logs: last200Reversed });
   } catch (error) {
     res
       .status(500)
