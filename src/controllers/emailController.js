@@ -402,21 +402,20 @@ const sendEmail = async (req, res) => {
       updateData.total_emails = targetEmails.length;
     }
 
-    if (campaign) {
-      // If the user changed the template name in the UI, do NOT overwrite the old run!
-      // Create a brand-new run instead, so past history is preserved.
-      if (
+    const shouldCreateNew =
+      shouldReset ||
+      (campaign &&
         campaign.template_name &&
         template_name &&
-        campaign.template_name !== template_name
-      ) {
-        campaign = await Campaign.create(updateData);
-      } else {
-        campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
-          new: true,
-        });
-      }
+        campaign.template_name !== template_name);
+
+    if (campaign && !shouldCreateNew) {
+      // Resume existing Stopped/Pending run
+      campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
+        new: true,
+      });
     } else {
+      // Create a brand-new run (new report, clean stats)
       campaign = await Campaign.create(updateData);
     }
 
