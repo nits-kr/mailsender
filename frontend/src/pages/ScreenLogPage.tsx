@@ -30,14 +30,17 @@ const ScreenLogPage = () => {
   // Robustly sort logs DESC (newest first based on last activity)
   const sortLogsDesc = (logs: any[]) => {
     return [...logs].sort((a, b) => {
-      // Prioritize updatedAt (Mongoose timestamp) for activity, fallback to created_at
-      const dateA = new Date(
-        a.updatedAt || a.updated_at || a.createdAt || 0,
-      ).getTime();
-      const dateB = new Date(
-        b.updatedAt || b.updated_at || b.createdAt || 0,
-      ).getTime();
-      return dateB - dateA;
+      const getVal = (val: any) => {
+        const d = new Date(
+          val.updatedAt ||
+            val.updated_at ||
+            val.createdAt ||
+            val.created_at ||
+            0,
+        ).getTime();
+        return isNaN(d) ? 0 : d;
+      };
+      return getVal(b) - getVal(a);
     });
   };
 
@@ -89,13 +92,18 @@ const ScreenLogPage = () => {
     socketRef.current = io(API_BASE_URL);
 
     socketRef.current.on("connect", () => {
-      console.log("Connected to Real-time Logs");
+      console.log("✅ Connected to Real-time Logs", socketRef.current?.id);
       socketRef.current?.emit("join_campaign", id);
+    });
+
+    socketRef.current.on("connect_error", (err) => {
+      console.error("❌ Socket Connection Error:", err.message);
     });
 
     socketRef.current.on(
       "campaign_log",
       (data: { log: any; campaign: any }) => {
+        console.log("📩 Received Real-time Log:", data);
         const newLog = data.log;
         if (!newLog) return;
 

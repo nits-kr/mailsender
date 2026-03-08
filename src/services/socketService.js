@@ -51,9 +51,9 @@ const getIo = () => _io;
  * @param {object} log
  * @param {object} [stats] - Optional campaign aggregate stats for live top-bar updating
  */
-const emitLog = (campaignId, log, stats = null) => {
+const emitLog = (campaignId, log, campaign = null) => {
   if (_io && campaignId && log) {
-    _io.to(String(campaignId)).emit("campaign_log", { log, stats });
+    _io.to(String(campaignId)).emit("campaign_log", { log, campaign });
   }
 };
 
