@@ -314,8 +314,10 @@ const runScanner = async () => {
                   (correctedCampaign.success_count || 0) +
                   (correctedCampaign.error_count || 0);
                 const inboxPercent =
-                  totalSent > 0
-                    ? (correctedCampaign.inbox_count / totalSent) * 100
+                  (correctedCampaign.total_emails || 0) > 0
+                    ? (correctedCampaign.inbox_count /
+                        correctedCampaign.total_emails) *
+                      100
                     : 0;
 
                 const finalLog = await CampaignLog.findByIdAndUpdate(
@@ -326,7 +328,7 @@ const runScanner = async () => {
                       spam: 0,
                       promo: 0,
                       // log_text: \`Total Mail Sent : \${wronglyClassified.sent || totalSent} || Total Mail Received : \${received}\` // Incremental
-                      log_text: `[FS_FIXED] Total Mail Sent : ${correctedCampaign.total_emails || 0} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                      log_text: `Total Mail Sent : ${correctedCampaign.total_emails || 0} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                       inbox_percent: Number(inboxPercent.toFixed(1)),
                       received,
                     },
@@ -367,7 +369,9 @@ const runScanner = async () => {
               const totalSent =
                 (campaign.success_count || 0) + (campaign.error_count || 0);
               const inboxPercent =
-                totalSent > 0 ? (campaign.inbox_count / totalSent) * 100 : 0;
+                (campaign.total_emails || 0) > 0
+                  ? (campaign.inbox_count / campaign.total_emails) * 100
+                  : 0;
               const inboxLine = res.placement === "inbox" ? 1 : 0;
               const spamLine = res.placement === "spam" ? 1 : 0;
 
@@ -377,7 +381,7 @@ const runScanner = async () => {
                   $set: {
                     [res.placement]: 1,
                     // log_text: \`Total Mail Sent : \${existingLog.sent || totalSent} || Total Mail Received : \${received}\` // Incremental
-                    log_text: `[FS_FIXED] Total Mail Sent : ${campaign.total_emails || 0} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                    log_text: `Total Mail Sent : ${campaign.total_emails || 0} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                     received,
                     inbox_percent: Number(inboxPercent.toFixed(1)),
                   },
