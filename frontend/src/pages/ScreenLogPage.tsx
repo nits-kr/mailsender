@@ -30,11 +30,14 @@ const ScreenLogPage = () => {
   // Initialize liveLogs immediately when initialLogs load
   useEffect(() => {
     if (initialLogs.length > 0) {
-      // Robustly sort descending by created_at
-      const sorted = [...initialLogs].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
+      // Sort: highest inbox_percent first, then newest-first by created_at
+      const sorted = [...initialLogs].sort((a, b) => {
+        const pctDiff = (b.inbox_percent ?? 0) - (a.inbox_percent ?? 0);
+        if (pctDiff !== 0) return pctDiff;
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
       setLiveLogs(sorted);
     }
   }, [initialLogs]);
@@ -105,12 +108,15 @@ const ScreenLogPage = () => {
             next = [newLog, ...next];
           }
 
-          // Force newest-first order based on timestamp
-          next.sort(
-            (a, b) =>
+          // Sort: highest inbox_percent first, then newest-first
+          next.sort((a, b) => {
+            const pctDiff = (b.inbox_percent ?? 0) - (a.inbox_percent ?? 0);
+            if (pctDiff !== 0) return pctDiff;
+            return (
               new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime(),
-          );
+              new Date(a.created_at).getTime()
+            );
+          });
 
           if (next.length > 1000) return next.slice(0, 1000);
           return next;
