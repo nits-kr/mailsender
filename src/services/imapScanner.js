@@ -189,10 +189,21 @@ const scanTestId = async (testIdDoc) => {
                           return "inbox";
                         };
 
+                        const placement = determinePlacement(folderName);
+
+                        // For spam/promo folders: ONLY trust fingerprint matching.
+                        // The `to: email` fallback is too broad — any unrelated email landing
+                        // in the test account's spam would be counted as a campaign spam hit.
+                        // For inbox: `to: email` fallback is acceptable (less false-positives).
+                        if (placement !== "inbox" && !fingerprint) {
+                          tryFinish();
+                          return;
+                        }
+
                         results.push({
                           fingerprint: fingerprint || "",
                           email: testIdDoc.email,
-                          placement: determinePlacement(folderName),
+                          placement,
                         });
                       }
                     }
