@@ -94,35 +94,37 @@ const ScreenLogPage = () => {
       "campaign_log",
       (data: { log: any; campaign: any }) => {
         const newLog = data.log;
-        if (!newLog) return;
 
-        setLiveLogs((prev) => {
-          // Check if log already exists (IMAP scanner might have updated it)
-          const existingIndex = prev.findIndex((l) => l._id === newLog._id);
+        // If there's a log, process it
+        if (newLog) {
+          setLiveLogs((prev) => {
+            // Check if log already exists (IMAP scanner might have updated it)
+            const existingIndex = prev.findIndex((l) => l._id === newLog._id);
 
-          // Add/Update log and Robustly sort DESC by created_at for a "smooth" experience
-          let next = [...prev];
-          if (existingIndex !== -1) {
-            next[existingIndex] = newLog;
-          } else {
-            next = [newLog, ...next];
-          }
+            // Add/Update log and Robustly sort DESC by created_at for a "smooth" experience
+            let next = [...prev];
+            if (existingIndex !== -1) {
+              next[existingIndex] = newLog;
+            } else {
+              next = [newLog, ...next];
+            }
 
-          // Sort: highest inbox_percent first, then newest-first
-          next.sort((a, b) => {
-            const pctDiff = (b.inbox_percent ?? 0) - (a.inbox_percent ?? 0);
-            if (pctDiff !== 0) return pctDiff;
-            return (
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-            );
+            // Sort: highest inbox_percent first, then newest-first
+            next.sort((a, b) => {
+              const pctDiff = (b.inbox_percent ?? 0) - (a.inbox_percent ?? 0);
+              if (pctDiff !== 0) return pctDiff;
+              return (
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
+              );
+            });
+
+            if (next.length > 1000) return next.slice(0, 1000);
+            return next;
           });
+        }
 
-          if (next.length > 1000) return next.slice(0, 1000);
-          return next;
-        });
-
-        // Update header stats in sync with the log update
+        // Always update header stats in sync with the event (even if just a pure stat update like Open Count)
         if (data.campaign) {
           setLocalStats(data.campaign);
         }

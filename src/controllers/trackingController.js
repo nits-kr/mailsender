@@ -1,6 +1,8 @@
 const Link = require("../models/Link");
 const Tracking = require("../models/Tracking");
 const Campaign = require("../models/Campaign");
+const mongoose = require("mongoose");
+const socketService = require("../services/socketService");
 
 // @desc    Handle public click tracking and redirect
 // @route   GET /t/:pattern
@@ -74,14 +76,26 @@ const handleOpenPixel = async (req, res) => {
   }
 
   try {
+    // Validate cid before querying to prevent CastErrors on legacy/invalid strings
+    if (!mongoose.Types.ObjectId.isValid(cid)) {
+      console.log(`[Tracking] Ignoring invalid campaign ID format: ${cid}`);
+      return;
+    }
+
     // We do NOT block duplicates here, because the user may legitimately receive multiple emails
     // to the same address in the same campaign (especially during testing), and open all of them.
     // The timestamp cache-buster prevents image caching, so each open is a real request.
-    const camp = await Campaign.findByIdAndUpdate(cid, {
-      $inc: { open_count: 1 },
-    });
+    const camp = await Campaign.findByIdAndUpdate(
+      cid,
+      { $inc: { open_count: 1 } },
+      { new: true }, // Need the updated document to emit
+    );
+
     if (!camp) {
       console.log(`[Tracking] Open pixel warned: Campaign ${cid} not found`);
+    } else {
+      // Emit the updated stats immediately to the frontend
+      socketService.emitLog(cid, null, camp);
     }
 
     await Tracking.create({
