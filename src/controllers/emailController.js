@@ -739,7 +739,7 @@ const getCampaignDetails = async (req, res) => {
 const getCampaignLogs = async (req, res) => {
   try {
     const logs = await CampaignLog.find({ campaign_id: req.params.campaignId })
-      .sort({ created_at: -1 })
+      .sort({ updatedAt: -1 })
       .limit(100);
     res.json(logs);
   } catch (error) {

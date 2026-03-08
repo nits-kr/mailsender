@@ -27,11 +27,24 @@ const ScreenLogPage = () => {
       refetchOnMountOrArgChange: true,
     });
 
+  // Robustly sort logs DESC (newest first based on last activity)
+  const sortLogsDesc = (logs: any[]) => {
+    return [...logs].sort((a, b) => {
+      // Prioritize updatedAt (Mongoose timestamp) for activity, fallback to created_at
+      const dateA = new Date(
+        a.updatedAt || a.updated_at || a.createdAt || 0,
+      ).getTime();
+      const dateB = new Date(
+        b.updatedAt || b.updated_at || b.createdAt || 0,
+      ).getTime();
+      return dateB - dateA;
+    });
+  };
+
   // Initialize liveLogs immediately when initialLogs load
   useEffect(() => {
-    if (initialLogs) {
-      // Backend already returns logs in descending order ({ created_at: -1 })
-      setLiveLogs(initialLogs);
+    if (initialLogs.length > 0) {
+      setLiveLogs(sortLogsDesc(initialLogs));
     }
   }, [initialLogs]);
 
@@ -90,17 +103,16 @@ const ScreenLogPage = () => {
           // Check if log already exists (IMAP scanner might have updated it)
           const existingIndex = prev.findIndex((l) => l._id === newLog._id);
 
+          let next = [...prev];
           if (existingIndex !== -1) {
-            // Update existing log in place
-            const next = [...prev];
             next[existingIndex] = newLog;
-            return next;
+          } else {
+            next = [newLog, ...next];
           }
 
-          // Prepend new log at the top and keep only the last 1000 items
-          const next = [newLog, ...prev];
-          if (next.length > 1000) return next.slice(0, 1000);
-          return next;
+          // Sort DESC and keep only last 1000
+          const sorted = sortLogsDesc(next);
+          return sorted.slice(0, 1000);
         });
 
         // Update header stats in sync with the log update
