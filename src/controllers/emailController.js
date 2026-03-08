@@ -14,6 +14,7 @@ const ReputationScore = require("../models/ReputationScore");
 const SmtpDetail = require("../models/SmtpDetail");
 const { parseIpPool } = require("../utils/parseIpPool");
 const { spaceEmailQueue } = require("../queues/spaceEmailQueue");
+const socketService = require("../services/socketService");
 
 const applySearchReplace = (text, searchReplaceStr) => {
   if (!text || !searchReplaceStr) return text;
@@ -411,11 +412,12 @@ const sendEmail = async (req, res) => {
 
     const campaignId = campaign._id;
 
-    await CampaignLog.create({
+    const startLog = await CampaignLog.create({
       campaign_id: campaignId,
       log_text: `[${campaignType.toUpperCase()}] Campaign started | Emails: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
       type: "info",
     });
+    socketService.emitLog(campaignId, startLog, campaign);
 
     // ── Dashboard Log (Initialize with 0, update in worker) ───────────────
     const dashLog = await Log.create({
@@ -468,11 +470,12 @@ const sendEmail = async (req, res) => {
         });
       }
 
-      await CampaignLog.create({
+      const queueLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[${campaignType.toUpperCase()}] Queued ${batchEmails.length} emails (starting from ${startIndex}).`,
         type: "info",
       });
+      socketService.emitLog(campaignId, queueLog, campaign);
 
       return res.json({
         message: "Test emails queued. Please check inboxes manually.",
@@ -501,11 +504,12 @@ const sendEmail = async (req, res) => {
         total_queued: monitoringMailboxes.length * ipPool.length,
         total_emails: monitoringMailboxes.length * ipPool.length,
       });
-      await CampaignLog.create({
+      const autoLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[TEST+AUTO] Sent to ${monitoringMailboxes.length} monitoring mailboxes from ${ipPool.length} IP(s).`,
         type: "info",
       });
+      socketService.emitLog(campaignId, autoLog, campaign);
 
       return res.json({
         message: `Test emails sent to monitoring mailboxes. Auto IMAP scan scheduled.`,
@@ -544,11 +548,12 @@ const sendEmail = async (req, res) => {
       }
 
       await Campaign.findByIdAndUpdate(campaignId, { total_queued: queued });
-      await CampaignLog.create({
+      const bulkManualLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[BULK+MANUAL] Queued batch of ${queued} emails (Offset: ${startIndex}, Remaining: ${targetEmails.length - (startIndex + queued)}).`,
         type: "info",
       });
+      socketService.emitLog(campaignId, bulkManualLog, campaign);
 
       return res.json({
         message: `Batch queued: ${queued} emails dispatched.`,
@@ -598,11 +603,12 @@ const sendEmail = async (req, res) => {
         startIndex: startIndex + firstBatch.length, // Pass offset for IP selection continuity
       });
 
-      await CampaignLog.create({
+      const bulkAutoStartLog = await CampaignLog.create({
         campaign_id: campaignId,
         log_text: `[BULK+AUTO] Resuming/Starting from ${startIndex}. First batch of ${firstBatch.length} queued.`,
         type: "info",
       });
+      socketService.emitLog(campaignId, bulkAutoStartLog, campaign);
 
       return res.json({
         message: `Bulk+Auto started from ${startIndex}.`,
