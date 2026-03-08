@@ -262,7 +262,14 @@ const runScanner = async () => {
       allTargets.map(async (target) => {
         const scanResults = await scanTestId(target).catch(() => []);
 
+        // ── Per-scan dedup: each email address is classified at most once per scan run.
+        // Prevents multi-log campaigns (same address sent N times) from inflating counts.
+        const processedEmails = new Set();
+
         for (const res of scanResults) {
+          const dedupeKey = `${res.email}::${res.placement}`;
+          if (processedEmails.has(dedupeKey)) continue;
+
           // Match by mail_status pattern "email@domain.com success"
           let existingLog = await CampaignLog.findOne({
             campaign_id: { $in: activeCampaignIds },
@@ -383,28 +390,28 @@ const runScanner = async () => {
               const inboxLine = res.placement === "inbox" ? 1 : 0;
               const spamLine = res.placement === "spam" ? 1 : 0;
 
-              const ipDisplay =
-                wronglyClassified.log_text?.match(/\|\| \[(.*?)\] \|\|/)?.[1] ||
-                "";
-              const ipBox = ipDisplay ? ` || [${ipDisplay}]` : "";
-              const origSent =
-                wronglyClassified.sent || correctedCampaign.total_emails || 0;
+              // Fix: use existingLog variables (not reclassification-scope vars)
+              const ipDisplay2 =
+                existingLog.log_text?.match(/\|\| \[(.*?)\] \|\|/)?.[1] || "";
+              const ipBox2 = ipDisplay2 ? ` || [${ipDisplay2}]` : "";
+              const origSent2 = existingLog.sent || campaign.total_emails || 0;
 
               const finalLog = await CampaignLog.findByIdAndUpdate(
                 existingLog._id,
                 {
                   $set: {
                     [res.placement]: 1,
-                    // log_text: \`Total Mail Sent : \${existingLog.sent || totalSent} || Total Mail Received : \${received}\` // Incremental
-                    log_text: `Total Mail Sent : ${origSent}${ipBox} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                    log_text: `Total Mail Sent : ${origSent2}${ipBox2} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                     received,
                     inbox_percent: Number(inboxPercent.toFixed(1)),
                   },
                 },
                 { new: true },
               );
-              if (finalLog)
+              if (finalLog) {
+                processedEmails.add(dedupeKey); // Mark as done only after successful write
                 socketService.emitLog(campaignId, finalLog, campaign);
+              }
 
               // Update Intelligence Score
               try {
