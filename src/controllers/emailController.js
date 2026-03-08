@@ -471,12 +471,21 @@ const sendEmail = async (req, res) => {
 
     const campaignId = campaign._id;
 
-    const startLog = await CampaignLog.create({
-      campaign_id: campaignId,
-      log_text: `[${campaignType.toUpperCase()}] Campaign started | Emails: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
-      type: "info",
-    });
-    socketService.emitLog(campaignId, startLog, campaign);
+    if (shouldCreateNew) {
+      const startLog = await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[${campaignType.toUpperCase()}] Campaign started | Emails: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
+        type: "info",
+      });
+      socketService.emitLog(campaignId, startLog, campaign);
+    } else {
+      const resumeLog = await CampaignLog.create({
+        campaign_id: campaignId,
+        log_text: `[${campaignType.toUpperCase()}] Campaign resumed | Target: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
+        type: "info",
+      });
+      socketService.emitLog(campaignId, resumeLog, campaign);
+    }
 
     // ── Dashboard Log (Initialize with 0, update in worker) ───────────────
     const dashLog = await Log.create({
@@ -515,8 +524,12 @@ const sendEmail = async (req, res) => {
         });
       }
       // ── TEST + MANUAL (or fallback AUTO): Round-robin across ip pool ──
+      const batchSize = Number(limit_to_send) || targetEmails.length;
+      const batchEmails = targetEmails.slice(
+        startIndex,
+        startIndex + batchSize,
+      );
       let pIdx = startIndex % ipPool.length;
-      const batchEmails = targetEmails.slice(startIndex);
 
       for (const email of batchEmails) {
         const entry = ipPool[pIdx % ipPool.length];
