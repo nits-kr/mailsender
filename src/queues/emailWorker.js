@@ -326,7 +326,8 @@ const emailWorker = async (job) => {
       const transcriptText = smtpTranscript.join("\n");
       const newLog = await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+        // log_text: \`Total Mail Sent : \${totalSent} || Total Mail Received : \${received}\` // Incremental (Node.js style)
+        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
         type: "success",
         sent: totalSent,
         mail_status: `${email} success`,
@@ -397,7 +398,8 @@ const emailWorker = async (job) => {
 
       const errorLog = await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${totalSent} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} error || Inbox Percentage : 0%`,
+        // log_text: \`Total Mail Sent : \${totalSent} || Total Mail Received : \${received}\` // Incremental (Node.js style)
+        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} error || Inbox Percentage : 0%`,
         type: "error",
         sent: totalSent,
         mail_status: `${email} error`,
