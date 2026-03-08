@@ -305,7 +305,7 @@ const emailWorker = async (job) => {
 
     // Update Campaign Stats & Log SMTP Transcript
     if (campaign_id) {
-      const updatedCampaign = await Campaign.findByIdAndUpdate(
+      let updatedCampaign = await Campaign.findByIdAndUpdate(
         campaign_id,
         { $inc: { success_count: 1 } },
         { new: true },
@@ -374,7 +374,7 @@ const emailWorker = async (job) => {
   } catch (error) {
     console.error(`Error sending email to ${email}`, error);
     if (campaign_id) {
-      const updatedCampaign = await Campaign.findByIdAndUpdate(
+      let updatedCampaign = await Campaign.findByIdAndUpdate(
         campaign_id,
         { $inc: { error_count: 1 } },
         { new: true },
