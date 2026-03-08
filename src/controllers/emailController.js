@@ -338,26 +338,9 @@ const sendEmail = async (req, res) => {
       campaign = await Campaign.findById(existingCampaignId);
     }
 
-    // USER REQUIREMENT: "If same template name then show logs in same"
-    // If the frontend didn't pass an ID (or it did but we want to be safe),
-    // and we have a template_name, look for an existing Campaign run with that name.
-    if (!campaign && template_name) {
-      campaign = await Campaign.findOne({ template_name }).sort({
-        createdAt: -1,
-      });
-    }
-
     // Only reset stats if the campaign reached "Completed" or if it's a brand new campaign.
     // If it's "Stopped" or "Running", we consider this a continuation of the same job.
-    // However, if the user explicitly changed the Template Name in the UI, we force a reset.
-    const nameMismatch =
-      campaign &&
-      campaign.template_name &&
-      template_name &&
-      campaign.template_name !== template_name;
-
-    const shouldReset =
-      !campaign || campaign.status === "Completed" || nameMismatch;
+    const shouldReset = !campaign || campaign.status === "Completed";
 
     const updateData = {
       template_name: template_name || "Manual Sending",
@@ -419,20 +402,22 @@ const sendEmail = async (req, res) => {
       updateData.total_emails = targetEmails.length;
     }
 
-    const shouldCreateNew =
-      !campaign ||
-      (campaign.template_name &&
+    if (campaign) {
+      // If the user changed the template name in the UI, do NOT overwrite the old run!
+      // Create a brand-new run instead, so past history is preserved.
+      if (
+        campaign.template_name &&
         template_name &&
-        campaign.template_name !== template_name);
-
-    if (shouldCreateNew) {
-      // Create a brand-new run (new name, clean stats)
-      campaign = await Campaign.create(updateData);
+        campaign.template_name !== template_name
+      ) {
+        campaign = await Campaign.create(updateData);
+      } else {
+        campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
+          new: true,
+        });
+      }
     } else {
-      // Resume or merge into existing run with the EXACT SAME template name
-      campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
-        new: true,
-      });
+      campaign = await Campaign.create(updateData);
     }
 
     // ── PHP-parity: Auto-save template on every send with a new name ──────
@@ -487,21 +472,12 @@ const sendEmail = async (req, res) => {
 
     const campaignId = campaign._id;
 
-    if (shouldCreateNew) {
-      const startLog = await CampaignLog.create({
-        campaign_id: campaignId,
-        log_text: `[${campaignType.toUpperCase()}] Campaign started | Emails: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
-        type: "info",
-      });
-      socketService.emitLog(campaignId, startLog, campaign);
-    } else {
-      const resumeLog = await CampaignLog.create({
-        campaign_id: campaignId,
-        log_text: `[${campaignType.toUpperCase()}] Campaign resumed | Target: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
-        type: "info",
-      });
-      socketService.emitLog(campaignId, resumeLog, campaign);
-    }
+    const startLog = await CampaignLog.create({
+      campaign_id: campaignId,
+      log_text: `[${campaignType.toUpperCase()}] Campaign started | Emails: ${targetEmails.length} | Mode: ${mode} | Sending: ${sen_t}`,
+      type: "info",
+    });
+    socketService.emitLog(campaignId, startLog, campaign);
 
     // ── Dashboard Log (Initialize with 0, update in worker) ───────────────
     const dashLog = await Log.create({
@@ -540,12 +516,8 @@ const sendEmail = async (req, res) => {
         });
       }
       // ── TEST + MANUAL (or fallback AUTO): Round-robin across ip pool ──
-      const batchSize = Number(limit_to_send) || targetEmails.length;
-      const batchEmails = targetEmails.slice(
-        startIndex,
-        startIndex + batchSize,
-      );
       let pIdx = startIndex % ipPool.length;
+      const batchEmails = targetEmails.slice(startIndex);
 
       for (const email of batchEmails) {
         const entry = ipPool[pIdx % ipPool.length];
