@@ -253,9 +253,17 @@ const Interface = () => {
     setActiveCampaignId(selectedCampaignId);
     setPollLogs(false);
 
-    // Auto fetch file count if data_file is present
+    // Auto fetch file count and sync if data_file is present
     if (campaignDetail.data_file) {
-      handleFetchFileInfo(campaignDetail.data_file);
+      handleFetchFileInfo(campaignDetail.data_file).then((res: any) => {
+        if (
+          res &&
+          res.found &&
+          (!campaignDetail.total_send || campaignDetail.total_send === 0)
+        ) {
+          setValue("total_send", String(res.count));
+        }
+      });
     }
   };
 
@@ -272,8 +280,10 @@ const Interface = () => {
         } else {
           setDataFileCount(0);
         }
+        return res;
       } catch {
         setDataFileCount(0);
+        return { found: false };
       }
     },
     [triggerGetFileInfo],
