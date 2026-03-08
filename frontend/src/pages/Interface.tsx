@@ -416,6 +416,8 @@ const Interface = () => {
       setPollLogs(true);
       setPostSendGuidance(result.guidance || "");
       setStatus("Last sent: " + new Date().toLocaleTimeString());
+      // Refresh campaign search list so a newly auto-saved template appears
+      refetchCampaigns();
     } catch (error: any) {
       const msg =
         error?.data?.message ||

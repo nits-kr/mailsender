@@ -410,6 +410,55 @@ const sendEmail = async (req, res) => {
       campaign = await Campaign.create(updateData);
     }
 
+    // ── PHP-parity: Auto-save template on every send with a new name ──────
+    // This mirrors save.php: "if tempname not found → INSERT new row"
+    if (template_name) {
+      const existingTemplate = await CampaignTemplate.findOne({
+        name: template_name,
+      });
+      if (!existingTemplate) {
+        CampaignTemplate.create({
+          name: template_name,
+          accs: accs || mailing_ip || "",
+          headers: headers || "",
+          from_email: from_email || "",
+          subject: subject || "",
+          from_name: from_name || "",
+          emails: emails || "",
+          msg_type: msg_type || "html",
+          message_html: message_html || "",
+          message_plain: message_plain || "",
+          search_replace: search_replace || "",
+          data_file: data_file || "",
+          total_send: String(total_send || ""),
+          limit_to_send: String(limit_to_send || ""),
+          sleep_time: String(sleep_time || ""),
+          offer_id: offer_id || "",
+          domain: domain || "",
+          wait_time: String(wait_time || "2"),
+          message_id: message_id || "",
+          inbox_percent: String(inbox_percent || ""),
+          mail_after: String(mail_after || ""),
+          reply_to: reply_to || "0",
+          xmailer: xmailer || "0",
+          interval_time: String(interval_time || ""),
+          charset: charset || "UTF-8",
+          encoding: encoding || "8bit",
+          charset_alt: charset_alt || "UTF-8",
+          encoding_alt: encoding_alt || "8bit",
+          mode: mode || "test",
+          sen_t: sen_t || "manual",
+          status: "0",
+        }).catch((e) =>
+          console.warn(
+            "[emailController] Template auto-save warning:",
+            e.message,
+          ),
+        );
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const campaignId = campaign._id;
 
     const startLog = await CampaignLog.create({
