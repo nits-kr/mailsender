@@ -279,7 +279,7 @@ const ScreenLogPage = () => {
             <span className="slp-stat">
               <span className="slp-stat-label">PROGRESS</span>
               <span className="slp-stat-value">
-                {(((sent + errors) / total) * 100).toFixed(1)}%
+                {Math.min(100, ((sent + errors) / total) * 100).toFixed(1)}%
               </span>
             </span>
           </>
