@@ -29,7 +29,8 @@ const ScreenLogPage = () => {
 
   // Initialize liveLogs immediately when initialLogs load
   useEffect(() => {
-    if (initialLogs.length > 0 && liveLogs.length === 0) {
+    if (initialLogs) {
+      // Backend already returns logs in descending order ({ created_at: -1 })
       setLiveLogs(initialLogs);
     }
   }, [initialLogs]);
@@ -51,10 +52,12 @@ const ScreenLogPage = () => {
   const [stopScreen] = useStopScreenMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearCampaignLogsMutation();
 
-  // Auto-scroll to bottom when new logs arrive
+  /* 
+  // Disable auto-scroll to bottom for newest-first view
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [liveLogs]);
+  */
 
   // Stop polling stats when campaign is done
   useEffect(() => {
