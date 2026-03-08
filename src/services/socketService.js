@@ -53,7 +53,7 @@ const getIo = () => _io;
  */
 const emitLog = (campaignId, log, stats = null) => {
   if (_io && campaignId && log) {
-    _io.to(String(campaignId)).emit("new_log", { log, stats });
+    _io.to(String(campaignId)).emit("campaign_log", { log, campaign: stats });
   }
 };
 

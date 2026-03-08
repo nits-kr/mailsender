@@ -80,7 +80,10 @@ const ScreenLogPage = () => {
     socketRef.current = io(API_BASE_URL);
 
     socketRef.current.on("connect", () => {
-      console.log("Connected to Real-time Logs");
+      console.log(
+        "Connected to Real-time Logs. Socket ID:",
+        socketRef.current?.id,
+      );
       socketRef.current?.emit("join_campaign", id);
     });
 
