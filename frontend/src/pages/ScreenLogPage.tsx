@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   useGetScreenLogsQuery,
@@ -108,17 +108,8 @@ const ScreenLogPage = () => {
             next = [newLog, ...next];
           }
 
-          // Sort: highest inbox_percent first, then newest-first
-          next.sort((a, b) => {
-            const pctDiff = (b.inbox_percent ?? 0) - (a.inbox_percent ?? 0);
-            if (pctDiff !== 0) return pctDiff;
-            return (
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-            );
-          });
-
-          if (next.length > 1000) return next.slice(0, 1000);
+          // Limit total logs in memory to prevent browser lag on huge campaigns
+          if (next.length > 2000) return next.slice(0, 2000);
           return next;
         });
 
@@ -200,6 +191,64 @@ const ScreenLogPage = () => {
   const errors = localStats?.error_count ?? 0;
   const total = localStats?.total_emails ?? 0;
   const status = localStats?.status ?? "—";
+
+  // Group logs into distinct "Runs" based on the "Campaign started" log
+  const groupedRuns = useMemo(() => {
+    if (!liveLogs || liveLogs.length === 0) return [];
+
+    // 1. Sort all logs purely chronologically (oldest first) to accurately reconstruct the timeline
+    const chronologicalLogs = [...liveLogs].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+
+    const runs: { title: string; logs: any[] }[] = [];
+    let currentRunLogs: any[] = [];
+    let currentRunName = "INITIAL SESSION";
+    let runCounter = 1;
+
+    for (const log of chronologicalLogs) {
+      if (log.log_text && log.log_text.includes("Campaign started")) {
+        // We found a new run starting. Save the previous run if it has logs.
+        if (currentRunLogs.length > 0) {
+          runs.push({ title: currentRunName, logs: currentRunLogs });
+        }
+        // Start a new run
+        currentRunLogs = [log]; // Include the start log in the new run
+
+        // Extract email count for a nicer title if possible, fallback to simple counter
+        const match = log.log_text.match(/Emails: (\d+)/);
+        const countStr = match ? ` (${match[1]} Emails)` : "";
+        currentRunName = `SESSION ${runCounter}${countStr}`;
+        runCounter++;
+      } else {
+        currentRunLogs.push(log);
+      }
+    }
+
+    // Push the very last run
+    if (currentRunLogs.length > 0) {
+      runs.push({ title: currentRunName, logs: currentRunLogs });
+    }
+
+    // 2. We want the newest run at the TOP of the page
+    runs.reverse();
+
+    // 3. Inside each run, we want the BEST inbox result at the top
+    runs.forEach((run) => {
+      run.logs.sort((a, b) => {
+        // First sort by inbox_percent descending
+        const pctDiff = (b.inbox_percent || 0) - (a.inbox_percent || 0);
+        if (pctDiff !== 0) return pctDiff;
+        // Tie-breaker: newest first
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
+    });
+
+    return runs;
+  }, [liveLogs]);
 
   return (
     <div className="slp-container">
@@ -300,17 +349,32 @@ const ScreenLogPage = () => {
         {liveLogs.length === 0 && !logsFetching && (
           <div className="slp-loading">No logs yet for this campaign.</div>
         )}
-        {liveLogs.map((log: any, i: number) => (
-          <div
-            key={log._id || i}
-            className={`slp-log-line ${lineClass(log.type)}`}
-          >
-            <span className="slp-timestamp">
-              [{new Date(log.created_at).toLocaleTimeString()}]
-            </span>{" "}
-            {formatLogLine(log)}
-          </div>
-        ))}
+
+        {groupedRuns.map(
+          (run: { title: string; logs: any[] }, runIndex: number) => (
+            <div key={`run-${runIndex}`} className="slp-run-group">
+              {groupedRuns.length > 1 && (
+                <div className="slp-run-divider">
+                  <span className="slp-run-divider-line"></span>
+                  <span className="slp-run-divider-text">{run.title}</span>
+                  <span className="slp-run-divider-line"></span>
+                </div>
+              )}
+
+              {run.logs.map((log: any, i: number) => (
+                <div
+                  key={log._id || i}
+                  className={`slp-log-line ${lineClass(log.type)}`}
+                >
+                  <span className="slp-timestamp">
+                    [{new Date(log.created_at).toLocaleTimeString()}]
+                  </span>{" "}
+                  {formatLogLine(log)}
+                </div>
+              ))}
+            </div>
+          ),
+        )}
         <div ref={bottomRef} />
       </div>
     </div>
