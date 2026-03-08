@@ -41,7 +41,7 @@ const interfaceSchema = z.object({
   from_enc: z.string().optional().nullable(),
   emails: z.string().optional(),
   msg_type: z.string().optional().nullable(),
-  data_file: z.string().min(1, "Data file is required"),
+  data_file: z.string().optional(),
   total_send: z.string().min(1, "Total send is required"),
   limit_to_send: z.string().min(1, "Limit to send is required"),
   sleep_time: z.string().min(1, "Sleep time is required"),

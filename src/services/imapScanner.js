@@ -3,6 +3,7 @@ const { simpleParser } = require("mailparser");
 const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const TestId = require("../models/TestId");
+const MonitoringMailbox = require("../models/MonitoringMailbox");
 const crypto = require("crypto");
 const { evaluate: guardianEvaluate } = require("./guardianService");
 const IntelligenceLog = require("../models/IntelligenceLog");
@@ -11,7 +12,7 @@ const socketService = require("./socketService");
 
 /**
  * Modern IMAP Scanner Service
- * Scans TestId accounts for campaign fingerprints to detect Inbox/Spam/Promotion placement.
+ * Scans monitoring accounts for campaign fingerprints to detect Inbox/Spam/Promotion placement.
  */
 
 const updateIntelligenceScore = async (campaign, type, value, location) => {
@@ -47,12 +48,15 @@ const updateIntelligenceScore = async (campaign, type, value, location) => {
 
 const scanTestId = async (testIdDoc) => {
   return new Promise((resolve, reject) => {
+    const imapHost =
+      testIdDoc.inboxhostname || testIdDoc.host || "imap.gmail.com";
+    const imapPort = parseInt(testIdDoc.port) || 993;
+
     const imap = new Imap({
       user: testIdDoc.email,
       password: testIdDoc.password,
-      host:
-        testIdDoc.inboxhostname || testIdDoc.spamhostname || "imap.gmail.com",
-      port: parseInt(testIdDoc.port) || 993,
+      host: imapHost,
+      port: imapPort,
       tls: true,
       tlsOptions: { rejectUnauthorized: false },
     });
@@ -60,7 +64,6 @@ const scanTestId = async (testIdDoc) => {
     const results = [];
 
     imap.once("ready", () => {
-      // Fetch list of folders to see what's actually available
       imap.getBoxes((err, boxes) => {
         if (err) {
           console.error(
@@ -71,7 +74,6 @@ const scanTestId = async (testIdDoc) => {
           return resolve(results);
         }
 
-        // Flatten boxes to a simple array of names
         const availableFolders = [];
         const processBoxes = (prefix, folderObj) => {
           for (const key in folderObj) {
@@ -83,21 +85,18 @@ const scanTestId = async (testIdDoc) => {
         };
         processBoxes("", boxes);
 
-        // Outlook/Hotmail uses "Junk", "Junk Email"
-        // AOL uses "Spam" or "Bulk Mail"
-        // iCloud uses "Junk"
         const targetKeywords = [
           "inbox",
           "spam",
-          "junk", // Outlook, Hotmail, iCloud
-          "bulk", // Yahoo, AOL
+          "junk",
+          "bulk",
           "promo",
           "social",
           "update",
           "advertising",
           "oferta",
           "publicidad",
-          "quarantine", // Some corporate filters
+          "quarantine",
         ];
         const foldersToScan = availableFolders.filter((f) =>
           targetKeywords.some((k) => f.toLowerCase().includes(k)),
@@ -116,49 +115,29 @@ const scanTestId = async (testIdDoc) => {
 
           const folderName = foldersToScan[folderIdx++];
           imap.openBox(folderName, false, (err, box) => {
-            // false = read/write so we can mark seen
-            if (err) {
-              // Folder might not exist or other error, skip
-              return checkNextFolder();
-            }
+            if (err) return checkNextFolder();
 
-            if (box.messages.total === 0) {
-              console.log(
-                `[IMAP] Folder ${folderName} empty for ${testIdDoc.email}`,
-              );
-              return checkNextFolder();
-            }
+            if (box.messages.total === 0) return checkNextFolder();
 
-            console.log(
-              `[IMAP] Scanning ${folderName} (${box.messages.total} msgs) for ${testIdDoc.email}...`,
-            );
-
-            // ONLY process UNSEEN messages so we don't double-count across multiple test runs!
-            const searchCriteria = ["UNSEEN"];
+            // Fetch recent messages (including SEEN ones for test email reliability)
             const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 2);
-            searchCriteria.push(["SINCE", yesterday]);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const searchCriteria = [["SINCE", yesterday]];
 
             imap.search(searchCriteria, (err, searchResults) => {
-              if (err || !searchResults.length) {
-                return checkNextFolder();
-              }
+              if (err || !searchResults.length) return checkNextFolder();
 
-              // Limit to last 100 messages to avoid timeouts
               const finalIds = searchResults.slice(-100);
-              // Fetch standard TO header (Yahoo strips custom X-headers so we must use TO)
               const fetch = imap.fetch(finalIds, {
                 bodies: "HEADER.FIELDS (TO X-CAMPAIGN-FINGERPRINT)",
-                markSeen: true, // Marks email as read so we never double count it!
+                markSeen: true,
               });
 
               let pendingParsers = 0;
               let fetchEnded = false;
 
               const tryFinish = () => {
-                if (fetchEnded && pendingParsers === 0) {
-                  checkNextFolder();
-                }
+                if (fetchEnded && pendingParsers === 0) checkNextFolder();
               };
 
               fetch.on("message", (msg) => {
@@ -170,7 +149,6 @@ const scanTestId = async (testIdDoc) => {
                       const fingerprint = parsed.headers.get(
                         "x-campaign-fingerprint",
                       );
-
                       const toHeader = parsed.headers.get("to");
                       let toEmail = "";
                       if (toHeader) {
@@ -185,8 +163,6 @@ const scanTestId = async (testIdDoc) => {
 
                       const testEmail = testIdDoc.email.toLowerCase().trim();
 
-                      // If we have a fingerprint OR if the email was sent TO this TestId
-                      // (Yahoo/AOL strip fingerprints, so we MUST fall back to To-matching)
                       if (
                         fingerprint ||
                         (toEmail &&
@@ -196,10 +172,10 @@ const scanTestId = async (testIdDoc) => {
                         const determinePlacement = (fName) => {
                           const f = fName.toLowerCase();
                           if (
-                            f.includes("spam") || // Gmail, AOL
-                            f.includes("junk") || // Outlook, Hotmail, iCloud
-                            f.includes("bulk") || // Yahoo, AOL
-                            f.includes("quarantine") // Corporate Filters
+                            f.includes("spam") ||
+                            f.includes("junk") ||
+                            f.includes("bulk") ||
+                            f.includes("quarantine")
                           )
                             return "spam";
                           if (
@@ -213,12 +189,10 @@ const scanTestId = async (testIdDoc) => {
                           return "inbox";
                         };
 
-                        const placement = determinePlacement(folderName);
-
                         results.push({
                           fingerprint: fingerprint || "",
                           email: testIdDoc.email,
-                          placement,
+                          placement: determinePlacement(folderName),
                         });
                       }
                     }
@@ -247,12 +221,10 @@ const scanTestId = async (testIdDoc) => {
 
     imap.once("error", (err) => {
       console.error(`IMAP error for ${testIdDoc.email}:`, err);
-      resolve(results); // resolve even on error to continue others
-    });
-
-    imap.once("end", () => {
       resolve(results);
     });
+
+    imap.once("end", () => resolve(results));
 
     imap.connect();
   });
@@ -260,7 +232,6 @@ const scanTestId = async (testIdDoc) => {
 
 const runScanner = async () => {
   try {
-    // Include recently completed campaigns (last 15 minutes) to catch late deliveries
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
     const activeCampaigns = await Campaign.find({
       $or: [
@@ -268,44 +239,31 @@ const runScanner = async () => {
         { status: "Completed", updatedAt: { $gte: fifteenMinsAgo } },
       ],
     });
-    if (!activeCampaigns.length) {
-      console.log(
-        "[IMAP Scanner] No active or recently completed campaigns found. Skipping.",
-      );
-      return;
-    }
 
+    if (!activeCampaigns.length) return;
+
+    // Unify TestIDs and MonitoringMailboxes
     const testIds = await TestId.find({ status: "A" });
-    if (!testIds.length) {
-      const totalCount = await TestId.countDocuments({});
-      console.log(
-        `[IMAP Scanner] No active TestIDs found in DB (Total records in DB: ${totalCount}). Skipping.`,
-      );
-      return;
-    }
+    const monitorMailboxes = await MonitoringMailbox.find({ isActive: true });
 
-    console.log(
-      `Starting IMAP scan for ${activeCampaigns.length} campaigns across ${testIds.length} TestIDs`,
-    );
+    const allTargets = [
+      ...testIds.map((t) => ({ ...t.toObject(), type: "TestId" })),
+      ...monitorMailboxes.map((m) => ({
+        ...m.toObject(),
+        type: "MonitoringMailbox",
+      })),
+    ];
+
+    if (!allTargets.length) return;
+
     const activeCampaignIds = activeCampaigns.map((c) => c._id);
 
     await Promise.allSettled(
-      testIds.map(async (testId) => {
-        console.log(`[IMAP] Connecting to ${testId.email}...`);
-        const scanResults = await scanTestId(testId).catch((err) => {
-          console.error(`[IMAP] Scan failed for ${testId.email}:`, err.message);
-          return [];
-        });
-
-        if (scanResults.length > 0) {
-          console.log(
-            `[IMAP] Found ${scanResults.length} fingerprint matches in ${testId.email}`,
-          );
-        }
+      allTargets.map(async (target) => {
+        const scanResults = await scanTestId(target).catch(() => []);
 
         for (const res of scanResults) {
-          // PRIMARY: Match by exact recipient email in mail_status — extremely fast with indexes.
-          // We know emailWorker saves this exactly as "user@domain.com success".
+          // Match by mail_status pattern "email@domain.com success"
           let existingLog = await CampaignLog.findOne({
             campaign_id: { $in: activeCampaignIds },
             type: "success",
@@ -315,7 +273,7 @@ const runScanner = async () => {
             promo: { $in: [0, null] },
           }).sort({ created_at: -1 });
 
-          // SECONDARY: Fingerprint match (works when header survives transit)
+          // Fallback to fingerprint
           if (!existingLog && res.fingerprint) {
             existingLog = await CampaignLog.findOne({
               campaign_id: { $in: activeCampaignIds },
@@ -327,16 +285,12 @@ const runScanner = async () => {
             }).sort({ created_at: -1 });
           }
 
-          // TERTIARY: Reclassification check — email was previously marked as wrong placement
-          // (e.g. first scan found it in [Bulk]/Spam, but email was actually delivered to Inbox)
-          // This corrects the campaign aggregate counts and the log entry.
+          // Handle Reclassification (e.g. Spam -> Inbox)
           if (!existingLog && res.placement === "inbox") {
             const wronglyClassified = await CampaignLog.findOne({
               campaign_id: { $in: activeCampaignIds },
               type: "success",
-              mail_status: {
-                $in: [`${res.email} spam`, `${res.email} promo`],
-              },
+              mail_status: { $in: [`${res.email} spam`, `${res.email} promo`] },
             }).sort({ created_at: -1 });
 
             if (wronglyClassified) {
@@ -344,11 +298,7 @@ const runScanner = async () => {
                 wronglyClassified.spam === 1 ? "spam" : "promo";
               const oldCountField =
                 oldPlacement === "spam" ? "spam_count" : "promo_count";
-              console.log(
-                `[IMAP] Reclassifying ${res.email}: ${oldPlacement} → inbox (correcting counts)`,
-              );
 
-              // Correct the campaign aggregate stats atomically
               const correctedCampaign = await Campaign.findByIdAndUpdate(
                 wronglyClassified.campaign_id,
                 { $inc: { inbox_count: 1, [oldCountField]: -1 } },
@@ -358,31 +308,17 @@ const runScanner = async () => {
               if (correctedCampaign) {
                 const received =
                   (correctedCampaign.inbox_count || 0) +
-                  Math.max(0, correctedCampaign.spam_count || 0) +
-                  Math.max(0, correctedCampaign.promo_count || 0);
-
-                const currentLiveTotalSent =
+                  (correctedCampaign.spam_count || 0) +
+                  (correctedCampaign.promo_count || 0);
+                const totalSent =
                   (correctedCampaign.success_count || 0) +
                   (correctedCampaign.error_count || 0);
-
-                const totalSentText =
-                  wronglyClassified.sent || currentLiveTotalSent; // keep chronological text mapping but use live sent for math
-
                 const inboxPercent =
-                  currentLiveTotalSent > 0
-                    ? (correctedCampaign.inbox_count / currentLiveTotalSent) *
-                      100
+                  totalSent > 0
+                    ? (correctedCampaign.inbox_count / totalSent) * 100
                     : 0;
 
-                const newLogText =
-                  `Total Mail Sent : ${totalSentText} || ` +
-                  `Total Mail Received : ${received} || ` +
-                  `INBOX : 1 || ` +
-                  `SPAM : 0 || ` +
-                  `MAIL STATUS : ${res.email} inbox || ` +
-                  `Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
-
-                await CampaignLog.findByIdAndUpdate(
+                const finalLog = await CampaignLog.findByIdAndUpdate(
                   wronglyClassified._id,
                   {
                     $set: {
@@ -390,31 +326,25 @@ const runScanner = async () => {
                       spam: 0,
                       promo: 0,
                       mail_status: `${res.email} inbox`,
-                      log_text: newLogText,
+                      log_text: `Total Mail Sent : ${wronglyClassified.sent || totalSent} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                       inbox_percent: Number(inboxPercent.toFixed(1)),
-                      received: received,
+                      received,
                     },
                   },
                   { new: true },
                 );
-                if (finalLog) {
+                if (finalLog)
                   socketService.emitLog(
-                    wronglyClassified.campaign_id,
+                    correctedCampaign._id,
                     finalLog,
                     correctedCampaign,
                   );
-                }
               }
-              // Skip normal placement flow — already handled
               continue;
             }
           }
 
-          // Only count if an unplaced log was found (avoid double counting if scanner runs twice)
           if (existingLog) {
-            console.log(
-              `[IMAP] Verified DB Match! TestID: ${res.email}, DB Log ID: ${existingLog._id}, Location: ${res.placement}`,
-            );
             const campaignId = existingLog.campaign_id;
             const updateField =
               res.placement === "spam"
@@ -423,94 +353,42 @@ const runScanner = async () => {
                   ? "promo_count"
                   : "inbox_count";
 
-            // Grab the live total sent before updating so we can preserve sequential text mapping
-            const tempCampaign = await Campaign.findById(campaignId);
-            const liveCampaignTotalSent = tempCampaign
-              ? (tempCampaign.success_count || 0) +
-                (tempCampaign.error_count || 0)
-              : 0;
-            const totalSentText = existingLog.sent || liveCampaignTotalSent;
-
-            // 1. Update the specific Log Entry FIRST
-            const updatedLog = await CampaignLog.findByIdAndUpdate(
-              existingLog._id,
-              {
-                $set: {
-                  [res.placement]: 1,
-                  mail_status: `${res.email} ${res.placement}`,
-                  // log_text is calculated below after we get the Campaign aggregates
-                  sent: totalSentText,
-                },
-              },
-              { new: true }, // Return the updated document
+            const campaign = await Campaign.findByIdAndUpdate(
+              campaignId,
+              { $inc: { [updateField]: 1 } },
+              { new: true },
             );
 
-            if (updatedLog) {
-              // 2. ONLY Update Campaign Aggregate Stats if the log was successfully claimed
-              // (Prevents IMAP race conditions from double-counting the aggregate if the UNSEEN flag was slow to sync)
-              const campaign = await Campaign.findByIdAndUpdate(
-                campaignId,
-                { $inc: { [updateField]: 1 } },
+            if (campaign) {
+              const received =
+                (campaign.inbox_count || 0) +
+                (campaign.spam_count || 0) +
+                (campaign.promo_count || 0);
+              const totalSent =
+                (campaign.success_count || 0) + (campaign.error_count || 0);
+              const inboxPercent =
+                totalSent > 0 ? (campaign.inbox_count / totalSent) * 100 : 0;
+              const inboxLine = res.placement === "inbox" ? 1 : 0;
+              const spamLine = res.placement === "spam" ? 1 : 0;
+
+              const finalLog = await CampaignLog.findByIdAndUpdate(
+                existingLog._id,
+                {
+                  $set: {
+                    [res.placement]: 1,
+                    mail_status: `${res.email} ${res.placement}`,
+                    log_text: `Total Mail Sent : ${existingLog.sent || totalSent} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                    received,
+                    inbox_percent: Number(inboxPercent.toFixed(1)),
+                  },
+                },
                 { new: true },
               );
+              if (finalLog)
+                socketService.emitLog(campaignId, finalLog, campaign);
 
-              if (campaign) {
-                const received =
-                  (campaign.inbox_count || 0) +
-                  Math.max(0, campaign.spam_count || 0) +
-                  Math.max(0, campaign.promo_count || 0);
-
-                const inboxPercent =
-                  liveCampaignTotalSent > 0
-                    ? (campaign.inbox_count / liveCampaignTotalSent) * 100
-                    : 0;
-
-                const inboxCountLine = res.placement === "inbox" ? 1 : 0;
-                const spamCountLine = res.placement === "spam" ? 1 : 0;
-
-                const newLogText = `Total Mail Sent : ${totalSentText} || Total Mail Received : ${received} || INBOX : ${inboxCountLine} || SPAM : ${spamCountLine} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`;
-
-                // 3. Finalize the Log Entry with the live math text
-                const finalLog = await CampaignLog.findByIdAndUpdate(
-                  existingLog._id,
-                  {
-                    $set: {
-                      log_text: newLogText,
-                      inbox_percent: Number(inboxPercent.toFixed(1)),
-                      received: received,
-                    },
-                  },
-                  { new: true },
-                );
-                if (finalLog) {
-                  socketService.emitLog(campaignId, finalLog, campaign);
-                }
-              }
-            }
-
-            // ── Synchronize with Inbox Intelligence Engine ───────────────
-            const providerMatch =
-              res.email.split("@")[1]?.split(".")[0] || "other";
-            const provider = ["gmail", "yahoo", "outlook"].includes(
-              providerMatch,
-            )
-              ? providerMatch
-              : "other";
-
-            try {
-              await IntelligenceLog.create({
-                campaignId,
-                provider,
-                location: res.placement === "promo" ? "inbox" : res.placement,
-                testEmail: res.email,
-                subject: existingLog.log_text || "Automated IMAP Scan",
-              });
-
-              const campaign = activeCampaigns.find(
-                (c) => c._id.toString() === campaignId.toString(),
-              );
-              if (campaign) {
-                // Extract IP from recent log since campaign.server isn't always reliable
+              // Update Intelligence Score
+              try {
                 const ipMatch = existingLog.log_text
                   ? existingLog.log_text.match(/\d+\.\d+\.\d+\.\d+/)
                   : null;
@@ -529,23 +407,23 @@ const runScanner = async () => {
                     campaign.domain,
                     res.placement,
                   );
-              }
-            } catch (intelErr) {
-              console.error(
-                "[IMAP] Intelligence Sync Error:",
-                intelErr.message,
-              );
+
+                await IntelligenceLog.create({
+                  campaignId,
+                  provider: res.email.split("@")[1]?.split(".")[0] || "other",
+                  location: res.placement === "promo" ? "inbox" : res.placement,
+                  testEmail: res.email,
+                  subject: existingLog.subject || "IMAP Scan",
+                });
+              } catch (e) {}
             }
           }
         }
       }),
     );
 
-    // After all scans, evaluate Guardian thresholds for all active campaigns
     for (const campaign of activeCampaigns) {
-      await guardianEvaluate(campaign._id).catch((err) =>
-        console.error(`Guardian eval error for ${campaign._id}:`, err),
-      );
+      await guardianEvaluate(campaign._id).catch(() => {});
     }
   } catch (error) {
     console.error("Scanner run error:", error);
