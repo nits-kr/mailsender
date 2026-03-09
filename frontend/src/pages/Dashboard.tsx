@@ -52,12 +52,7 @@ const Dashboard = () => {
   }, [searchTerm]);
 
   const {
-    data: logsResponse = {
-      data: [],
-      total: 0,
-      totalPages: 0,
-      totals: { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 },
-    },
+    data: logsResponse,
     isFetching: logsFetching,
     refetch: refetchLogs,
   } = useGetDashboardLogsQuery({
@@ -67,13 +62,47 @@ const Dashboard = () => {
     search: debouncedSearch,
   });
 
-  const logs = logsResponse.data || [];
-  const totals = logsResponse.totals || {
-    test_sent: 0,
-    bulk_test_sent: 0,
-    bulk_test: 0,
-    error: 0,
-  };
+  const { logs, totals, totalEntries, totalPages } = useMemo(() => {
+    // Default values
+    const defaultData = {
+      logs: [],
+      totals: { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 },
+      totalEntries: 0,
+      totalPages: 0,
+    };
+
+    if (!logsResponse) return defaultData;
+
+    // Case 1: Structured object (New format)
+    if (logsResponse.data && Array.isArray(logsResponse.data)) {
+      return {
+        logs: logsResponse.data,
+        totals: logsResponse.totals || defaultData.totals,
+        totalEntries: logsResponse.total || 0,
+        totalPages: logsResponse.totalPages || 0,
+      };
+    }
+
+    // Case 2: Plain array (Legacy/Safeguard format)
+    if (Array.isArray(logsResponse)) {
+      return {
+        logs: logsResponse,
+        totals: logsResponse.reduce(
+          (acc, log) => ({
+            test_sent: acc.test_sent + (log.test_sent || 0),
+            bulk_test_sent: acc.bulk_test_sent + (log.bulk_test_sent || 0),
+            bulk_test: acc.bulk_test + (log.bulk_test || 0),
+            error: acc.error + (log.error || 0),
+          }),
+          defaultData.totals,
+        ),
+        totalEntries: logsResponse.length,
+        totalPages: 1,
+      };
+    }
+
+    return defaultData;
+  }, [logsResponse]);
 
   const {
     data: stats = { pieData: [], barData: [] },
@@ -464,9 +493,9 @@ const Dashboard = () => {
 
         <Pagination
           currentPage={currentPage}
-          totalPages={logsResponse.totalPages}
+          totalPages={totalPages}
           limit={limit}
-          totalEntries={logsResponse.total}
+          totalEntries={totalEntries}
           onPageChange={setCurrentPage}
           onLimitChange={(newLimit) => {
             setLimit(newLimit);

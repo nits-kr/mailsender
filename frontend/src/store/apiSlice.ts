@@ -99,6 +99,23 @@ export const apiSlice = createApi({
     getDashboardLogs: builder.query<any, { from: string; to: string; page?: number; limit?: number; search?: string }>({
       query: ({ from, to, page = 1, limit = 10, search = '' }) => 
         `/dashboard/logs?from=${from}&to=${to}&page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) {
+          return {
+            data: response,
+            total: response.length,
+            totalPages: 1,
+            currentPage: 1,
+            totals: response.reduce((acc, log) => ({
+              test_sent: acc.test_sent + (log.test_sent || 0),
+              bulk_test_sent: acc.bulk_test_sent + (log.bulk_test_sent || 0),
+              bulk_test: acc.bulk_test + (log.bulk_test || 0),
+              error: acc.error + (log.error || 0),
+            }), { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 })
+          };
+        }
+        return response;
+      },
       providesTags: ['Dashboard'],
     }),
     getDashboardStats: builder.query<any, void>({
