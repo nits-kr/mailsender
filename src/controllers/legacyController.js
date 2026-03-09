@@ -121,8 +121,6 @@ const searchLegacyCampaignLink = async (req, res) => {
   }
 };
 
-const TagEngine = require("../utils/tagEngine");
-
 // @desc    Send email using raw SMTP (FSOCK Parity)
 // @route   POST /api/legacy/fsock-send
 const sendFsockSmtp = async (req, res) => {
