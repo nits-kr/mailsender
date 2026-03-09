@@ -96,8 +96,9 @@ export const apiSlice = createApi({
     }),
 
     // â”€â”€â”€ Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    getDashboardLogs: builder.query<any[], { from: string; to: string }>({
-      query: ({ from, to }) => `/dashboard/logs?from=${from}&to=${to}`,
+    getDashboardLogs: builder.query<any, { from: string; to: string; page?: number; limit?: number; search?: string }>({
+      query: ({ from, to, page = 1, limit = 10, search = '' }) => 
+        `/dashboard/logs?from=${from}&to=${to}&page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
       providesTags: ['Dashboard'],
     }),
     getDashboardStats: builder.query<any, void>({

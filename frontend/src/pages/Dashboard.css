@@ -111,8 +111,8 @@
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   border: 1px solid #f1f5f9;
   margin-top: 48px;
-  margin-bottom: 40px;
-  overflow: hidden;
+  margin-bottom: 20px;
+  border-radius: 16px;
 }
 
 .logs-card-header-new {

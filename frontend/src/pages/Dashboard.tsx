@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   RefreshCw,
   Search,
@@ -25,6 +25,7 @@ import {
   useGetDashboardLogsQuery,
   useGetDashboardStatsQuery,
 } from "../store/apiSlice";
+import Pagination from "../components/Pagination";
 import "./Dashboard.css";
 
 const Dashboard = () => {
@@ -36,12 +37,43 @@ const Dashboard = () => {
   });
   const [queryDates, setQueryDates] = useState({ from: dateFrom, to: dateTo });
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const {
-    data: logs = [],
+    data: logsResponse = {
+      data: [],
+      total: 0,
+      totalPages: 0,
+      totals: { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 },
+    },
     isFetching: logsFetching,
     refetch: refetchLogs,
-  } = useGetDashboardLogsQuery(queryDates);
+  } = useGetDashboardLogsQuery({
+    ...queryDates,
+    page: currentPage,
+    limit,
+    search: debouncedSearch,
+  });
+
+  const logs = logsResponse.data || [];
+  const totals = logsResponse.totals || {
+    test_sent: 0,
+    bulk_test_sent: 0,
+    bulk_test: 0,
+    error: 0,
+  };
 
   const {
     data: stats = { pieData: [], barData: [] },
@@ -51,41 +83,27 @@ const Dashboard = () => {
 
   const handleApply = () => {
     setQueryDates({ from: dateFrom, to: dateTo });
+    setCurrentPage(1); // Reset to first page on date change
     refetchLogs();
     refetchStats();
   };
 
-  const filteredLogs = Array.isArray(logs)
-    ? logs.filter((log) =>
-        Object.values(log).some((val) =>
-          String(val).toLowerCase().includes(searchTerm.toLowerCase()),
-        ),
-      )
-    : [];
-
-  const totals = filteredLogs.reduce(
-    (acc, log) => ({
-      test_sent: acc.test_sent + (log.test_sent || 0),
-      bulk_test_sent: acc.bulk_test_sent + (log.bulk_test_sent || 0),
-      bulk_test: acc.bulk_test + (log.bulk_test || 0),
-      error: acc.error + (log.error || 0),
-    }),
-    { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 },
-  );
-
-  const dailyHistory = filteredLogs
-    .reduce((acc: any[], log) => {
-      const date = new Date(log.sent_on).toLocaleDateString();
-      let existing = acc.find((d) => d.date === date);
-      if (!existing) {
-        existing = { date, sent: 0, errors: 0 };
-        acc.push(existing);
-      }
-      existing.sent += (log.test_sent || 0) + (log.bulk_test || 0);
-      existing.errors += log.error || 0;
-      return acc;
-    }, [])
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const dailyHistory = useMemo(() => {
+    if (!Array.isArray(logs)) return [];
+    return logs
+      .reduce((acc: any[], log) => {
+        const date = new Date(log.sent_on).toLocaleDateString();
+        let existing = acc.find((d) => d.date === date);
+        if (!existing) {
+          existing = { date, sent: 0, errors: 0 };
+          acc.push(existing);
+        }
+        existing.sent += (log.test_sent || 0) + (log.bulk_test || 0);
+        existing.errors += log.error || 0;
+        return acc;
+      }, [])
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [logs]);
 
   return (
     <div className="dashboard-container-new">
@@ -362,8 +380,8 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {logsFetching && filteredLogs.length === 0 ? (
-                Array.from({ length: 8 }).map((_, i) => (
+              {logsFetching && logs.length === 0 ? (
+                Array.from({ length: limit }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 12 }).map((_, j) => (
                       <td key={j}>
@@ -379,8 +397,8 @@ const Dashboard = () => {
                     ))}
                   </tr>
                 ))
-              ) : filteredLogs.length > 0 ? (
-                filteredLogs.map((row, i) => (
+              ) : logs.length > 0 ? (
+                logs.map((row: any, i: number) => (
                   <tr key={i}>
                     <td>{new Date(row.sent_on).toLocaleDateString()}</td>
                     <td>{row.mailer}</td>
@@ -443,6 +461,18 @@ const Dashboard = () => {
             </tfoot>
           </table>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={logsResponse.totalPages}
+          limit={limit}
+          totalEntries={logsResponse.total}
+          onPageChange={setCurrentPage}
+          onLimitChange={(newLimit) => {
+            setLimit(newLimit);
+            setCurrentPage(1);
+          }}
+        />
       </div>
     </div>
   );

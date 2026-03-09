@@ -32,10 +32,11 @@ const getStats = async (req, res) => {
   }
 };
 
-// @desc    Get recent logs (Table data)
-// @route   GET /api/dashboard/logs
 const getLogs = async (req, res) => {
-  const { from, to } = req.query;
+  const { from, to, page = 1, limit = 10, search = "" } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const pageSize = parseInt(limit);
+
   let query = {};
 
   if (from && to) {
@@ -45,9 +46,57 @@ const getLogs = async (req, res) => {
     };
   }
 
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+    query.$or = [
+      { mailer: searchRegex },
+      { template_id: searchRegex },
+      { interface: searchRegex },
+      { server: searchRegex },
+      { offer_id: searchRegex },
+      { domain: searchRegex },
+      { from: searchRegex },
+    ];
+  }
+
   try {
-    const logs = await Log.find(query).sort({ sent_on: -1 }).limit(1000);
-    res.json(logs);
+    const totalLogs = await Log.countDocuments(query);
+    const logs = await Log.find(query)
+      .sort({ sent_on: -1 })
+      .skip(skip)
+      .limit(pageSize);
+
+    // Calculate totals for the entire filtered set (not just the current page)
+    const totalsResult = await Log.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          test_sent: { $sum: "$test_sent" },
+          bulk_test_sent: { $sum: "$bulk_test_sent" },
+          bulk_test: { $sum: "$bulk_test" },
+          error: { $sum: "$error" },
+        },
+      },
+    ]);
+
+    const totals =
+      totalsResult.length > 0
+        ? totalsResult[0]
+        : {
+            test_sent: 0,
+            bulk_test_sent: 0,
+            bulk_test: 0,
+            error: 0,
+          };
+
+    res.json({
+      data: logs,
+      total: totalLogs,
+      totalPages: Math.ceil(totalLogs / pageSize),
+      currentPage: parseInt(page),
+      totals,
+    });
   } catch (error) {
     res
       .status(500)
