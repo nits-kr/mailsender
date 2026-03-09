@@ -269,6 +269,19 @@ const FsockManual = () => {
   };
 
   const handleGetLink = async () => {
+    if (
+      !formData.sub ||
+      !formData.domain ||
+      !formData.offerId ||
+      formData.sub.toLowerCase().includes("subject") ||
+      formData.domain.toLowerCase().includes("domain")
+    ) {
+      alert("Please fill Subject, Domain, and Offer Id first");
+      setLogOutput(
+        "<div style='color: orange;'>Metadata missing for link search</div>",
+      );
+      return;
+    }
     setIsLoading(true);
     setLogOutput("Searching for link...");
     try {
