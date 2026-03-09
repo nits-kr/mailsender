@@ -6,6 +6,9 @@ const OfferSuppQueue = require("../models/OfferSuppQueue");
 const RawSmtpClient = require("../services/smtpService");
 const fs = require("fs");
 const path = require("path");
+const FsockAutoRunner = require("./FsockAutoRunner");
+const TagEngine = require("../utils/tagEngine");
+const { generateMessageId } = require("../utils/patternGenerator");
 
 // @desc    Get campaign for legacy PHP script
 // @route   GET /api/legacy/campaign/:id
@@ -133,7 +136,7 @@ const sendFsockSmtp = async (req, res) => {
     fmencode,
     mode,
     datafile,
-    msgid,
+    message_id,
     total_limit,
     send_limit,
     headers,
@@ -164,6 +167,7 @@ const sendFsockSmtp = async (req, res) => {
       headers: headers,
       offer_id: offerId,
       domain: domain,
+      message_id: message_id,
       mode: mode || "Test",
       sleep_time: sleep,
       wait_time: wait,
@@ -265,18 +269,34 @@ const sendFsockSmtp = async (req, res) => {
             )
             .replace(
               /{{HtmlContent_qp}}/g,
-              TagEngine.functions.ascii2hex(processedHtml),
-            ) // Roughly equivalent to QP for matching logic
+              TagEngine.functions.quotedPrintableEncode(processedHtml),
+            )
             .replace(
               /{{PlainContent_qp}}/g,
-              TagEngine.functions.ascii2hex(processedPlain),
+              TagEngine.functions.quotedPrintableEncode(processedPlain),
+            )
+            .replace(
+              /{{HtmlContent_uue}}/g,
+              TagEngine.functions.strToUue(processedHtml),
+            )
+            .replace(
+              /{{PlainContent_uue}}/g,
+              TagEngine.functions.strToUue(processedPlain),
             );
 
-          // 3. Process Message ID
-          let processedMsgId = TagEngine.process(msgid || "", context).replace(
-            /{{Domain}}/g,
-            domain || "",
-          );
+          // 3. Process Message ID (Standardized with /interface)
+          let finalMsgId = message_id || "";
+          if (!finalMsgId) {
+            finalMsgId = generateMessageId(1, domain || "localhost");
+          } else if (!isNaN(finalMsgId) && finalMsgId.length < 3) {
+            finalMsgId = generateMessageId(finalMsgId, domain || "localhost");
+          }
+
+          let processedMsgId = TagEngine.process(finalMsgId, {
+            domain: domain,
+            email: targetEmail,
+            offer_id: offerId,
+          });
 
           processedHeaders = processedHeaders.replace(
             /{{MessageId}}/g,
@@ -290,16 +310,22 @@ const sendFsockSmtp = async (req, res) => {
 
           // 5. Boundary replacement if exists
           const boundaryMatch = processedHeaders.match(
-            /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|$)/i,
+            /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|\r|\n|$)/i,
           );
           if (boundaryMatch && boundaryMatch[1]) {
+            const boundary = boundaryMatch[1].replace(/['"]/g, "").trim();
             processedHeaders = processedHeaders.replace(
               /{{boundary}}/g,
-              boundaryMatch[1],
+              boundary,
             );
+            processedHtml = processedHtml.replace(/{{boundary}}/g, boundary);
           }
 
           const finalBody = `${processedHeaders}\r\n\r\n${processedHtml}`;
+
+          // Tag processing for return path
+          let processedReturnPath = returnPath || fromEmail;
+          processedReturnPath = TagEngine.process(processedReturnPath, context);
 
           const result = await client.send({
             user: ipRecord.user || "",
@@ -307,7 +333,7 @@ const sendFsockSmtp = async (req, res) => {
             from: fromEmail,
             to: targetEmail,
             body: finalBody,
-            returnPath: TagEngine.process(returnPath || fromEmail, context),
+            returnPath: processedReturnPath,
           });
 
           if (result.success) {
@@ -337,6 +363,45 @@ const sendFsockSmtp = async (req, res) => {
   }
 };
 
+// @desc    Start FSOCK Auto Campaign
+// @route   POST /api/legacy/fsock-auto-start
+const startFsockAuto = async (req, res) => {
+  const { sub: subject, mode } = req.body;
+  try {
+    // 1. Create a Campaign record (not just a template) for live tracking
+    const campaign = await Campaign.create({
+      name: subject || "FSock Auto Campaign",
+      status: "Running",
+      start_time: new Date(),
+      type: "fsock",
+      mode: mode || "Bulk",
+    });
+
+    // 2. Start the runner
+    FsockAutoRunner.start(campaign._id, req.body);
+
+    res.json({
+      message: "FSOCK Auto Campaign Started",
+      campaignId: campaign._id,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Stop FSOCK Auto Campaign
+// @route   POST /api/legacy/fsock-auto-stop/:id
+const stopFsockAuto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    FsockAutoRunner.stop(id);
+    await Campaign.findByIdAndUpdate(id, { status: "Stopped" });
+    res.json({ message: "FSOCK Auto Campaign Stopped" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getLegacyCampaign,
   getLegacyIP,
@@ -345,4 +410,6 @@ module.exports = {
   getLegacyCampaignLink,
   searchLegacyCampaignLink,
   sendFsockSmtp,
+  startFsockAuto,
+  stopFsockAuto,
 };

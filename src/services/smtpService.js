@@ -34,7 +34,11 @@ class RawSmtpClient {
         () => `MAIL FROM: <${returnPath || from}>\r\n`,
         () => `RCPT TO: <${to}>\r\n`,
         () => `DATA\r\n`,
-        () => `${body}\r\n.\r\n`,
+        () => {
+          const bodyWithRN = body.replace(/\r?\n/g, "\r\n");
+          const bodyWithDots = bodyWithRN.replace(/^\./gm, "..");
+          return `${bodyWithDots}\r\n.\r\n`;
+        },
         () => `QUIT\r\n`,
       ];
 
@@ -52,10 +56,15 @@ class RawSmtpClient {
               step++;
             }
             break;
-          case 1: // EHLO response received, send AUTH LOGIN
+          case 1: // EHLO response received, send AUTH LOGIN or MAIL FROM
             if (code === "250") {
-              client.write(commands[1]());
-              step++;
+              if (user && pass) {
+                client.write(commands[1]());
+                step = 2; // Jump to AUTH
+              } else {
+                client.write(commands[4]()); // Skip directly to MAIL FROM
+                step = 5; // Jump to MAIL FROM state
+              }
             }
             break;
           case 2: // AUTH LOGIN response, send User

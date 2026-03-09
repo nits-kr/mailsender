@@ -378,6 +378,14 @@ export const apiSlice = createApi({
     searchLegacyLink: builder.mutation<any, any>({
       query: (payload) => ({ url: '/legacy/campaign-link-search', method: 'POST', body: payload }),
     }),
+    startFsockAuto: builder.mutation<any, any>({
+      query: (payload) => ({ url: '/legacy/fsock-auto-start', method: 'POST', body: payload }),
+      invalidatesTags: ['Campaign'],
+    }),
+    stopFsockAuto: builder.mutation<any, string>({
+      query: (id) => ({ url: `/legacy/fsock-auto-stop/${id}`, method: 'POST' }),
+      invalidatesTags: ['Campaign'],
+    }),
 
     // â”€â”€â”€ IMAP Screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getImapScreens: builder.query<any[], void>({
@@ -545,6 +553,8 @@ export const {
   useGetLegacyCampaignQuery,
   useSendFsockSmtpMutation,
   useSearchLegacyLinkMutation,
+  useStartFsockAutoMutation,
+  useStopFsockAutoMutation,
   // IMAP Screens
   useGetImapScreensQuery,
   useGetImapLogsQuery,

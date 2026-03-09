@@ -10,7 +10,12 @@ import {
   useGetLegacyCampaignQuery,
   useLazyGetFileInfoQuery,
   useLazyValidateOfferQuery,
+  useStartFsockAutoMutation,
+  useStopFsockAutoMutation,
 } from "../store/apiSlice";
+import { useLocation } from "react-router-dom";
+import io from "socket.io-client";
+import API_BASE_URL from "../config/api";
 import "./FsockManual.css";
 
 const fsockSchema = z.object({
@@ -28,7 +33,7 @@ const fsockSchema = z.object({
   offerId: z.string().min(1, "Offer Id required"),
   domain: z.string().min(1, "Domain required"),
   datafile: z.string().min(1, "Datafile required"),
-  msgid: z.string().optional(),
+  message_id: z.string().optional(),
   total_limit: z.string().min(1, "Total limit required"),
   send_limit: z.string().min(1, "Limit required"),
   sleep: z.string().optional(),
@@ -42,7 +47,9 @@ type FsockFormData = z.infer<typeof fsockSchema>;
 
 const FsockManual = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const campaignId = searchParams.get("c");
+  const isAutoMode = location.pathname === "/fsock-send-smtp-auto";
 
   const {
     register,
@@ -61,7 +68,7 @@ const FsockManual = () => {
         "ESP (SMTP)    : (IP|Return@Path)\nNote : You can use all functions in Return Path",
       headers: "",
       message_plain: "",
-      msgid: "",
+      message_id: "",
       sleep: "",
       wait: "",
       inbox_percentage: "",
@@ -92,6 +99,15 @@ const FsockManual = () => {
   const [dataFileCount, setDataFileCount] = useState<number | null>(null);
   const [offerValid, setOfferValid] = useState<boolean | null>(null);
 
+  // Auto Mode State
+  const [startFsockAuto] = useStartFsockAutoMutation();
+  const [stopFsockAuto] = useStopFsockAutoMutation();
+  const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const [testSeeds, setTestSeeds] = useState<
+    Record<string, { status: string; msgId: string }>
+  >({});
+  const [socket, setSocket] = useState<any>(null);
+
   // Safe base64 decode for legacy parity
   const safeAtob = (str: string) => {
     try {
@@ -115,7 +131,7 @@ const FsockManual = () => {
         offerId: safeAtob(campaignData.offerIdenc) || campaignData.offer_id,
         domain: campaignData.domain || "",
         datafile: campaignData.data_file || "",
-        msgid: safeAtob(campaignData.msgid),
+        message_id: safeAtob(campaignData.msgid),
         total_limit: String(campaignData.total_limit || ""),
         send_limit: String(campaignData.send_limit || ""),
         sleep: campaignData.sleep_time || "",
@@ -163,22 +179,79 @@ const FsockManual = () => {
     return () => clearTimeout(timer);
   }, [formData.offerId, triggerValidateOffer]);
 
+  // Socket.io Connection for Auto Mode
+  useEffect(() => {
+    const newSocket = io(API_BASE_URL);
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (socket && activeCampaignId) {
+      socket.emit("join_campaign", activeCampaignId);
+
+      socket.on("campaign_log", (data: any) => {
+        const logText = data.log?.log_text || "";
+        setLogOutput((prev) => prev + `<br>${logText}`);
+      });
+
+      socket.on("test_seed_update", (data: any) => {
+        setTestSeeds((prev) => ({
+          ...prev,
+          [data.email]: { status: data.status, msgId: data.msgId },
+        }));
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.off("campaign_log");
+        socket.off("test_seed_update");
+      }
+    };
+  }, [socket, activeCampaignId]);
+
   const onSend: SubmitHandler<FsockFormData> = async (data) => {
     setIsLoading(true);
-    setLogOutput("Sending...");
+    setLogOutput("Processing...");
     try {
-      const response = await sendFsock(data).unwrap();
-      setLogOutput(
-        typeof response === "string"
-          ? response
-          : JSON.stringify(response, null, 2),
-      );
+      if (isAutoMode) {
+        const response = await startFsockAuto(data).unwrap();
+        setActiveCampaignId(response.campaignId);
+        setLogOutput(
+          `<div style='color: white; background: #2563eb; padding: 10px; border-radius: 4px;'>Auto Campaign Started. ID: ${response.campaignId}</div>`,
+        );
+      } else {
+        const response = await sendFsock(data).unwrap();
+        setLogOutput(
+          typeof response === "string"
+            ? response
+            : JSON.stringify(response, null, 2),
+        );
+      }
     } catch (error: any) {
       setLogOutput(
         `<font color='red'>Error: ${error.data?.message || error.message}</font>`,
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStopAuto = async () => {
+    if (!activeCampaignId) return;
+    try {
+      await stopFsockAuto(activeCampaignId).unwrap();
+      setActiveCampaignId(null);
+      setLogOutput(
+        (prev) =>
+          prev + "<br><font color='orange'>Campaign Stop Requested...</font>",
+      );
+    } catch (error: any) {
+      alert("Error stopping campaign");
     }
   };
 
@@ -309,6 +382,31 @@ const FsockManual = () => {
                     className="fsock-result-area"
                     dangerouslySetInnerHTML={{ __html: logOutput }}
                   />
+                  {isAutoMode && Object.keys(testSeeds).length > 0 && (
+                    <div className="fsock-seed-monitor">
+                      <h3>Seed Response Monitor</h3>
+                      <table className="fsock-seed-table">
+                        <thead>
+                          <tr>
+                            <th>Seed Email</th>
+                            <th>Status (INBOX/SPAM)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(testSeeds).map(([email, info]) => (
+                            <tr key={email}>
+                              <td>{email}</td>
+                              <td
+                                className={`seed-status-${info.status.toLowerCase()}`}
+                              >
+                                {info.status}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </td>
                 <td className="fsock-right-col">
                   <table className="fsock-content-table">
@@ -430,7 +528,7 @@ const FsockManual = () => {
                         <td className="fsock-input-group">
                           <button
                             type="button"
-                            className="fsock-send-btn"
+                            className="fsock-send-btn preview-btn"
                             onClick={handleDisplayHTML}
                           >
                             Preview Template
@@ -592,7 +690,7 @@ const FsockManual = () => {
                                     type="text"
                                     className="fsock-mini-input"
                                     placeholder="Message ID"
-                                    {...register("msgid")}
+                                    {...register("message_id")}
                                   />
                                 </td>
                               </tr>
@@ -692,8 +790,8 @@ const FsockManual = () => {
                           >
                             <button
                               type="submit"
-                              className="fsock-send-btn primary"
-                              disabled={isLoading}
+                              className={`fsock-send-btn primary ${activeCampaignId ? "running" : ""}`}
+                              disabled={isLoading || !!activeCampaignId}
                             >
                               {isLoading ? (
                                 <Loader2 className="animate-spin" size={16} />
@@ -701,9 +799,23 @@ const FsockManual = () => {
                                 <Send size={16} />
                               )}
                               <span>
-                                {isLoading ? "Processing..." : "Send Message"}
+                                {isLoading
+                                  ? "Processing..."
+                                  : isAutoMode
+                                    ? "Start Auto Campaign"
+                                    : "Send Message"}
                               </span>
                             </button>
+                            {isAutoMode && activeCampaignId && (
+                              <button
+                                type="button"
+                                className="fsock-send-btn stop-btn"
+                                onClick={handleStopAuto}
+                              >
+                                <Square size={16} />
+                                <span>Stop Auto Campaign</span>
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="fsock-send-btn link-btn"
