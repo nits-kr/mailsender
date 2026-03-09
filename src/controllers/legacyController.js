@@ -9,6 +9,7 @@ const path = require("path");
 const FsockAutoRunner = require("../services/FsockAutoRunner");
 const TagEngine = require("../utils/tagEngine");
 const { generateMessageId } = require("../utils/patternGenerator");
+const { resolveSmtpDetails } = require("../utils/smtpResolver");
 
 // @desc    Get campaign for legacy PHP script
 // @route   GET /api/legacy/campaign/:id
@@ -211,18 +212,21 @@ const sendFsockSmtp = async (req, res) => {
 
     if (mode === "Test") {
       for (const line of ipLines) {
-        const [ip, returnPath] = line.trim().split("|");
-        const ipRecord = await IP.findOne({ ip });
+        const [ipKey, returnPath] = line.trim().split("|");
+        const smtpDetails = await resolveSmtpDetails(ipKey);
 
-        if (!ipRecord) {
-          output += `${ip} <font color='red'> Not Exist </font><br>`;
+        if (!smtpDetails) {
+          output += `${ipKey} <font color='red'> Not Exist </font><br>`;
           continue;
         }
 
         const client = new RawSmtpClient({
-          host: ipRecord.hostname || ip,
-          port: ipRecord.port || 25,
+          host: smtpDetails.host,
+          port: smtpDetails.port,
         });
+
+        const authUser = smtpDetails.user || "";
+        const authPass = smtpDetails.pass || "";
 
         for (const email of testEmails) {
           const targetEmail = email.trim();
@@ -273,8 +277,8 @@ const sendFsockSmtp = async (req, res) => {
           processedReturnPath = TagEngine.process(processedReturnPath, context);
 
           const result = await client.send({
-            user: ipRecord.user || "",
-            pass: ipRecord.pass || "",
+            user: authUser,
+            pass: authPass,
             from: fromEmail,
             to: targetEmail,
             body: finalBody,

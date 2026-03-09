@@ -21,6 +21,7 @@ const { generateMessageId } = require("../utils/patternGenerator");
 const fs = require("fs-extra");
 const path = require("path");
 const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
+const { resolveSmtpDetails } = require("../utils/smtpResolver");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -321,15 +322,17 @@ class FsockAutoRunner {
     ipLine,
     overrideMsgId = null,
   ) {
-    const [ip, returnPath] = ipLine.split("|");
-    const IP = require("../models/IP");
-    const ipRecord = await IP.findOne({ ip });
-    if (!ipRecord) return false;
+    const [ipKey, returnPath] = ipLine.split("|");
+    const smtpDetails = await resolveSmtpDetails(ipKey);
+    if (!smtpDetails) return false;
 
     const client = new RawSmtpClient({
-      host: ipRecord.hostname || ip,
-      port: ipRecord.port || 25,
+      host: smtpDetails.host,
+      port: smtpDetails.port,
     });
+
+    const authUser = smtpDetails.user || "";
+    const authPass = smtpDetails.pass || "";
 
     let finalMsgId = overrideMsgId;
 
@@ -386,8 +389,8 @@ class FsockAutoRunner {
     processedReturnPath = TagEngine.process(processedReturnPath, context);
 
     const result = await client.send({
-      user: ipRecord.user || "",
-      pass: ipRecord.pass || "",
+      user: authUser,
+      pass: authPass,
       from: config.from_email,
       to: targetEmail,
       body: body,
