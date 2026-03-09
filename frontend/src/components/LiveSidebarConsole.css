@@ -1,0 +1,228 @@
+/* src/components/LiveSidebarConsole.css */
+
+.lsc-wrapper {
+  margin-top: 25px;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  height: 480px; /* Professional fixed height for sidebar console */
+  width: 100%; /* Force it to respect parent width */
+  max-width: 100%;
+  min-width: 0; /* Important for flex children to shrink */
+  text-align: left; /* Parent sidebar is center, override it here */
+  box-sizing: border-box;
+}
+
+.lsc-header {
+  background-color: #1e293b;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+  text-transform: uppercase;
+}
+
+.lsc-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  margin-right: 8px;
+  box-shadow: 0 0 5px #10b981;
+  animation: lsc-pulse 2s infinite;
+}
+
+@keyframes lsc-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.lsc-status {
+  margin-left: 6px;
+  color: #38bdf8;
+  font-weight: normal;
+}
+
+.lsc-terminal {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-family: 'Courier Main', 'Courier New', Courier, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  background-color: #0a0a0a; /* Match ScreenLogPage.css background */
+  color: #00ff41; /* Match SLP primary green */
+  text-align: left; /* Force all terminal text to align left */
+}
+
+/* Custom subtle scrollbar */
+.lsc-terminal::-webkit-scrollbar {
+  width: 6px;
+  height: 6px; /* For horizontal scrollbar */
+}
+.lsc-terminal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.lsc-terminal::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.lsc-terminal::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+.lsc-terminal::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.lsc-empty {
+  color: #475569;
+  text-align: center;
+  margin-top: 20px;
+  font-style: italic;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.lsc-line {
+  margin-bottom: 4px;
+  display: block; /* Ensure it respects nowrap from parent */
+  text-align: left;
+}
+
+.lsc-timestamp {
+  color: #00884a;
+  font-size: 11px;
+  margin-right: 6px;
+  user-select: none;
+  opacity: 0.8;
+}
+
+/* Priority colors matching ScreenLogPage */
+.lsc-success { color: #00ff41; }
+.lsc-info { color: #00cc33; }
+.lsc-error { color: #ff4444; }
+
+/* Run Grouping */
+.lsc-run-group {
+  margin-bottom: 25px;
+  animation: lscFadeIn 0.4s ease-out;
+  text-align: left;
+}
+
+@keyframes lscFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lsc-run-divider {
+  display: flex;
+  align-items: center;
+  margin: 15px 0 10px 0;
+  color: #00aa2c;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  opacity: 0.8;
+  text-align: left;
+}
+
+.lsc-run-divider-line {
+  flex: 1; /* Pushes the text to the left if there's no preceding flex item */
+  height: 1px;
+  background: linear-gradient(90deg, #00aa2c, transparent); /* Fade to right */
+  opacity: 0.5;
+  margin-left: 10px;
+}
+
+.lsc-run-divider-text {
+  padding-right: 15px;
+  text-transform: uppercase;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
+}
+
+.lsc-guidance {
+  padding: 10px 14px;
+  background-color: #450a0a;
+  border-top: 1px solid #ef4444;
+  color: #fca5a5;
+  font-size: 11px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  white-space: pre-wrap;
+}
+
+/* Fullscreen Controls */
+.lsc-fullscreen-btn, 
+.lsc-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.lsc-fullscreen-btn:hover {
+  background-color: #334155;
+  color: #38bdf8;
+}
+
+.lsc-close-btn:hover {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+/* Fullscreen Overlay */
+.lsc-fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100dvw;
+  height: 100dvh;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.lsc-fullscreen-content {
+  width: 100%;
+  max-width: 1600px; /* Increased width as requested */
+  height: 100%;
+  background-color: #0a0a0a; /* Match SLP dark black */
+  border: 1px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.lsc-fullscreen-content .lsc-terminal {
+  font-size: 13px; /* Slightly larger in fullscreen */
+  padding: 20px;
+}
+

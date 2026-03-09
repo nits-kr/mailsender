@@ -141,17 +141,21 @@
 }
 
 .sidebar-left {
-  flex: 0 0 18%;
+  flex: 0 0 25%;
   padding: 40px 15px;
   color: white;
   text-align: center;
   background-color: #269abc;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevent children from expanding father beyond 25% */
 }
 
 .sidebar-left h3 {
   font-size: 1.2rem;
   margin-bottom: 30px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .ips-textarea {
@@ -164,12 +168,13 @@
   resize: none;
   background-color: white;
   color: #333;
+  flex-shrink: 0;
 }
 
 .content-middle {
-  flex: 0 0 57%;
+  flex: 0 0 50%;
   background-color: white;
-  padding: 40px 25px;
+  padding: 40px 45px;
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
   border-right: 1px solid #eee;

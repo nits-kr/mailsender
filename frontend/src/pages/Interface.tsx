@@ -7,7 +7,6 @@ import {
   useGetCampaignsQuery,
   useGetCampaignByIdQuery,
   useSendEmailMutation,
-  useGetCampaignLogsQuery,
   useLazyGetFileInfoQuery,
   useLazyValidateOfferQuery,
   useLazyGetCampaignStatusQuery,
@@ -17,6 +16,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import LiveSidebarConsole from "../components/LiveSidebarConsole";
 
 const formatCompactNumber = (num: number): string => {
   if (num >= 100000) {
@@ -147,34 +147,6 @@ const Interface = () => {
     useStopSpaceSendingMutation();
 
   const [triggerGetCampaignStatus] = useLazyGetCampaignStatusQuery();
-
-  // Polling for logs when a campaign is active
-  const { data: campaignLogs = [] } = useGetCampaignLogsQuery(
-    activeCampaignId || "",
-    {
-      skip: !activeCampaignId,
-      pollingInterval: pollLogs ? 2000 : 0,
-    },
-  );
-
-  useEffect(() => {
-    if (!pollLogs) return;
-    const timer = window.setTimeout(() => setPollLogs(false), 60000);
-    return () => window.clearTimeout(timer);
-  }, [pollLogs]);
-
-  // Auto-stop polling when campaign finishes (success OR error log appears)
-  useEffect(() => {
-    if (!pollLogs || campaignLogs.length === 0) return;
-    const isDone = campaignLogs.some((log: any) => {
-      const typeDone = log.type === "success" || log.type === "error";
-      const textDone =
-        log.log_text?.includes("SENT SUCCESS") ||
-        log.log_text?.includes("ERROR");
-      return typeDone || textDone;
-    });
-    if (isDone) setPollLogs(false);
-  }, [campaignLogs, pollLogs]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -535,6 +507,23 @@ const Interface = () => {
           {errors.accs && (
             <span className="error-text">{String(errors.accs.message)}</span>
           )}
+
+          {/* Real-time Side Console - Bulk Auto / Space Sending Only */}
+          {activeCampaignId &&
+            ((formData.mode === "bulk" && formData.sen_t === "auto") ||
+              liveStatus?.type === "space_sending") && (
+              <LiveSidebarConsole
+                campaignId={activeCampaignId}
+                statusText={
+                  liveStatus?.status === "Running"
+                    ? "RUNNING"
+                    : liveStatus?.status === "Completed"
+                      ? "COMPLETED"
+                      : "WAITING"
+                }
+                guidance={postSendGuidance || undefined}
+              />
+            )}
         </div>
 
         {/* Column 2: Main Form Content */}
@@ -1051,54 +1040,6 @@ const Interface = () => {
                     batches. {liveStatus.total_queued || 0} of{" "}
                     {liveStatus.total_emails} queued. Dashboard updates every
                     3s.
-                  </div>
-                )}
-              </div>
-            )}
-
-            {campaignLogs.length > 0 && (
-              <div
-                className="console-section"
-                style={{ marginTop: "30px", width: "100%" }}
-              >
-                <div className="section-header-legacy">
-                  CONSOLE LOGS (REAL-TIME)
-                </div>
-                <div className="console-window">
-                  {campaignLogs.map((log: any, idx: number) => (
-                    <div
-                      key={log._id || idx}
-                      className={`console-line ${log.type}`}
-                    >
-                      <span className="timestamp">
-                        [{new Date(log.created_at).toLocaleTimeString()}]
-                      </span>
-                      <pre className="log-text">{log.log_text}</pre>
-                    </div>
-                  ))}
-                </div>
-                {postSendGuidance && (
-                  <div
-                    className="guidance-box"
-                    style={{
-                      marginTop: "15px",
-                      padding: "15px",
-                      backgroundColor: "#1e293b",
-                      borderRadius: "6px",
-                      border: "1px solid #ef4444",
-                    }}
-                  >
-                    <pre
-                      style={{
-                        margin: 0,
-                        color: "#ef4444",
-                        whiteSpace: "pre-wrap",
-                        fontSize: "13px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {postSendGuidance}
-                    </pre>
                   </div>
                 )}
               </div>
