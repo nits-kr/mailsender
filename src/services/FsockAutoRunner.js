@@ -162,6 +162,15 @@ class FsockAutoRunner {
       const ipLine = testIps[i % testIps.length];
       const [ip, returnPath] = ipLine.split("|");
 
+      if (seeds.length === 0) {
+        await this._log(
+          campaignId,
+          "[AUTO] No active monitoring mailboxes (seeds) found. Please add active mailboxes in TestIds Portal.",
+          "warn",
+        );
+        return [];
+      }
+
       // Generate Message-ID for tracking (Standardized with /interface)
       let finalMsgId = config.message_id || "";
       if (!finalMsgId) {
