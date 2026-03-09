@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const campaignSchema = mongoose.Schema(
   {
     template_name: { type: String, required: true },
+    mysql_sno: { type: Number, index: { unique: true, sparse: true } },
     offer_id: { type: String },
     server: { type: String },
     mailer: { type: String, default: "Admin" },
