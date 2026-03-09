@@ -28,8 +28,9 @@ const InterfaceGuide = () => {
     { syntax: "{{domain}}", replace: "Domain", example: "freehelping.com" },
     {
       syntax: "{{msgid}}",
-      replace: "Message id",
-      example: "<hrc2hpdm9oYW1pbmZvdmGVj5jb20=@mydomain.com>",
+      replace: "Message id (Dynamic)",
+      example:
+        "<[[mixsmallalphanum(12)]]@mydomain.com> (Supports tags in settings)",
     },
     { type: "separator" },
     {

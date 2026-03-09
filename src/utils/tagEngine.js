@@ -24,12 +24,27 @@ const TagEngine = {
       return match; // Return unchanged if function not found
     });
 
-    // 2. Process Static Tags: ((tag))
+    // 2. Process Static Tags: ((tag)) or {{tag}}
     processedText = processedText.replace(/\(\((.*?)\)\)/gi, (match, p1) => {
       const tagName = p1.trim();
       if (tagName === "_track_") {
         const email = context.email || "";
         return crypto.createHash("md5").update(email).digest("hex");
+      }
+      return match;
+    });
+
+    // 3. Process Contextual Tags: {{tag}}
+    processedText = processedText.replace(/{{(.*?)}}/gi, (match, p1) => {
+      const tagName = p1.trim().toLowerCase();
+      if (tagName === "msgid" && context.msgId) {
+        return context.msgId;
+      }
+      if (tagName === "email" && context.email) {
+        return context.email;
+      }
+      if (tagName === "domain" && context.domain) {
+        return context.domain;
       }
       return match;
     });

@@ -158,6 +158,7 @@ const emailWorker = async (job) => {
         .replace(/{oln}/g, eh)
         .replace(/{base_trk}/g, newembase)
         .replace(/{hex_trk}/g, newemhex)
+        .replace(/{{?msgid}}?/g, msgId || "")
         .replace(/\(\(_track_\)\)/g, trackMd5);
     };
 
