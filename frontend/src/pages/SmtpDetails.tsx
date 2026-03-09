@@ -151,7 +151,7 @@ const SmtpDetails = () => {
         <br />
         <hr className="smtp-hr" />
 
-        <div className="margin-10 pb-20">
+        <div className="margin-10 pb-20 smtp-table-responsive">
           <table className="smtp-data-table">
             <thead>
               <tr>
@@ -175,7 +175,7 @@ const SmtpDetails = () => {
                   <td> {row.server} </td>
                   <td> {row.assignedip} </td>
                   <td> {row.hostname} </td>
-                  <td> {row.user} </td>
+                  <td className="smtp-cell-wrap"> {row.user} </td>
                   <td> {row.pass} </td>
                   <td> {row.port} </td>
                   <td> {row.tls} </td>

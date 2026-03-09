@@ -36,6 +36,7 @@
 .smtp-input {
   box-sizing: border-box;
   width: 400px;
+  max-width: 100%;
   font-size: 18px;
   height: 34px;
   padding: 3px 7px;
@@ -44,8 +45,8 @@
 }
 
 .smtp-select {
-  width: 28%;
-  min-width: 400px;
+  width: 400px;
+  max-width: 100%;
   font-size: 18px;
   height: 34px;
   padding: 3px 7px;
@@ -57,6 +58,8 @@
   font-family: monospace;
   padding: 5px;
   border: 1px solid #aaa;
+  width: 900px;
+  max-width: 100%;
 }
 
 .smtp-btn {
@@ -123,3 +126,30 @@
 .no-data-td { text-align: center; font-style: italic; font-weight: normal; }
 .p-0 { padding: 0; }
 .m-0 { margin: 0; }
+
+.smtp-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.smtp-cell-wrap {
+  max-width: 300px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+@media screen and (max-width: 768px) {
+  .smtp-mainbox {
+    width: 98%;
+    padding: 5px;
+  }
+  .smtp-input, .smtp-select, .smtp-textarea {
+    width: 100%;
+  }
+  .smtp-data-table thead th, .smtp-data-table tbody td {
+    font-size: 14px;
+    padding: 4px;
+  }
+}
