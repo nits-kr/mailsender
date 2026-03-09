@@ -80,6 +80,27 @@ const getLogs = async (req, res) => {
       },
     ]);
 
+    // Aggregation for daily history (for the chart)
+    const historyResult = await Log.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%m/%d/%Y", date: "$sent_on" } },
+          sent: { $sum: { $add: ["$test_sent", "$bulk_test"] } },
+          errors: { $sum: "$error" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          sent: 1,
+          errors: 1,
+        },
+      },
+    ]);
+
     const totals =
       totalsResult.length > 0
         ? totalsResult[0]
@@ -96,6 +117,7 @@ const getLogs = async (req, res) => {
       totalPages: Math.ceil(totalLogs / pageSize),
       currentPage: parseInt(page),
       totals,
+      history: historyResult,
     });
   } catch (error) {
     res

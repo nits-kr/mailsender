@@ -67,6 +67,7 @@ const Dashboard = () => {
     const defaultData = {
       logs: [],
       totals: { test_sent: 0, bulk_test_sent: 0, bulk_test: 0, error: 0 },
+      history: [],
       totalEntries: 0,
       totalPages: 0,
     };
@@ -78,6 +79,7 @@ const Dashboard = () => {
       return {
         logs: logsResponse.data,
         totals: logsResponse.totals || defaultData.totals,
+        history: logsResponse.history || [],
         totalEntries: logsResponse.total || 0,
         totalPages: logsResponse.totalPages || 0,
       };
@@ -96,6 +98,7 @@ const Dashboard = () => {
           }),
           defaultData.totals,
         ),
+        history: [], // Fallback to client-side calc if legacy
         totalEntries: logsResponse.length,
         totalPages: 1,
       };
@@ -118,6 +121,13 @@ const Dashboard = () => {
   };
 
   const dailyHistory = useMemo(() => {
+    // If we have history from the server, use it
+    if (logsResponse?.history && Array.isArray(logsResponse.history)) {
+      return logsResponse.history;
+    }
+
+    // Fallback: If logsResponse is a plain array (legacy/safeguard), calculate here
+    // but this will only show data for the CURRENT page if paginated.
     if (!Array.isArray(logs)) return [];
     return logs
       .reduce((acc: any[], log) => {
@@ -132,7 +142,7 @@ const Dashboard = () => {
         return acc;
       }, [])
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [logs]);
+  }, [logs, logsResponse]);
 
   return (
     <div className="dashboard-container-new">

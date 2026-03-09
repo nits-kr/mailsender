@@ -78,7 +78,7 @@
   outline: none;
 }
 
-.p-btn:hover:not(:disabled):not(.p-btn-dots) {
+.p-btn:hover:not(:disabled):not(.p-btn-dots):not(.p-btn-active) {
   border-color: #3b82f6;
   color: #3b82f6;
   background: rgba(59, 130, 246, 0.05);
