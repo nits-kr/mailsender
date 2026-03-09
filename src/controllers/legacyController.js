@@ -6,7 +6,7 @@ const OfferSuppQueue = require("../models/OfferSuppQueue");
 const RawSmtpClient = require("../services/smtpService");
 const fs = require("fs");
 const path = require("path");
-const FsockAutoRunner = require("./FsockAutoRunner");
+const FsockAutoRunner = require("../services/FsockAutoRunner");
 const TagEngine = require("../utils/tagEngine");
 const { generateMessageId } = require("../utils/patternGenerator");
 
