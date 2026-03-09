@@ -375,12 +375,16 @@ const startFsockAuto = async (req, res) => {
   const { sub: subject, mode } = req.body;
   try {
     // 1. Create a Campaign record (not just a template) for live tracking
+    const normalizedMode = (mode || "Bulk").toLowerCase();
+    const campaignType = normalizedMode === "test" ? "test_auto" : "bulk_auto";
+
     const campaign = await Campaign.create({
+      template_name: subject || "FSock Auto Campaign",
       name: subject || "FSock Auto Campaign",
       status: "Running",
       start_time: new Date(),
-      type: "fsock",
-      mode: mode || "Bulk",
+      type: campaignType,
+      mode: normalizedMode,
     });
 
     // 1b. Also create/update Template record so "Get Track Link" can find it
