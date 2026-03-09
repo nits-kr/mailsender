@@ -6,10 +6,6 @@ const OfferSuppQueue = require("../models/OfferSuppQueue");
 const RawSmtpClient = require("../services/smtpService");
 const fs = require("fs");
 const path = require("path");
-const FsockAutoRunner = require("../services/FsockAutoRunner");
-const TagEngine = require("../utils/tagEngine");
-const { generateMessageId } = require("../utils/patternGenerator");
-const { resolveSmtpDetails } = require("../utils/smtpResolver");
 
 // @desc    Get campaign for legacy PHP script
 // @route   GET /api/legacy/campaign/:id
@@ -105,30 +101,24 @@ const getLegacyCampaignLink = async (req, res) => {
 const searchLegacyCampaignLink = async (req, res) => {
   const { subject, ip, domain, offer } = req.body;
   try {
-    // Find the latest campaign matching these criteria
     const campaign = await CampaignTemplate.findOne({
-      $or: [{ name: subject }, { subject: subject }],
+      name: subject, // mapping subject to name in Mongo
+      ip: ip,
       domain: domain,
       offer_id: offer,
-    }).sort({ createdAt: -1 });
-
+    });
     if (!campaign) {
       return res.status(404).json({ message: "Campaign not found" });
     }
-
-    // Determine the base URL from referer to build the link
-    // e.g., http://.../interface or http://.../fsock-send-smtp-auto
-    const referer = req.headers.referer || "";
-    const baseUrl = referer.split("?")[0];
-    const trackLink = `${baseUrl}?c=${campaign._id}`;
-
-    res.json({ in_link: trackLink });
+    res.json({ in_link: campaign.in_link || "" });
   } catch (error) {
     res
       .status(500)
       .json({ message: "Error searching link", error: error.message });
   }
 };
+
+const TagEngine = require("../utils/tagEngine");
 
 // @desc    Send email using raw SMTP (FSOCK Parity)
 // @route   POST /api/legacy/fsock-send
@@ -143,7 +133,7 @@ const sendFsockSmtp = async (req, res) => {
     fmencode,
     mode,
     datafile,
-    message_id,
+    msgid,
     total_limit,
     send_limit,
     headers,
@@ -174,7 +164,6 @@ const sendFsockSmtp = async (req, res) => {
       headers: headers,
       offer_id: offerId,
       domain: domain,
-      message_id: message_id,
       mode: mode || "Test",
       sleep_time: sleep,
       wait_time: wait,
@@ -212,77 +201,113 @@ const sendFsockSmtp = async (req, res) => {
 
     if (mode === "Test") {
       for (const line of ipLines) {
-        const [ipKey, returnPath] = line.trim().split("|");
-        const smtpDetails = await resolveSmtpDetails(ipKey);
+        const [ip, returnPath] = line.trim().split("|");
+        const ipRecord = await IP.findOne({ ip });
 
-        if (!smtpDetails) {
-          output += `${ipKey} <font color='red'> Not Exist </font><br>`;
+        if (!ipRecord) {
+          output += `${ip} <font color='red'> Not Exist </font><br>`;
           continue;
         }
 
         const client = new RawSmtpClient({
-          host: smtpDetails.host,
-          port: smtpDetails.port,
+          host: ipRecord.hostname || ip,
+          port: ipRecord.port || 25,
         });
-
-        const authUser = smtpDetails.user || "";
-        const authPass = smtpDetails.pass || "";
 
         for (const email of testEmails) {
           const targetEmail = email.trim();
           if (!targetEmail) continue;
 
-          // 1. Prepare Centralized Context for TagEngine (Handles everything)
+          // Helper for tag replacements (Feature Parity)
           const context = {
             email: targetEmail,
             fromEmail,
             fromName: encodedFromName,
             subject: encodedSubject,
-            domain: domain || "",
-            offer_id: offerId,
-            html: messageHtml,
-            plain: messagePlain,
           };
 
-          // 2. Determine/Generate Message-ID (Standardized)
-          let finalMsgId = message_id || "";
-          if (!finalMsgId) {
-            finalMsgId = generateMessageId(1, domain || "localhost");
-          } else if (!isNaN(finalMsgId) && finalMsgId.length < 3) {
-            finalMsgId = generateMessageId(finalMsgId, domain || "localhost");
-          }
-          context.msgId = TagEngine.process(finalMsgId, context);
+          const [toName, toDomain] = targetEmail.split("@");
+          const fromDomain = fromEmail.split("@")[1] || "";
 
-          // 3. Process Headers and Body in one pass (Using the optimized TagEngine)
-          let processedHeaders = TagEngine.process(headers || "", context);
-          let processedHtml = TagEngine.process(messageHtml || "", context);
+          // Process Body/Headers with TagEngine and Logic
+          let processedHeaders = headers || "";
+          let processedHtml = messageHtml || "";
+          let processedPlain = messagePlain || "";
 
-          // 4. Boundary logic (Standardized)
+          // 1. Basic Tag Replacements
+          const replaceBaseTags = (str) => {
+            return str
+              .replace(/{{SubjectLine}}/g, encodedSubject)
+              .replace(/{{FromEmail}}/g, fromEmail)
+              .replace(/{{FromName}}/g, encodedFromName)
+              .replace(/{{FromDomain}}/g, fromDomain)
+              .replace(/{{Domain}}/g, domain || "")
+              .replace(/{{ToEmail}}/g, targetEmail)
+              .replace(/{{ToName}}/g, toName)
+              .replace(/{{ToDomain}}/g, toDomain);
+          };
+
+          processedHeaders = replaceBaseTags(processedHeaders);
+          processedHtml = replaceBaseTags(processedHtml);
+          processedPlain = replaceBaseTags(processedPlain);
+
+          // 2. Advanced Content Encodings (Parity with PHP original)
+          processedHeaders = processedHeaders
+            .replace(/{{HtmlContent}}/g, processedHtml)
+            .replace(/{{PlainContent}}/g, processedPlain)
+            .replace(
+              /{{HtmlContent_base64}}/g,
+              Buffer.from(processedHtml).toString("base64"),
+            )
+            .replace(
+              /{{PlainContent_base64}}/g,
+              Buffer.from(processedPlain).toString("base64"),
+            )
+            .replace(
+              /{{HtmlContent_qp}}/g,
+              TagEngine.functions.ascii2hex(processedHtml),
+            ) // Roughly equivalent to QP for matching logic
+            .replace(
+              /{{PlainContent_qp}}/g,
+              TagEngine.functions.ascii2hex(processedPlain),
+            );
+
+          // 3. Process Message ID
+          let processedMsgId = TagEngine.process(msgid || "", context).replace(
+            /{{Domain}}/g,
+            domain || "",
+          );
+
+          processedHeaders = processedHeaders.replace(
+            /{{MessageId}}/g,
+            processedMsgId,
+          );
+
+          // 4. Final Pass with Tag Engine (Randomization Engine [[func]])
+          processedHeaders = TagEngine.process(processedHeaders, context);
+          processedHtml = TagEngine.process(processedHtml, context);
+          processedPlain = TagEngine.process(processedPlain, context);
+
+          // 5. Boundary replacement if exists
           const boundaryMatch = processedHeaders.match(
-            /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|\r|\n|$)/i,
+            /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|$)/i,
           );
           if (boundaryMatch && boundaryMatch[1]) {
-            const boundary = boundaryMatch[1].replace(/['"]/g, "").trim();
             processedHeaders = processedHeaders.replace(
               /{{boundary}}/g,
-              boundary,
+              boundaryMatch[1],
             );
-            processedHtml = processedHtml.replace(/{{boundary}}/g, boundary);
           }
 
           const finalBody = `${processedHeaders}\r\n\r\n${processedHtml}`;
 
-          // 5. Tag processing for return path
-          let processedReturnPath = returnPath || fromEmail;
-          processedReturnPath = TagEngine.process(processedReturnPath, context);
-
           const result = await client.send({
-            user: authUser,
-            pass: authPass,
+            user: ipRecord.user || "",
+            pass: ipRecord.pass || "",
             from: fromEmail,
             to: targetEmail,
             body: finalBody,
-            returnPath: processedReturnPath,
+            returnPath: TagEngine.process(returnPath || fromEmail, context),
           });
 
           if (result.success) {
@@ -312,68 +337,6 @@ const sendFsockSmtp = async (req, res) => {
   }
 };
 
-// @desc    Start FSOCK Auto Campaign
-// @route   POST /api/legacy/fsock-auto-start
-const startFsockAuto = async (req, res) => {
-  const { sub: subject, mode } = req.body;
-  try {
-    // 1. Create a Campaign record (not just a template) for live tracking
-    const normalizedMode = (mode || "Bulk").toLowerCase();
-    const campaignType = normalizedMode === "test" ? "test_auto" : "bulk_auto";
-
-    const campaign = await Campaign.create({
-      template_name: subject || "FSock Auto Campaign",
-      name: subject || "FSock Auto Campaign",
-      status: "Running",
-      start_time: new Date(),
-      type: campaignType,
-      mode: normalizedMode,
-    });
-
-    // 1b. Also create/update Template record so "Get Track Link" can find it
-    await CampaignTemplate.create({
-      name: subject || "FSock Auto Campaign",
-      from_email: req.body.from_email,
-      subject: subject,
-      from_name: req.body.from,
-      message_html: req.body.message_html,
-      message_plain: req.body.message_plain,
-      headers: req.body.headers,
-      offer_id: req.body.offerId,
-      domain: req.body.domain,
-      message_id: req.body.message_id,
-      mode: mode || "Bulk",
-      sleep_time: req.body.sleep,
-      wait_time: req.body.wait,
-      inbox_percent: req.body.inbox_percentage,
-      mail_after: req.body.test_after,
-    });
-
-    // 2. Start the runner
-    FsockAutoRunner.start(campaign._id, req.body);
-
-    res.json({
-      message: "FSOCK Auto Campaign Started",
-      campaignId: campaign._id,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Stop FSOCK Auto Campaign
-// @route   POST /api/legacy/fsock-auto-stop/:id
-const stopFsockAuto = async (req, res) => {
-  try {
-    const { id } = req.params;
-    FsockAutoRunner.stop(id);
-    await Campaign.findByIdAndUpdate(id, { status: "Stopped" });
-    res.json({ message: "FSOCK Auto Campaign Stopped" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 module.exports = {
   getLegacyCampaign,
   getLegacyIP,
@@ -382,6 +345,4 @@ module.exports = {
   getLegacyCampaignLink,
   searchLegacyCampaignLink,
   sendFsockSmtp,
-  startFsockAuto,
-  stopFsockAuto,
 };

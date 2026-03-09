@@ -37,54 +37,14 @@ const TagEngine = {
     // 3. Process Contextual Tags: {{tag}}
     processedText = processedText.replace(/{{(.*?)}}/gi, (match, p1) => {
       const tagName = p1.trim().toLowerCase();
-
-      // Core Context Tags
-      if ((tagName === "msgid" || tagName === "messageid") && context.msgId) {
+      if (tagName === "msgid" && context.msgId) {
         return context.msgId;
       }
-      if ((tagName === "email" || tagName === "toemail") && context.email) {
+      if (tagName === "email" && context.email) {
         return context.email;
       }
       if (tagName === "domain" && context.domain) {
         return context.domain;
-      }
-      if (tagName === "fromemail" && context.fromEmail) {
-        return context.fromEmail;
-      }
-      if (tagName === "fromname" && context.fromName) {
-        return context.fromName;
-      }
-      if (tagName === "subjectline" && context.subject) {
-        return context.subject;
-      }
-      if (tagName === "offer_id" && context.offer_id) {
-        return context.offer_id;
-      }
-      if (tagName === "data_file" && context.data_file) {
-        return context.data_file;
-      }
-
-      // Advanced Legacy Content Encodings (Parity with PHP original)
-      if (
-        tagName.startsWith("htmlcontent_") ||
-        tagName.startsWith("plaincontent_")
-      ) {
-        const content = tagName.startsWith("htmlcontent_")
-          ? context.html
-          : context.plain;
-        if (!content) return match;
-
-        if (tagName.endsWith("base64")) {
-          return Buffer.from(content).toString("base64");
-        }
-        if (tagName.endsWith("uue")) {
-          // Uuencode (Base32 approximation, legacy support)
-          return TagEngine.functions.strToUue(content);
-        }
-        if (tagName.endsWith("qp")) {
-          // Quoted-Printable
-          return TagEngine.functions.quotedPrintableEncode(content);
-        }
       }
       return match;
     });
@@ -175,66 +135,6 @@ const TagEngine = {
       const edtOffset = -4 * 60 * 60 * 1000;
       const edtDate = new Date(date.getTime() + edtOffset);
       return edtDate.toUTCString().replace("GMT", "-0400");
-    },
-    mixchar: (len) => {
-      const chars =
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let res = "";
-      for (let i = 0; i < len; i++)
-        res += chars.charAt(Math.floor(Math.random() * chars.length));
-      return res;
-    },
-    mixallchar: (len) => {
-      const chars =
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
-      let res = "";
-      for (let i = 0; i < len; i++)
-        res += chars.charAt(Math.floor(Math.random() * chars.length));
-      return res;
-    },
-    strToUue: (str) => {
-      // Simple implementation of PHP's convert_uuencode
-      const e = process.version
-        ? Buffer.from(str)
-        : new TextEncoder().encode(str);
-      let uue = "";
-      for (let i = 0; i < e.length; i += 45) {
-        const chunk = e.slice(i, i + 45);
-        let encoded = String.fromCharCode(chunk.length + 32);
-        for (let j = 0; j < chunk.length; j += 3) {
-          const b1 = chunk[j];
-          const b2 = chunk[j + 1] || 0;
-          const b3 = chunk[j + 2] || 0;
-
-          const o1 = b1 >> 2;
-          const o2 = ((b1 & 3) << 4) | (b2 >> 4);
-          const o3 = ((b2 & 15) << 2) | (b3 >> 6);
-          const o4 = chunk.length > j + 2 ? b3 & 63 : 64; // Handle padding gracefully
-
-          encoded += String.fromCharCode(o1 === 0 ? 96 : o1 + 32);
-          encoded += String.fromCharCode(o2 === 0 ? 96 : o2 + 32);
-          encoded +=
-            chunk.length > j + 1
-              ? String.fromCharCode(o3 === 0 ? 96 : o3 + 32)
-              : "`";
-          encoded +=
-            chunk.length > j + 2
-              ? String.fromCharCode(o4 === 0 ? 96 : o4 + 32)
-              : "`";
-        }
-        uue += encoded + "\n";
-      }
-      return uue + "`\n";
-    },
-    quotedPrintableEncode: (str) => {
-      // Basic Quoted-Printable encoding approximation
-      return str
-        .replace(/[^\x21-\x3C\x3E-\x7E\t \r\n]/g, (match) => {
-          const hex = match.charCodeAt(0).toString(16).toUpperCase();
-          return "=" + (hex.length === 1 ? "0" + hex : hex);
-        })
-        .replace(/ (?=\r?\n)/g, "=20")
-        .replace(/\t(?=\r?\n)/g, "=09");
     },
   },
 };

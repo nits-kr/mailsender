@@ -8,7 +8,7 @@ class RawSmtpClient {
   constructor(options) {
     this.host = options.host;
     this.port = options.port || 25;
-    this.timeout = options.timeout || 15000;
+    this.timeout = options.timeout || 10000;
   }
 
   async send(params) {
@@ -34,11 +34,7 @@ class RawSmtpClient {
         () => `MAIL FROM: <${returnPath || from}>\r\n`,
         () => `RCPT TO: <${to}>\r\n`,
         () => `DATA\r\n`,
-        () => {
-          const bodyWithRN = body.replace(/\r?\n/g, "\r\n");
-          const bodyWithDots = bodyWithRN.replace(/^\./gm, "..");
-          return `${bodyWithDots}\r\n.\r\n`;
-        },
+        () => `${body}\r\n.\r\n`,
         () => `QUIT\r\n`,
       ];
 
@@ -56,15 +52,10 @@ class RawSmtpClient {
               step++;
             }
             break;
-          case 1: // EHLO response received, send AUTH LOGIN or MAIL FROM
+          case 1: // EHLO response received, send AUTH LOGIN
             if (code === "250") {
-              if (user && pass) {
-                client.write(commands[1]());
-                step = 2; // Jump to AUTH
-              } else {
-                client.write(commands[4]()); // Skip directly to MAIL FROM
-                step = 5; // Jump to MAIL FROM state
-              }
+              client.write(commands[1]());
+              step++;
             }
             break;
           case 2: // AUTH LOGIN response, send User

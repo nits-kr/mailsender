@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const campaignTemplateSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
-    mysql_sno: { type: Number, index: { unique: true, sparse: true } },
     accs: { type: String },
     headers: { type: String },
     from_email: { type: String },

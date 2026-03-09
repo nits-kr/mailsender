@@ -344,11 +344,6 @@ export const InterfaceNewPage = () => {
   };
 
   const handleGetLink = async () => {
-    if (!formData.subject || !formData.domain || !formData.offer_id) {
-      alert("Please fill Subject, Domain, and Offer Id first");
-      setStatus("Metadata missing for link search");
-      return;
-    }
     setStatus("Searching for link...");
     try {
       const payload = {
