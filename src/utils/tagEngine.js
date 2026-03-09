@@ -37,14 +37,31 @@ const TagEngine = {
     // 3. Process Contextual Tags: {{tag}}
     processedText = processedText.replace(/{{(.*?)}}/gi, (match, p1) => {
       const tagName = p1.trim().toLowerCase();
-      if (tagName === "msgid" && context.msgId) {
+
+      // Core Context Tags
+      if ((tagName === "msgid" || tagName === "messageid") && context.msgId) {
         return context.msgId;
       }
-      if (tagName === "email" && context.email) {
+      if ((tagName === "email" || tagName === "toemail") && context.email) {
         return context.email;
       }
       if (tagName === "domain" && context.domain) {
         return context.domain;
+      }
+      if (tagName === "fromemail" && context.fromEmail) {
+        return context.fromEmail;
+      }
+      if (tagName === "fromname" && context.fromName) {
+        return context.fromName;
+      }
+      if (tagName === "subjectline" && context.subject) {
+        return context.subject;
+      }
+      if (tagName === "offer_id" && context.offer_id) {
+        return context.offer_id;
+      }
+      if (tagName === "data_file" && context.data_file) {
+        return context.data_file;
       }
 
       // Advanced Legacy Content Encodings (Parity with PHP original)

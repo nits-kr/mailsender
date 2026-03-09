@@ -228,93 +228,32 @@ const sendFsockSmtp = async (req, res) => {
           const targetEmail = email.trim();
           if (!targetEmail) continue;
 
-          // Helper for tag replacements (Feature Parity)
+          // 1. Prepare Centralized Context for TagEngine (Handles everything)
           const context = {
             email: targetEmail,
             fromEmail,
             fromName: encodedFromName,
             subject: encodedSubject,
+            domain: domain || "",
+            offer_id: offerId,
+            html: messageHtml,
+            plain: messagePlain,
           };
 
-          const [toName, toDomain] = targetEmail.split("@");
-          const fromDomain = fromEmail.split("@")[1] || "";
-
-          // Process Body/Headers with TagEngine and Logic
-          let processedHeaders = headers || "";
-          let processedHtml = messageHtml || "";
-          let processedPlain = messagePlain || "";
-
-          // 1. Basic Tag Replacements
-          const replaceBaseTags = (str) => {
-            return str
-              .replace(/{{SubjectLine}}/g, encodedSubject)
-              .replace(/{{FromEmail}}/g, fromEmail)
-              .replace(/{{FromName}}/g, encodedFromName)
-              .replace(/{{FromDomain}}/g, fromDomain)
-              .replace(/{{Domain}}/g, domain || "")
-              .replace(/{{ToEmail}}/g, targetEmail)
-              .replace(/{{ToName}}/g, toName)
-              .replace(/{{ToDomain}}/g, toDomain);
-          };
-
-          processedHeaders = replaceBaseTags(processedHeaders);
-          processedHtml = replaceBaseTags(processedHtml);
-          processedPlain = replaceBaseTags(processedPlain);
-
-          // 2. Advanced Content Encodings (Parity with PHP original)
-          processedHeaders = processedHeaders
-            .replace(/{{HtmlContent}}/g, processedHtml)
-            .replace(/{{PlainContent}}/g, processedPlain)
-            .replace(
-              /{{HtmlContent_base64}}/g,
-              Buffer.from(processedHtml).toString("base64"),
-            )
-            .replace(
-              /{{PlainContent_base64}}/g,
-              Buffer.from(processedPlain).toString("base64"),
-            )
-            .replace(
-              /{{HtmlContent_qp}}/g,
-              TagEngine.functions.quotedPrintableEncode(processedHtml),
-            )
-            .replace(
-              /{{PlainContent_qp}}/g,
-              TagEngine.functions.quotedPrintableEncode(processedPlain),
-            )
-            .replace(
-              /{{HtmlContent_uue}}/g,
-              TagEngine.functions.strToUue(processedHtml),
-            )
-            .replace(
-              /{{PlainContent_uue}}/g,
-              TagEngine.functions.strToUue(processedPlain),
-            );
-
-          // 3. Process Message ID (Standardized with /interface)
+          // 2. Determine/Generate Message-ID (Standardized)
           let finalMsgId = message_id || "";
           if (!finalMsgId) {
             finalMsgId = generateMessageId(1, domain || "localhost");
           } else if (!isNaN(finalMsgId) && finalMsgId.length < 3) {
             finalMsgId = generateMessageId(finalMsgId, domain || "localhost");
           }
+          context.msgId = TagEngine.process(finalMsgId, context);
 
-          let processedMsgId = TagEngine.process(finalMsgId, {
-            domain: domain,
-            email: targetEmail,
-            offer_id: offerId,
-          });
+          // 3. Process Headers and Body in one pass (Using the optimized TagEngine)
+          let processedHeaders = TagEngine.process(headers || "", context);
+          let processedHtml = TagEngine.process(messageHtml || "", context);
 
-          processedHeaders = processedHeaders.replace(
-            /{{MessageId}}/g,
-            processedMsgId,
-          );
-
-          // 4. Final Pass with Tag Engine (Randomization Engine [[func]])
-          processedHeaders = TagEngine.process(processedHeaders, context);
-          processedHtml = TagEngine.process(processedHtml, context);
-          processedPlain = TagEngine.process(processedPlain, context);
-
-          // 5. Boundary replacement if exists
+          // 4. Boundary logic (Standardized)
           const boundaryMatch = processedHeaders.match(
             /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|\r|\n|$)/i,
           );
@@ -329,7 +268,7 @@ const sendFsockSmtp = async (req, res) => {
 
           const finalBody = `${processedHeaders}\r\n\r\n${processedHtml}`;
 
-          // Tag processing for return path
+          // 5. Tag processing for return path
           let processedReturnPath = returnPath || fromEmail;
           processedReturnPath = TagEngine.process(processedReturnPath, context);
 

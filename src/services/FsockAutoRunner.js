@@ -20,6 +20,7 @@ const TagEngine = require("../utils/tagEngine");
 const { generateMessageId } = require("../utils/patternGenerator");
 const fs = require("fs-extra");
 const path = require("path");
+const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -252,10 +253,7 @@ class FsockAutoRunner {
   }
 
   async _sendBulk(campaignId, config, count, handle) {
-    let dataFilePath = config.datafile;
-    if (!dataFilePath.startsWith("/")) {
-      dataFilePath = path.join("/var/www/data", dataFilePath);
-    }
+    const dataFilePath = path.join(DATA_PATH, config.datafile);
 
     if (!(await fs.exists(dataFilePath))) {
       await this._log(
@@ -333,11 +331,18 @@ class FsockAutoRunner {
       port: ipRecord.port || 25,
     });
 
-    let finalMsgId = overrideMsgId || config.message_id || "";
+    let finalMsgId = overrideMsgId;
+
     if (!finalMsgId) {
-      finalMsgId = generateMessageId(1, config.domain || "localhost");
-    } else if (!isNaN(finalMsgId) && finalMsgId.length < 3) {
-      finalMsgId = generateMessageId(finalMsgId, config.domain || "localhost");
+      finalMsgId = config.message_id || "";
+      if (!finalMsgId) {
+        finalMsgId = generateMessageId(1, config.domain || "localhost");
+      } else if (!isNaN(finalMsgId) && finalMsgId.length < 3) {
+        finalMsgId = generateMessageId(
+          finalMsgId,
+          config.domain || "localhost",
+        );
+      }
     }
 
     finalMsgId = TagEngine.process(finalMsgId, {
@@ -357,28 +362,21 @@ class FsockAutoRunner {
       fromName: encodedFromName,
       subject: encodedSubject,
       offer_id: config.offerId,
+      html: config.message_html,
+      plain: config.message_plain,
     };
 
     let headers = TagEngine.process(config.headers || "", context);
     let html = TagEngine.process(config.message_html || "", context);
 
-    headers = headers
-      .replace(/{{SubjectLine}}/g, encodedSubject)
-      .replace(/{{FromEmail}}/g, config.from_email)
-      .replace(/{{FromName}}/g, encodedFromName)
-      .replace(/{{ToEmail}}/g, targetEmail)
-      .replace(/{{MessageId}}/g, finalMsgId);
-
-    // Boundary Extraction (Parity with PHP send_fsock.php:80)
-    let boundary = "";
-    const bMatch = headers.match(/boundary=(.*?)(?:\r|\n|$)/i);
-    if (bMatch && bMatch[1]) {
-      boundary = bMatch[1].replace(/['"]/g, "").trim();
-    }
-
-    if (boundary) {
-      html = html.replace(/{{boundary}}/g, boundary);
+    // Boundary Extraction & Replacement (Standardized)
+    const boundaryMatch = headers.match(
+      /boundary=(?:"?)(.*?)(?:"?)(?:;|\s|\r|\n|$)/i,
+    );
+    if (boundaryMatch && boundaryMatch[1]) {
+      const boundary = boundaryMatch[1].replace(/['"]/g, "").trim();
       headers = headers.replace(/{{boundary}}/g, boundary);
+      html = html.replace(/{{boundary}}/g, boundary);
     }
 
     const body = `${headers}\r\n\r\n${html}`;

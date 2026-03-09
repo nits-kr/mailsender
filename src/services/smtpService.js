@@ -8,7 +8,7 @@ class RawSmtpClient {
   constructor(options) {
     this.host = options.host;
     this.port = options.port || 25;
-    this.timeout = options.timeout || 10000;
+    this.timeout = options.timeout || 15000;
   }
 
   async send(params) {
