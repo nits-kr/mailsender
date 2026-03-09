@@ -6,6 +6,8 @@ const {
   getLegacyCampaignLink,
   getLegacyCampaign,
   sendFsockSmtp,
+  startFsockAuto,
+  stopFsockAuto,
 } = require("../controllers/legacyController");
 
 const router = express.Router();
