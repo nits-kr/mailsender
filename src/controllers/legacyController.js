@@ -104,16 +104,24 @@ const getLegacyCampaignLink = async (req, res) => {
 const searchLegacyCampaignLink = async (req, res) => {
   const { subject, ip, domain, offer } = req.body;
   try {
+    // Find the latest campaign matching these criteria
     const campaign = await CampaignTemplate.findOne({
-      name: subject, // mapping subject to name in Mongo
-      ip: ip,
+      $or: [{ name: subject }, { subject: subject }],
       domain: domain,
       offer_id: offer,
-    });
+    }).sort({ createdAt: -1 });
+
     if (!campaign) {
       return res.status(404).json({ message: "Campaign not found" });
     }
-    res.json({ in_link: campaign.in_link || "" });
+
+    // Determine the base URL from referer to build the link
+    // e.g., http://.../interface or http://.../fsock-send-smtp-auto
+    const referer = req.headers.referer || "";
+    const baseUrl = referer.split("?")[0];
+    const trackLink = `${baseUrl}?c=${campaign._id}`;
+
+    res.json({ in_link: trackLink });
   } catch (error) {
     res
       .status(500)
@@ -373,6 +381,25 @@ const startFsockAuto = async (req, res) => {
       start_time: new Date(),
       type: "fsock",
       mode: mode || "Bulk",
+    });
+
+    // 1b. Also create/update Template record so "Get Track Link" can find it
+    await CampaignTemplate.create({
+      name: subject || "FSock Auto Campaign",
+      from_email: req.body.from_email,
+      subject: subject,
+      from_name: req.body.from,
+      message_html: req.body.message_html,
+      message_plain: req.body.message_plain,
+      headers: req.body.headers,
+      offer_id: req.body.offerId,
+      domain: req.body.domain,
+      message_id: req.body.message_id,
+      mode: mode || "Bulk",
+      sleep_time: req.body.sleep,
+      wait_time: req.body.wait,
+      inbox_percent: req.body.inbox_percentage,
+      mail_after: req.body.test_after,
     });
 
     // 2. Start the runner
