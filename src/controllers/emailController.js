@@ -367,6 +367,11 @@ const sendEmail = async (req, res) => {
 
     if (existingCampaignId) {
       campaign = await Campaign.findById(existingCampaignId);
+    } else if (template_name) {
+      // Find latest campaign with same name to reuse row (user request)
+      campaign = await Campaign.findOne({ template_name }).sort({
+        createdAt: -1,
+      });
     }
 
     // Only reset stats if the campaign reached "Completed" or if it's a brand new campaign.
