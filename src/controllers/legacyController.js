@@ -263,12 +263,11 @@ const sendFsockSmtp = async (req, res) => {
           const fromDomain = fromEmail.split("@")[1] || "";
 
           // Process Body/Headers with TagEngine and Logic
-          let processedHeaders = headers || "";
-          let processedHtml = messageHtml || "";
-          let processedPlain = messagePlain || "";
+          // Initialized below with default headers if empty
 
           // 1. Basic Tag Replacements
           const replaceBaseTags = (str) => {
+            if (!str) return "";
             return str
               .replace(/{{SubjectLine}}/g, encodedSubject)
               .replace(/{{FromEmail}}/g, fromEmail)
@@ -280,9 +279,29 @@ const sendFsockSmtp = async (req, res) => {
               .replace(/{{ToDomain}}/g, toDomain);
           };
 
-          processedHeaders = replaceBaseTags(processedHeaders);
-          processedHtml = replaceBaseTags(processedHtml);
-          processedPlain = replaceBaseTags(processedPlain);
+          // Standardize line endings and provide default headers if empty
+          let rawHeaderTemplate = (headers || "").trim();
+          if (!rawHeaderTemplate) {
+            rawHeaderTemplate =
+              "Date: [[RFC_Date_UTC()]]\r\n" +
+              "From: {{FromName}} <{{FromEmail}}>\r\n" +
+              "Subject: {{SubjectLine}}\r\n" +
+              "To: {{ToEmail}}\r\n" +
+              "MIME-Version: 1.0\r\n" +
+              "Content-Type: text/html; charset=utf-8";
+          }
+          let processedHeaders = replaceBaseTags(rawHeaderTemplate).replace(
+            /\r?\n/g,
+            "\r\n",
+          );
+          let processedHtml = replaceBaseTags(messageHtml || "").replace(
+            /\r?\n/g,
+            "\r\n",
+          );
+          let processedPlain = replaceBaseTags(messagePlain || "").replace(
+            /\r?\n/g,
+            "\r\n",
+          );
 
           // 2. Advanced Content Encodings (Parity with PHP original)
           processedHeaders = processedHeaders
