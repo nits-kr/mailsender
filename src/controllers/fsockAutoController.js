@@ -17,7 +17,7 @@ const ImapData = require("../models/ImapData");
 const { autoSendQueue } = require("../queues/autoSendQueue");
 const socketService = require("../services/socketService");
 
-const DATA_DIR = process.env.DATA_FILE_PATH || "/var/www/data/";
+const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,18 +125,40 @@ const createCampaign = asyncHandler(async (req, res) => {
 
   // ── Validate data file exists (ONLY IF BULK) ──────────────────────────────
   if (auto_start) {
-    const dataFilePath = path.isAbsolute(data_file)
-      ? data_file
-      : path.join(DATA_DIR, data_file);
+    let dataFilePath = "";
+    if (path.isAbsolute(data_file)) {
+      dataFilePath = data_file;
+    } else {
+      // Smart resolution: check both locations, prefer non-empty
+      const p1 = path.join(DATA_PATH, data_file);
+      const p2 = path.join(BUFFER_PATH, data_file);
+
+      const exists1 = fs.existsSync(p1);
+      const exists2 = fs.existsSync(p2);
+
+      if (exists1 && exists2) {
+        // Both exist? Choose the non-empty one
+        const s1 = fs.statSync(p1).size;
+        const s2 = fs.statSync(p2).size;
+        dataFilePath = s2 > 0 ? p2 : p1;
+      } else if (exists2) {
+        dataFilePath = p2;
+      } else {
+        dataFilePath = p1;
+      }
+    }
+
     if (!fs.existsSync(dataFilePath)) {
       return res
         .status(400)
         .json({ message: `Data file not found: ${data_file}` });
     }
+
     const fileLines = fs
       .readFileSync(dataFilePath, "utf8")
       .split("\n")
       .filter(Boolean);
+
     if (fileLines.length < Number(send_limit)) {
       return res.status(400).json({
         message: `Data file has only ${fileLines.length} lines but send_limit is ${send_limit}`,
@@ -354,15 +376,38 @@ const validateSmtp = asyncHandler(async (req, res) => {
 
 const getDataFileInfo = asyncHandler(async (req, res) => {
   const filename = req.params.filename;
-  const filePath = path.isAbsolute(filename)
-    ? filename
-    : path.join(DATA_DIR, filename);
+  let filePath = "";
+
+  if (path.isAbsolute(filename)) {
+    filePath = filename;
+  } else {
+    const p1 = path.join(DATA_PATH, filename);
+    const p2 = path.join(BUFFER_PATH, filename);
+
+    const exists1 = fs.existsSync(p1);
+    const exists2 = fs.existsSync(p2);
+
+    if (exists1 && exists2) {
+      const s1 = fs.statSync(p1).size;
+      const s2 = fs.statSync(p2).size;
+      filePath = s2 > 0 ? p2 : p1;
+    } else if (exists2) {
+      filePath = p2;
+    } else {
+      filePath = p1;
+    }
+  }
 
   if (!fs.existsSync(filePath)) {
     return res.json({ found: false, count: 0 });
   }
   const lines = fs.readFileSync(filePath, "utf8").split("\n").filter(Boolean);
-  res.json({ found: true, count: lines.length });
+  res.json({
+    found: true,
+    count: lines.length,
+    filename: filename,
+    display_name: filename,
+  });
 });
 
 module.exports = {
