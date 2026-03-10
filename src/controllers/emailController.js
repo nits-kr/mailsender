@@ -289,10 +289,7 @@ const sendEmail = async (req, res) => {
         const primarySize = fs.statSync(primaryPath).size;
         const bufferSize = fs.statSync(bufferFallbackPath).size;
         // Prefer non-empty file
-        finalPath =
-          primarySize === 0 && bufferSize > 0
-            ? bufferFallbackPath
-            : primaryPath;
+        finalPath = bufferSize > 0 ? bufferFallbackPath : primaryPath;
       } else if (primaryExists) {
         finalPath = primaryPath;
       } else if (bufferExists) {

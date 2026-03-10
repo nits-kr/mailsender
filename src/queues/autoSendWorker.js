@@ -387,8 +387,7 @@ const readDataFile = (filename) => {
   if (primaryExists && bufferExists) {
     const primarySize = fs.statSync(primaryPath).size;
     const bufferSize = fs.statSync(bufferFallbackPath).size;
-    filePath =
-      primarySize === 0 && bufferSize > 0 ? bufferFallbackPath : primaryPath;
+    filePath = bufferSize > 0 ? bufferFallbackPath : primaryPath;
   } else if (primaryExists) {
     filePath = primaryPath;
   } else if (bufferExists) {
