@@ -39,7 +39,7 @@ const getDataCount = async (req, res) => {
   // Exclude hex-only filenames (those are extraction outputs, not source data)
   const hexOnlyPattern = /^[a-f0-9]{32}\.txt$/i;
   const scanDirs = [dataPath, bufferPath].filter((d) => fs.existsSync(d));
-  let allFsFiles = [];
+  const fileCandidates = {}; // basename -> { fullPath, size }
 
   for (const dir of scanDirs) {
     try {
@@ -51,22 +51,22 @@ const getDataCount = async (req, res) => {
           entry.endsWith(".txt") &&
           !hexOnlyPattern.test(entry)
         ) {
-          allFsFiles.push(fullPath);
+          const stats = fs.statSync(fullPath);
+          const base = entry;
+          // Prefer non-empty files if duplicates exist
+          if (
+            !fileCandidates[base] ||
+            (fileCandidates[base].size === 0 && stats.size > 0)
+          ) {
+            fileCandidates[base] = { fullPath, size: stats.size };
+          }
         }
       });
     } catch (_) {}
   }
 
-  // Deduplicate by basename (root takes priority over buffer for same name)
-  const seen = new Set();
-  const fsFiles = allFsFiles.filter((f) => {
-    const base = path.basename(f);
-    if (seen.has(base)) return false;
-    seen.add(base);
-    return true;
-  });
-
-  const fsFilenameSet = new Set(fsFiles.map((f) => path.basename(f)));
+  const fsFiles = Object.values(fileCandidates).map((v) => v.fullPath);
+  const fsFilenameSet = new Set(Object.keys(fileCandidates));
 
   // Include DB files not found on disk (e.g. upload metadata without physical file)
   const extraDbFiles = dbFiles
@@ -522,9 +522,18 @@ const getFileInfo = async (req, res) => {
   const bufferFallbackPath = path.join(BUFFER_PATH, filename);
 
   let filePath = null;
-  if (fs.existsSync(primaryPath)) {
+  const primaryExists = fs.existsSync(primaryPath);
+  const bufferExists = fs.existsSync(bufferFallbackPath);
+
+  if (primaryExists && bufferExists) {
+    const primarySize = fs.statSync(primaryPath).size;
+    const bufferSize = fs.statSync(bufferFallbackPath).size;
+    // Prefer non-empty file
+    filePath =
+      primarySize === 0 && bufferSize > 0 ? bufferFallbackPath : primaryPath;
+  } else if (primaryExists) {
     filePath = primaryPath;
-  } else if (fs.existsSync(bufferFallbackPath)) {
+  } else if (bufferExists) {
     filePath = bufferFallbackPath;
   }
 
