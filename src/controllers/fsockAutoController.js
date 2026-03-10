@@ -4,7 +4,6 @@
  * + checkTestMessageResponse.php + Stats.php + Webhook.php
  */
 
-const asyncHandler = require("express-async-handler");
 const path = require("path");
 const fs = require("fs");
 
