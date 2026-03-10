@@ -428,6 +428,7 @@ const sendEmail = async (req, res) => {
         promo_count: 0,
         guardian_logs: [],
         start_time: new Date(),
+        end_time: null,
       });
     } else {
       // If resuming, calculate startIndex for targetEmails and pIdx for IP round-robin

@@ -369,7 +369,8 @@ const runScanner = async () => {
                   const latestCompLog = await CampaignLog.findOne({
                     campaign_id: correctedCampaign._id,
                     log_text: /CAMPAIGN COMPLETED/,
-                  }).sort({ createdAt: -1 });
+                    created_at: { $gte: correctedCampaign.start_time },
+                  }).sort({ created_at: -1 });
 
                   if (latestCompLog) {
                     const updatedCompletionLog =
@@ -459,7 +460,8 @@ const runScanner = async () => {
                 const latestCompLog = await CampaignLog.findOne({
                   campaign_id: campaignId,
                   log_text: /CAMPAIGN COMPLETED/,
-                }).sort({ createdAt: -1 });
+                  created_at: { $gte: campaign.start_time },
+                }).sort({ created_at: -1 });
 
                 if (latestCompLog) {
                   const updatedCompletionLog =
