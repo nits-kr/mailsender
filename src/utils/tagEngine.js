@@ -37,8 +37,8 @@ const TagEngine = {
     // 3. Process Contextual Tags: {{tag}}
     processedText = processedText.replace(/{{(.*?)}}/gi, (match, p1) => {
       const tagName = p1.trim().toLowerCase();
-      if (tagName === "msgid" && context.msgId) {
-        return context.msgId;
+      if (tagName === "msgid" && (context.msgId || context.msgid)) {
+        return context.msgId || context.msgid;
       }
       if (tagName === "email" && context.email) {
         return context.email;

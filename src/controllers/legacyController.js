@@ -257,6 +257,7 @@ const sendFsockSmtp = async (req, res) => {
             fromEmail,
             fromName: encodedFromName,
             subject: encodedSubject,
+            msgId: processedMsgId || "", // For TagEngine consistency
           };
 
           const [toName, toDomain] = targetEmail.split("@");

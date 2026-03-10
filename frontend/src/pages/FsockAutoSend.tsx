@@ -168,7 +168,12 @@ const FsockAutoSend = () => {
   // Auto-scroll logs
   useEffect(() => {
     if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      if (isAtBottom || logs.length <= 1) {
+        logContainerRef.current.scrollTop =
+          logContainerRef.current.scrollHeight;
+      }
     }
   }, [logs]);
 
@@ -824,12 +829,27 @@ const FsockAutoSend = () => {
                               <tr>
                                 <td className="fsock-mini-label">Total :</td>
                                 <td style={{ width: "180px" }}>
-                                  <input
-                                    type="text"
-                                    className={`fsock-mini-input ${errors.total_limit ? "invalid-input" : ""}`}
-                                    placeholder="Put Total Sending Limit"
-                                    {...register("total_limit")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className={`fsock-mini-input ${errors.total_limit ? "invalid-input" : ""}`}
+                                      placeholder="Put Total Sending Limit"
+                                      {...register("total_limit")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("total_limit") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() =>
+                                          setValue("total_limit", "")
+                                        }
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                                 <td style={{ width: "30px" }}></td>
                                 <td
@@ -839,23 +859,51 @@ const FsockAutoSend = () => {
                                   Limit :
                                 </td>
                                 <td>
-                                  <input
-                                    type="text"
-                                    className={`fsock-mini-input ${errors.send_limit ? "invalid-input" : ""}`}
-                                    placeholder="Put One Click limit"
-                                    {...register("send_limit")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className={`fsock-mini-input ${errors.send_limit ? "invalid-input" : ""}`}
+                                      placeholder="Put One Click limit"
+                                      {...register("send_limit")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("send_limit") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() =>
+                                          setValue("send_limit", "")
+                                        }
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                               <tr>
                                 <td className="fsock-mini-label">Sleep :</td>
                                 <td style={{ width: "180px" }}>
-                                  <input
-                                    type="text"
-                                    className="fsock-mini-input"
-                                    placeholder="Put Sleep Time"
-                                    {...register("sleep")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className="fsock-mini-input"
+                                      placeholder="Put Sleep Time"
+                                      {...register("sleep")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("sleep") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() => setValue("sleep", "")}
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                                 <td style={{ width: "30px" }}></td>
                                 <td
@@ -865,23 +913,51 @@ const FsockAutoSend = () => {
                                   Wait :
                                 </td>
                                 <td>
-                                  <input
-                                    type="text"
-                                    className="fsock-mini-input"
-                                    placeholder="Put Wait Time"
-                                    {...register("wait")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className="fsock-mini-input"
+                                      placeholder="Put Wait Time"
+                                      {...register("wait")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("wait") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() => setValue("wait", "")}
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                               <tr>
                                 <td className="fsock-mini-label">Inbox% :</td>
                                 <td style={{ width: "180px" }}>
-                                  <input
-                                    type="text"
-                                    className="fsock-mini-input"
-                                    placeholder="Put Inbox Percentage"
-                                    {...register("inbox_percentage")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className="fsock-mini-input"
+                                      placeholder="Put Inbox Percentage"
+                                      {...register("inbox_percentage")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("inbox_percentage") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() =>
+                                          setValue("inbox_percentage", "")
+                                        }
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                                 <td style={{ width: "30px" }}></td>
                                 <td
@@ -891,12 +967,27 @@ const FsockAutoSend = () => {
                                   Test After :
                                 </td>
                                 <td>
-                                  <input
-                                    type="text"
-                                    className="fsock-mini-input"
-                                    placeholder="Put Test After"
-                                    {...register("test_after")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className="fsock-mini-input"
+                                      placeholder="Put Test After"
+                                      {...register("test_after")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("test_after") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() =>
+                                          setValue("test_after", "")
+                                        }
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             </tbody>
@@ -955,13 +1046,28 @@ const FsockAutoSend = () => {
                                       className="tr-pr-5"
                                       style={{ width: "120px" }}
                                     >
-                                      <input
-                                        type="number"
-                                        className="fsock-mini-input"
-                                        placeholder="Interval (min)"
-                                        {...register("interval_time")}
-                                        title="Interval in minutes for each batch"
-                                      />
+                                      <div style={{ position: "relative" }}>
+                                        <input
+                                          type="number"
+                                          className="fsock-mini-input"
+                                          placeholder="Interval (min)"
+                                          {...register("interval_time")}
+                                          title="Interval in minutes for each batch"
+                                          style={{ paddingRight: "30px" }}
+                                        />
+                                        {watch("interval_time") && (
+                                          <button
+                                            type="button"
+                                            className="fsock-clear-btn-mini"
+                                            style={{ right: "8px" }}
+                                            onClick={() =>
+                                              setValue("interval_time", "0")
+                                            }
+                                          >
+                                            <X size={10} />
+                                          </button>
+                                        )}
+                                      </div>
                                     </td>
                                     <td className="tr-pr-5">
                                       <button
