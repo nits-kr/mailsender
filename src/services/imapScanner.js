@@ -354,7 +354,7 @@ const runScanner = async () => {
                       spam: 0,
                       promo: 0,
                       // log_text: \`Total Mail Sent : \${wronglyClassified.sent || totalSent} || Total Mail Received : \${received}\` // Incremental
-                      log_text: `Total Mail Sent : ${origSent}${ipBox} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                      log_text: `Total Mail Sent : ${correctedCampaign.total_emails || 0}${ipBox} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                       inbox_percent: Number(inboxPercent.toFixed(1)),
                       received,
                     },
@@ -412,7 +412,7 @@ const runScanner = async () => {
                 {
                   $set: {
                     [res.placement]: 1,
-                    log_text: `Total Mail Sent : ${origSent2}${ipBox2} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                    log_text: `Total Mail Sent : ${campaign.total_emails || 0}${ipBox2} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                     received,
                     inbox_percent: Number(inboxPercent.toFixed(1)),
                   },

@@ -336,9 +336,9 @@ const emailWorker = async (job) => {
         // Explicit completion log
         const completionLog = await CampaignLog.create({
           campaign_id,
-          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED || Total Sent: ${totalSent} || Inbox: ${updatedCampaign.inbox_count || 0}`,
+          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED || Total Sent: ${updatedCampaign.total_emails || 0} || Inbox: ${updatedCampaign.inbox_count || 0}`,
           type: "info",
-          sent: totalSent,
+          sent: updatedCampaign.total_emails || 0,
         });
         socketService.emitLog(campaign_id, completionLog, updatedCampaign);
       }
@@ -347,9 +347,9 @@ const emailWorker = async (job) => {
       const ipDisplay = mailing_ip.split("|")[0];
       const newLog = await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${totalSent} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
         type: "success",
-        sent: totalSent,
+        sent: updatedCampaign.total_emails || 0,
         mail_status: `${email} success`,
         inbox_percent: Number(inboxPercent.toFixed(1)),
         fingerprint: messageFingerprint,
@@ -405,9 +405,9 @@ const emailWorker = async (job) => {
         // Explicit completion log
         const completionLog = await CampaignLog.create({
           campaign_id,
-          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED (with errors) || Total Sent: ${totalSent} || Inbox: ${updatedCampaign.inbox_count || 0}`,
+          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED (with errors) || Total Sent: ${updatedCampaign.total_emails || 0} || Inbox: ${updatedCampaign.inbox_count || 0}`,
           type: "info",
-          sent: totalSent,
+          sent: updatedCampaign.total_emails || 0,
         });
         socketService.emitLog(campaign_id, completionLog, updatedCampaign);
       }
@@ -420,9 +420,9 @@ const emailWorker = async (job) => {
       const ipDisplay = mailing_ip.split("|")[0];
       const errorLog = await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${totalSent} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} error || Inbox Percentage : 0%`,
+        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} error || Inbox Percentage : 0%`,
         type: "error",
-        sent: totalSent,
+        sent: updatedCampaign.total_emails || 0,
         mail_status: `${email} error`,
         inbox_percent: 0,
         fingerprint: messageFingerprint,
