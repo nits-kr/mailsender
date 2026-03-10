@@ -401,9 +401,10 @@ const readDataFile = (filename) => {
 };
 
 const writeDataFile = (filename, lines) => {
+  const { DATA_PATH } = require("../config/paths");
   const filePath = path.isAbsolute(filename)
     ? filename
-    : path.join(DATA_DIR, filename);
+    : path.join(DATA_PATH, filename);
   fs.writeFileSync(filePath, lines.join("\n") + "\n", "utf8");
 };
 

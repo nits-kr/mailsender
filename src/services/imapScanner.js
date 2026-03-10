@@ -9,6 +9,7 @@ const { evaluate: guardianEvaluate } = require("./guardianService");
 const IntelligenceLog = require("../models/IntelligenceLog");
 const ReputationScore = require("../models/ReputationScore");
 const socketService = require("./socketService");
+const ImapData = require("../models/ImapData");
 
 /**
  * Modern IMAP Scanner Service
@@ -129,7 +130,9 @@ const scanTestId = async (testIdDoc) => {
 
               const finalIds = searchResults.slice(-100);
               const fetch = imap.fetch(finalIds, {
-                bodies: "HEADER.FIELDS (TO X-CAMPAIGN-FINGERPRINT)",
+                bodies: [
+                  "HEADER.FIELDS (TO SUBJECT FROM DATE MESSAGE-ID X-CAMPAIGN-FINGERPRINT)",
+                ],
                 markSeen: true,
               });
 
@@ -149,6 +152,46 @@ const scanTestId = async (testIdDoc) => {
                       const fingerprint = parsed.headers.get(
                         "x-campaign-fingerprint",
                       );
+                      const messageId = (parsed.messageId || "").replace(
+                        /[<>]/g,
+                        "",
+                      );
+
+                      // Legacy compatibility: Populate ImapData for FsockAuto module
+                      try {
+                        const statusMap = {
+                          inbox: "INBOX",
+                          promo: "INBOX",
+                          spam: "SPAM",
+                        };
+                        const legacyStatus =
+                          statusMap[determinePlacement(folderName)] || "INBOX";
+
+                        // We use a findOneAndUpdate up-sert to avoid duplicates and handle reclassification
+                        await ImapData.findOneAndUpdate(
+                          { email: testEmail, message_id: messageId },
+                          {
+                            $set: {
+                              testId: testIdDoc._id,
+                              email: testEmail,
+                              subject: parsed.subject || "No Subject",
+                              from: parsed.from?.text || "Unknown",
+                              to: toEmail,
+                              date: parsed.date || new Date(),
+                              message_id: messageId,
+                              uid: 1, // Traditional UID matching not strictly needed if we match by Message-ID
+                              ip: "0.0.0.0", // Scanner doesn't easily see sending IP from headers without deep parsing
+                              status: legacyStatus,
+                            },
+                          },
+                          { upsert: true, new: true },
+                        );
+                      } catch (legacyErr) {
+                        console.error(
+                          "[IMAP] Legacy ImapData Sync Error:",
+                          legacyErr.message,
+                        );
+                      }
                       const toHeader = parsed.headers.get("to");
                       let toEmail = "";
                       if (toHeader) {
