@@ -361,15 +361,25 @@ const sendEmail = async (req, res) => {
       message_id: message_id || "",
     };
 
+    // Normalize template name
+    const normalizedName = (template_name || "Manual Sending").trim();
+
     const { campaign_id: existingCampaignId } = req.body;
     let campaign = null;
     let startIndex = 0;
 
     if (existingCampaignId) {
       campaign = await Campaign.findById(existingCampaignId);
-    } else if (template_name) {
-      // Find latest campaign with same name to reuse row (user request)
-      campaign = await Campaign.findOne({ template_name }).sort({
+    } else if (normalizedName) {
+      // Find latest campaign with same name (case-insensitive) to reuse row
+      campaign = await Campaign.findOne({
+        template_name: {
+          $regex: new RegExp(
+            `^${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+            "i",
+          ),
+        },
+      }).sort({
         createdAt: -1,
       });
     }
@@ -379,7 +389,7 @@ const sendEmail = async (req, res) => {
     const shouldReset = !campaign || campaign.status === "Completed";
 
     const updateData = {
-      template_name: template_name || "Manual Sending",
+      template_name: normalizedName,
       offer_id: offer_id || "Manual",
       server: primaryIp || "Unknown",
       data_file: data_file || "emails_field",
@@ -440,13 +450,11 @@ const sendEmail = async (req, res) => {
     }
 
     if (campaign) {
-      // If the user changed the template name in the UI, do NOT overwrite the old run!
-      // Create a brand-new run instead, so past history is preserved.
-      if (
-        campaign.template_name &&
-        template_name &&
-        campaign.template_name !== template_name
-      ) {
+      const existingName = (campaign.template_name || "").trim().toLowerCase();
+      const currentName = normalizedName.toLowerCase();
+
+      // If names differ (after trimming and lowercase), create NEW run
+      if (existingName !== currentName) {
         campaign = await Campaign.create(updateData);
       } else {
         campaign = await Campaign.findByIdAndUpdate(campaign._id, updateData, {
