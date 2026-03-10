@@ -4,6 +4,7 @@ const Campaign = require("../models/Campaign");
 const CampaignLog = require("../models/CampaignLog");
 const TestId = require("../models/TestId");
 const MonitoringMailbox = require("../models/MonitoringMailbox");
+const ImapData = require("../models/ImapData");
 const crypto = require("crypto");
 const { evaluate: guardianEvaluate } = require("./guardianService");
 const IntelligenceLog = require("../models/IntelligenceLog");
@@ -127,9 +128,8 @@ const scanTestId = async (testIdDoc) => {
             imap.search(searchCriteria, (err, searchResults) => {
               if (err || !searchResults.length) return checkNextFolder();
 
-              const finalIds = searchResults.slice(-100);
               const fetch = imap.fetch(finalIds, {
-                bodies: "HEADER.FIELDS (TO X-CAMPAIGN-FINGERPRINT)",
+                bodies: "HEADER.FIELDS (TO X-CAMPAIGN-FINGERPRINT MESSAGE-ID)",
                 markSeen: true,
               });
 
@@ -200,8 +200,14 @@ const scanTestId = async (testIdDoc) => {
                           return;
                         }
 
+                        const msgId = parsed.headers.get("message-id");
+                        const cleanMsgId = msgId
+                          ? String(msgId).replace(/[<>]/g, "").trim()
+                          : "";
+
                         results.push({
                           fingerprint: fingerprint || "",
+                          messageId: cleanMsgId,
                           email: testIdDoc.email,
                           placement,
                         });
@@ -518,6 +524,31 @@ const runScanner = async () => {
                   subject: existingLog.subject || "IMAP Scan",
                 });
               } catch (e) {}
+            }
+
+            // --- FsockAuto Support: Always populate ImapData so autoSendWorker can reconcile ---
+            if (res.messageId) {
+              try {
+                await ImapData.findOneAndUpdate(
+                  {
+                    email: res.email.toLowerCase(),
+                    message_id: res.messageId,
+                  },
+                  {
+                    $set: {
+                      testId: target._id,
+                      email: res.email.toLowerCase(),
+                      message_id: res.messageId,
+                      status: res.placement === "spam" ? "SPAM" : "INBOX",
+                      date: new Date(),
+                      uid: 0,
+                    },
+                  },
+                  { upsert: true, new: true },
+                );
+              } catch (e) {
+                /* ignore duplicate or other errors */
+              }
             }
           }
         }
