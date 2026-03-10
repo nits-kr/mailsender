@@ -3,6 +3,7 @@ const IP = require("../models/IP");
 const CampaignLog = require("../models/CampaignLog");
 const Campaign = require("../models/Campaign");
 const OfferSuppQueue = require("../models/OfferSuppQueue");
+const SmtpDetail = require("../models/SmtpDetail");
 const RawSmtpClient = require("../services/smtpService");
 const fs = require("fs");
 const path = require("path");
@@ -31,7 +32,22 @@ const getLegacyCampaign = async (req, res) => {
 // @route   GET /api/legacy/ip/:ip
 const getLegacyIP = async (req, res) => {
   try {
-    const ipData = await IP.findOne({ ip: req.params.ip });
+    let ipData = await IP.findOne({ ip: req.params.ip });
+    if (!ipData) {
+      const sd = await SmtpDetail.findOne({
+        $or: [{ assignedip: req.params.ip }, { server: req.params.ip }],
+      });
+      if (sd) {
+        ipData = {
+          ip: sd.assignedip,
+          hostname: sd.hostname || sd.server,
+          user: sd.user,
+          pass: sd.pass,
+          port: Number(sd.port) || 587,
+          tls: sd.tls,
+        };
+      }
+    }
     if (!ipData) {
       return res.status(404).json({ message: "IP not found" });
     }
@@ -202,7 +218,24 @@ const sendFsockSmtp = async (req, res) => {
     if (mode === "Test") {
       for (const line of ipLines) {
         const [ip, returnPath] = line.trim().split("|");
-        const ipRecord = await IP.findOne({ ip });
+        let ipRecord = await IP.findOne({ ip });
+
+        if (!ipRecord) {
+          // Fallback to SmtpDetail (AliSing07 etc)
+          const sd = await SmtpDetail.findOne({
+            $or: [{ assignedip: ip }, { server: ip }],
+          });
+          if (sd) {
+            ipRecord = {
+              ip: sd.assignedip,
+              hostname: sd.hostname || sd.server,
+              port: Number(sd.port) || 587,
+              user: sd.user,
+              pass: sd.pass,
+              tls: sd.tls,
+            };
+          }
+        }
 
         if (!ipRecord) {
           output += `${ip} <font color='red'> Not Exist </font><br>`;
@@ -210,7 +243,7 @@ const sendFsockSmtp = async (req, res) => {
         }
 
         const client = new RawSmtpClient({
-          host: ipRecord.hostname || ip,
+          host: ipRecord.hostname || ipRecord.ip || ip,
           port: ipRecord.port || 25,
         });
 
