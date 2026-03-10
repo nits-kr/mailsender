@@ -881,12 +881,16 @@ const clearCampaignLogs = async (req, res) => {
     // will show inherited inflated percentages from previous test runs.
     await Campaign.findByIdAndUpdate(campaignId, {
       $set: {
+        total_emails: 0,
         success_count: 0,
         error_count: 0,
+        bounce_count: 0,
+        complaint_count: 0,
         inbox_count: 0,
         spam_count: 0,
         promo_count: 0,
         open_count: 0,
+        total_queued: 0,
       },
     });
 
