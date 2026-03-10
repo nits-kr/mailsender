@@ -232,15 +232,28 @@ const FsockAutoSend = () => {
     ]);
     try {
       const payload = {
-        ...data,
-        from_name: data.from,
-        test_emails: data.emails,
+        from_email: data.from_email,
+        from_name: data.from, // form field 'from' → backend 'from_name'
+        subject: data.sub, // form field 'sub' → backend 'subject'
         subject_enc: data.sencode,
         from_enc: data.fmencode,
-        auto_start: data.mode === "Bulk",
-        sleep_time: data.sleep,
-        wait_time: data.wait,
+        headers: data.headers,
+        mailing_ip: data.mailing_ip,
+        test_emails: data.emails, // form field 'emails' → backend 'test_emails'
+        message_html: data.message_html,
+        message_plain: data.message_plain,
+        msgid: data.msgid,
+        domain: data.domain,
+        offer_id: data.offerId, // form field 'offerId' → backend 'offer_id'
+        data_file: data.datafile, // form field 'datafile' → backend 'data_file'
+        total_limit: data.total_limit,
+        send_limit: data.send_limit,
+        sleep_time: data.sleep, // form field 'sleep' → backend 'sleep_time'
+        wait_time: data.wait, // form field 'wait' → backend 'wait_time'
         interval_time: data.interval_time,
+        inbox_percentage: data.inbox_percentage,
+        test_after: data.test_after,
+        auto_start: data.mode === "Bulk",
       };
 
       const res = await createCampaign(payload).unwrap();
