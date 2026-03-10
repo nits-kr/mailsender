@@ -397,6 +397,20 @@ export const apiSlice = createApi({
       query: (payload) => ({ url: '/legacy/campaign-link-search', method: 'POST', body: payload }),
     }),
 
+    // ─── FSOCK Auto Migration (New MERN Pattern) ───────────────────────────────────────────────────
+    createFsockAutoCampaign: builder.mutation<any, any>({
+      query: (body) => ({ url: '/fsock-auto/campaign', method: 'POST', body }),
+    }),
+    getFsockAutoCampaign: builder.query<any, string>({
+      query: (id) => `/fsock-auto/campaign/${id}`,
+    }),
+    stopFsockAutoCampaign: builder.mutation<any, string>({
+      query: (id) => ({ url: `/fsock-auto/campaign/${id}/stop`, method: 'POST' }),
+    }),
+    getFsockAutoWebhookStats: builder.query<any[], void>({
+      query: () => `/fsock-auto/webhook-stats`,
+    }),
+
     // â”€â”€â”€ IMAP Screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     getImapScreens: builder.query<any[], void>({
       query: () => "/imap-screens",
@@ -580,6 +594,12 @@ export const {
   // Campaign Live Status
   useGetCampaignStatusQuery,
   useLazyGetCampaignStatusQuery,
+
+  // FSOCK Auto Migration
+  useCreateFsockAutoCampaignMutation,
+  useGetFsockAutoCampaignQuery,
+  useStopFsockAutoCampaignMutation,
+  useGetFsockAutoWebhookStatsQuery,
 } = apiSlice;
 
 

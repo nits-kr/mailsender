@@ -9,6 +9,8 @@ const { Worker } = require("bullmq");
 const { connection } = require("./queues/emailQueue");
 const emailWorker = require("./queues/emailWorker");
 const spaceEmailWorkerProcessor = require("./queues/spaceEmailWorker");
+const autoSendWorkerProcessor = require("./queues/autoSendWorker");
+const { autoSendQueue } = require("./queues/autoSendQueue");
 const logger = require("./utils/logger");
 const { startImapScannerJob } = require("./queues/imapQueue");
 const socketService = require("./services/socketService");
@@ -38,6 +40,22 @@ spaceWorker.on("failed", (job, err) => {
   );
 });
 
+// Start BullMQ worker for Auto-Send (fsock-auto)
+const { Worker: AutoWorker } = require("bullmq");
+const { connection: autoConnection } = require("./queues/emailQueue");
+const autoWorker = new AutoWorker("auto-send-queue", autoSendWorkerProcessor, {
+  connection: autoConnection,
+  concurrency: 3,
+});
+autoWorker.on("completed", (job) => {
+  logger.info(`Auto-send job completed: ${job.id}`);
+});
+autoWorker.on("failed", (job, err) => {
+  logger.error(
+    `Auto-send job failed: ${job?.id || "unknown"} - ${err.message}`,
+  );
+});
+
 // Connect to database
 connectDB();
 
@@ -59,6 +77,7 @@ const testIdsRoutes = require("./routes/testIdsRoutes");
 const smtpRoutes = require("./routes/smtpRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
 const intelligenceRoutes = require("./routes/intelligenceRoutes");
+const fsockAutoRoutes = require("./routes/fsockAutoRoutes");
 
 // Express 5 handles async errors natively, so express-async-errors is not needed
 // require("express-async-errors");
@@ -119,6 +138,7 @@ app.use("/api/imap-screens", require("./routes/imapScreenRoutes"));
 app.use("/api/smtp", smtpRoutes);
 app.use("/api/legacy", require("./routes/legacyRoutes"));
 app.use("/api/intelligence", intelligenceRoutes);
+app.use("/api/fsock-auto", fsockAutoRoutes);
 app.use("/t", trackingRoutes);
 
 app.get("/", (req, res) => {

@@ -40,6 +40,7 @@ import TestIdsManagement from "./pages/TestIdsManagement";
 import SmtpTester from "./pages/SmtpTester";
 import SmtpDetails from "./pages/SmtpDetails";
 import FsockManual from "./pages/FsockManual";
+import FsockAutoSend from "./pages/FsockAutoSend";
 import FsockHelp from "./pages/FsockHelp";
 import { InterfaceNewPage } from "./pages/InterfaceNewPage";
 import InterfaceGuide from "./pages/InterfaceGuide";
@@ -382,7 +383,7 @@ function App() {
                 path="/fsock-send-smtp-auto"
                 element={
                   <ProtectedRoute>
-                    <FsockManual />
+                    <FsockAutoSend />
                   </ProtectedRoute>
                 }
               />
