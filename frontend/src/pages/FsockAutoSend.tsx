@@ -357,10 +357,28 @@ const FsockAutoSend = () => {
               </tr>
               <tr>
                 <td className="fsock-left-col">
-                  <textarea
-                    className={`fsock-ip-textarea ${errors.mailing_ip ? "invalid-input" : ""}`}
-                    {...register("mailing_ip")}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <textarea
+                      className={`fsock-ip-textarea ${errors.mailing_ip ? "invalid-input" : ""}`}
+                      {...register("mailing_ip")}
+                      style={{ paddingRight: "35px" }}
+                    />
+                    {watch("mailing_ip") && (
+                      <button
+                        type="button"
+                        className="fsock-clear-btn-mini"
+                        style={{ top: "10px", right: "10px" }}
+                        onClick={() =>
+                          setValue(
+                            "mailing_ip",
+                            "ESP (SMTP)    : (IP|Return@Path)\nNote : You can use all functions in Return Path",
+                          )
+                        }
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
                   {errors.mailing_ip && (
                     <div className="fsock-error">
                       {errors.mailing_ip.message}
@@ -396,21 +414,47 @@ const FsockAutoSend = () => {
                       <tr>
                         <td className="fsock-label">Headers</td>
                         <td className="fsock-input-group">
-                          <textarea
-                            className="fsock-textarea-standard"
-                            placeholder="X-Mailer: MyMailer&#10;List-Unsubscribe: &lt;mailto:unsub@domain.com&gt;"
-                            {...register("headers")}
-                          />
+                          <div style={{ position: "relative" }}>
+                            <textarea
+                              className="fsock-textarea-standard"
+                              placeholder="X-Mailer: MyMailer&#10;List-Unsubscribe: &lt;mailto:unsub@domain.com&gt;"
+                              {...register("headers")}
+                              style={{ paddingRight: "35px" }}
+                            />
+                            {watch("headers") && (
+                              <button
+                                type="button"
+                                className="fsock-clear-btn-mini"
+                                style={{ top: "10px", right: "10px" }}
+                                onClick={() => setValue("headers", "")}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                       <tr>
                         <td className="fsock-label">Subject</td>
                         <td className="fsock-input-group">
-                          <input
-                            type="text"
-                            className={`fsock-input-standard ${errors.sub ? "invalid-input" : ""}`}
-                            {...register("sub")}
-                          />
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type="text"
+                              className={`fsock-input-standard ${errors.sub ? "invalid-input" : ""}`}
+                              {...register("sub")}
+                              style={{ paddingRight: "35px" }}
+                            />
+                            {watch("sub") && (
+                              <button
+                                type="button"
+                                className="fsock-clear-btn-mini"
+                                style={{ top: "10px", right: "10px" }}
+                                onClick={() => setValue("sub", "")}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                           {errors.sub && (
                             <div className="fsock-error">
                               {errors.sub.message}
@@ -441,11 +485,24 @@ const FsockAutoSend = () => {
                       <tr>
                         <td className="fsock-label">From Name</td>
                         <td className="fsock-input-group">
-                          <input
-                            type="text"
-                            className={`fsock-input-standard ${errors.from ? "invalid-input" : ""}`}
-                            {...register("from")}
-                          />
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type="text"
+                              className={`fsock-input-standard ${errors.from ? "invalid-input" : ""}`}
+                              {...register("from")}
+                              style={{ paddingRight: "35px" }}
+                            />
+                            {watch("from") && (
+                              <button
+                                type="button"
+                                className="fsock-clear-btn-mini"
+                                style={{ top: "10px", right: "10px" }}
+                                onClick={() => setValue("from", "")}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                           {errors.from && (
                             <div className="fsock-error">
                               {errors.from.message}
@@ -476,11 +533,24 @@ const FsockAutoSend = () => {
                       <tr>
                         <td className="fsock-label">Test Emails</td>
                         <td className="fsock-input-group">
-                          <textarea
-                            className={`fsock-textarea-standard !min-h-[60px] ${errors.emails ? "invalid-input" : ""}`}
-                            placeholder="test1@domain.com (Max 4)"
-                            {...register("emails")}
-                          />
+                          <div style={{ position: "relative" }}>
+                            <textarea
+                              className={`fsock-textarea-standard !min-h-[60px] ${errors.emails ? "invalid-input" : ""}`}
+                              placeholder="test1@domain.com (Max 4)"
+                              {...register("emails")}
+                              style={{ paddingRight: "35px" }}
+                            />
+                            {watch("emails") && (
+                              <button
+                                type="button"
+                                className="fsock-clear-btn-mini"
+                                style={{ top: "10px", right: "10px" }}
+                                onClick={() => setValue("emails", "")}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                           {errors.emails && (
                             <div className="fsock-error">
                               {errors.emails.message}
@@ -533,21 +603,52 @@ const FsockAutoSend = () => {
                       <tr>
                         <td className="fsock-label">Body</td>
                         <td className="fsock-input-group">
-                          <textarea
-                            className={`fsock-body-html ${errors.message_html ? "invalid-input" : ""}`}
-                            placeholder="<html><body>Hello</body></html>"
-                            {...register("message_html")}
-                          />
+                          <div
+                            style={{
+                              position: "relative",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            <textarea
+                              className={`fsock-body-html ${errors.message_html ? "invalid-input" : ""}`}
+                              placeholder="<html><body>Hello</body></html>"
+                              {...register("message_html")}
+                              style={{ paddingRight: "35px" }}
+                            />
+                            {watch("message_html") && (
+                              <button
+                                type="button"
+                                className="fsock-clear-btn-mini"
+                                style={{ top: "10px", right: "10px" }}
+                                onClick={() => setValue("message_html", "")}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                           {errors.message_html && (
                             <div className="fsock-error">
                               {errors.message_html.message}
                             </div>
                           )}
-                          <textarea
-                            className="fsock-body-plain"
-                            placeholder="Plain text fallback"
-                            {...register("message_plain")}
-                          />
+                          <div style={{ position: "relative" }}>
+                            <textarea
+                              className="fsock-body-plain"
+                              placeholder="Plain text fallback"
+                              {...register("message_plain")}
+                              style={{ paddingRight: "35px" }}
+                            />
+                            {watch("message_plain") && (
+                              <button
+                                type="button"
+                                className="fsock-clear-btn-mini"
+                                style={{ top: "10px", right: "10px" }}
+                                onClick={() => setValue("message_plain", "")}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
 
@@ -614,12 +715,25 @@ const FsockAutoSend = () => {
                                   Domain :
                                 </td>
                                 <td>
-                                  <input
-                                    type="text"
-                                    className={`fsock-mini-input ${errors.domain ? "invalid-input" : ""}`}
-                                    placeholder="Domain"
-                                    {...register("domain")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className={`fsock-mini-input ${errors.domain ? "invalid-input" : ""}`}
+                                      placeholder="Domain"
+                                      {...register("domain")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("domain") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() => setValue("domain", "")}
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                               <tr>
@@ -683,12 +797,25 @@ const FsockAutoSend = () => {
                                   MsgId :
                                 </td>
                                 <td>
-                                  <input
-                                    type="text"
-                                    className="fsock-mini-input"
-                                    placeholder="Put Message ID Name"
-                                    {...register("msgid")}
-                                  />
+                                  <div style={{ position: "relative" }}>
+                                    <input
+                                      type="text"
+                                      className="fsock-mini-input"
+                                      placeholder="Put Message ID Name"
+                                      {...register("msgid")}
+                                      style={{ paddingRight: "30px" }}
+                                    />
+                                    {watch("msgid") && (
+                                      <button
+                                        type="button"
+                                        className="fsock-clear-btn-mini"
+                                        style={{ right: "8px" }}
+                                        onClick={() => setValue("msgid", "")}
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                               <tr>
