@@ -1,6 +1,7 @@
 const Imap = require("node-imap");
 const { simpleParser } = require("mailparser");
 const Campaign = require("../models/Campaign");
+const FsockAutoCampaign = require("../models/FsockAutoCampaign");
 const CampaignLog = require("../models/CampaignLog");
 const TestId = require("../models/TestId");
 const MonitoringMailbox = require("../models/MonitoringMailbox");
@@ -10,6 +11,26 @@ const IntelligenceLog = require("../models/IntelligenceLog");
 const ReputationScore = require("../models/ReputationScore");
 const socketService = require("./socketService");
 const ImapData = require("../models/ImapData");
+
+const determinePlacement = (fName) => {
+  const f = (fName || "").toLowerCase();
+  if (
+    f.includes("spam") ||
+    f.includes("junk") ||
+    f.includes("bulk") ||
+    f.includes("quarantine")
+  )
+    return "spam";
+  if (
+    f.includes("promo") ||
+    f.includes("social") ||
+    f.includes("update") ||
+    f.includes("advertising") ||
+    f.includes("forum")
+  )
+    return "promo";
+  return "inbox";
+};
 
 /**
  * Modern IMAP Scanner Service
@@ -157,6 +178,20 @@ const scanTestId = async (testIdDoc) => {
                         "",
                       );
 
+                      const toHeader = parsed.headers.get("to");
+                      let toEmail = "";
+                      if (toHeader) {
+                        if (toHeader.value && toHeader.value[0]) {
+                          toEmail = (toHeader.value[0].address || "")
+                            .toLowerCase()
+                            .trim();
+                        } else {
+                          toEmail = String(toHeader).toLowerCase().trim();
+                        }
+                      }
+
+                      const testEmail = testIdDoc.email.toLowerCase().trim();
+
                       // Legacy compatibility: Populate ImapData for FsockAuto module
                       try {
                         const statusMap = {
@@ -164,8 +199,10 @@ const scanTestId = async (testIdDoc) => {
                           promo: "INBOX",
                           spam: "SPAM",
                         };
+                        const placementForLegacy =
+                          determinePlacement(folderName);
                         const legacyStatus =
-                          statusMap[determinePlacement(folderName)] || "INBOX";
+                          statusMap[placementForLegacy] || "INBOX";
 
                         // We use a findOneAndUpdate up-sert to avoid duplicates and handle reclassification
                         await ImapData.findOneAndUpdate(
@@ -176,7 +213,7 @@ const scanTestId = async (testIdDoc) => {
                               email: testEmail,
                               subject: parsed.subject || "No Subject",
                               from: parsed.from?.text || "Unknown",
-                              to: toEmail,
+                              to: toEmail || testEmail,
                               date: parsed.date || new Date(),
                               message_id: messageId,
                               uid: 1, // Traditional UID matching not strictly needed if we match by Message-ID
@@ -192,19 +229,6 @@ const scanTestId = async (testIdDoc) => {
                           legacyErr.message,
                         );
                       }
-                      const toHeader = parsed.headers.get("to");
-                      let toEmail = "";
-                      if (toHeader) {
-                        if (toHeader.value && toHeader.value[0]) {
-                          toEmail = (toHeader.value[0].address || "")
-                            .toLowerCase()
-                            .trim();
-                        } else {
-                          toEmail = String(toHeader).toLowerCase().trim();
-                        }
-                      }
-
-                      const testEmail = testIdDoc.email.toLowerCase().trim();
 
                       if (
                         fingerprint ||
@@ -212,26 +236,6 @@ const scanTestId = async (testIdDoc) => {
                           (toEmail === testEmail ||
                             toEmail.includes(testEmail)))
                       ) {
-                        const determinePlacement = (fName) => {
-                          const f = fName.toLowerCase();
-                          if (
-                            f.includes("spam") ||
-                            f.includes("junk") ||
-                            f.includes("bulk") ||
-                            f.includes("quarantine")
-                          )
-                            return "spam";
-                          if (
-                            f.includes("promo") ||
-                            f.includes("social") ||
-                            f.includes("update") ||
-                            f.includes("advertising") ||
-                            f.includes("forum")
-                          )
-                            return "promo";
-                          return "inbox";
-                        };
-
                         const placement = determinePlacement(folderName);
 
                         // For spam/promo folders: ONLY trust fingerprint matching.
@@ -294,7 +298,14 @@ const runScanner = async () => {
       ],
     });
 
-    if (!activeCampaigns.length) return;
+    const activeFsockCampaigns = await FsockAutoCampaign.find({
+      $or: [
+        { status: { $in: ["Running", "Pending"] } },
+        { status: "Completed", updatedAt: { $gte: fifteenMinsAgo } },
+      ],
+    });
+
+    if (!activeCampaigns.length && !activeFsockCampaigns.length) return;
 
     // Unify TestIDs and MonitoringMailboxes
     const testIds = await TestId.find({ status: "A" });
