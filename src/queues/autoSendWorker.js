@@ -33,8 +33,6 @@ const IMAP_POLL_INTERVAL_MS = 5000; // 5 s between polls
 const MAX_WAIT_MS = 20 * 60 * 1000; // 20 min
 const MAX_RETRIGGERS = 3;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const emitLog = (campaignId, message, type = "info") => {
