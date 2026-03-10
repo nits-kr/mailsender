@@ -5,6 +5,7 @@ const Campaign = require("../models/Campaign");
 const OfferSuppQueue = require("../models/OfferSuppQueue");
 const SmtpDetail = require("../models/SmtpDetail");
 const RawSmtpClient = require("../services/smtpService");
+const TagEngine = require("../utils/tagEngine");
 const fs = require("fs");
 const path = require("path");
 
@@ -382,7 +383,8 @@ const sendFsockSmtp = async (req, res) => {
       res.send(`Bulk sending initiated. Campaign ID: ${svmlId}`);
     }
   } catch (error) {
-    res.status(500).send(`Error: ${error.message}`);
+    console.error("[LegacyController] Error:", error);
+    res.status(500).send(`Error: ${error.message || error || "Unknown Error"}`);
   }
 };
 
