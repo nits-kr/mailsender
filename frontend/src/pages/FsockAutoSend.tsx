@@ -37,6 +37,7 @@ const fsockSchema = z.object({
   wait: z.string().optional().default("1"),
   inbox_percentage: z.string().optional().default("100"),
   test_after: z.string().optional().default("100"),
+  interval_time: z.string().optional().default("0"),
 });
 
 type FsockFormData = z.infer<typeof fsockSchema>;
@@ -67,6 +68,7 @@ const FsockAutoSend = () => {
       wait: "1",
       inbox_percentage: "100",
       test_after: "100",
+      interval_time: "0",
     },
     mode: "onChange",
   });
@@ -233,6 +235,7 @@ const FsockAutoSend = () => {
         auto_start: data.mode === "Bulk",
         sleep_time: data.sleep,
         wait_time: data.wait,
+        interval_time: data.interval_time,
       };
 
       const res = await createCampaign(payload).unwrap();
@@ -948,6 +951,18 @@ const FsockAutoSend = () => {
                                 <tbody>
                                   <tr>
                                     <td></td>
+                                    <td
+                                      className="tr-pr-5"
+                                      style={{ width: "120px" }}
+                                    >
+                                      <input
+                                        type="number"
+                                        className="fsock-mini-input"
+                                        placeholder="Interval (min)"
+                                        {...register("interval_time")}
+                                        title="Interval in minutes for each batch"
+                                      />
+                                    </td>
                                     <td className="tr-pr-5">
                                       <button
                                         type="button"

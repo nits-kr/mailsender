@@ -37,6 +37,7 @@ const fsockAutoCampaignSchema = new mongoose.Schema(
     send_limit: { type: Number, required: true },
     sleep_time: { type: Number, default: 2 }, // seconds between batches
     wait_time: { type: Number, default: 1 }, // seconds between IPs
+    interval_time: { type: Number, default: 0 }, // minutes for space sending
     inbox_percentage: { type: Number, default: 100 }, // required inbox %
     test_after: { type: Number, default: 100 }, // send X mails before re-test
 

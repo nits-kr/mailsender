@@ -475,6 +475,7 @@ const autoSendWorkerProcessor = async (job) => {
     const sleepTime = Number(campaign.sleep_time) || 2;
     const waitTime = Number(campaign.wait_time) || 1;
     const sendLimit = Number(campaign.send_limit) || 10;
+    const intervalTime = Number(campaign.interval_time) || 0; // minutes
     let retrigerCount = 0;
 
     // ── OUTER LOOP: repeat until totalLimit reached ──────────────────────────
@@ -640,7 +641,14 @@ const autoSendWorkerProcessor = async (job) => {
         );
 
         // Sleep between cycles
-        if (sleepTime > 0) {
+        if (intervalTime > 0) {
+          emitLog(
+            campaignId,
+            `Space Sending: Sleeping ${intervalTime} minutes before next batch...`,
+            "warn",
+          );
+          await sleep(intervalTime * 60 * 1000);
+        } else if (sleepTime > 0) {
           emitLog(campaignId, `Sleeping ${sleepTime}s...`);
           await sleep(sleepTime * 1000);
         }
