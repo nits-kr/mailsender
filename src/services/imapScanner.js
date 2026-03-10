@@ -353,7 +353,6 @@ const runScanner = async () => {
                       inbox: 1,
                       spam: 0,
                       promo: 0,
-                      // log_text: \`Total Mail Sent : \${wronglyClassified.sent || totalSent} || Total Mail Received : \${received}\` // Incremental
                       log_text: `Total Mail Sent : ${correctedCampaign.total_emails || 0}${ipBox} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
                       inbox_percent: Number(inboxPercent.toFixed(1)),
                       received,
@@ -361,6 +360,25 @@ const runScanner = async () => {
                   },
                   { new: true },
                 );
+
+                // Keep completion log in sync if it exists
+                if (correctedCampaign.status === "Completed") {
+                  const timeStr = new Date(
+                    correctedCampaign.end_time || Date.now(),
+                  ).toLocaleTimeString();
+                  await CampaignLog.findOneAndUpdate(
+                    {
+                      campaign_id: correctedCampaign._id,
+                      log_text: /CAMPAIGN COMPLETED/,
+                    },
+                    {
+                      $set: {
+                        log_text: `[${timeStr}] CAMPAIGN COMPLETED || Total Sent: ${correctedCampaign.total_emails || 0} || Inbox: ${correctedCampaign.inbox_count || 0}`,
+                      },
+                    },
+                  );
+                }
+
                 if (finalLog)
                   socketService.emitLog(
                     correctedCampaign._id,
@@ -419,6 +437,22 @@ const runScanner = async () => {
                 },
                 { new: true },
               );
+
+              // Keep completion log in sync if it exists
+              if (campaign.status === "Completed") {
+                const timeStr = new Date(
+                  campaign.end_time || Date.now(),
+                ).toLocaleTimeString();
+                await CampaignLog.findOneAndUpdate(
+                  { campaign_id: campaignId, log_text: /CAMPAIGN COMPLETED/ },
+                  {
+                    $set: {
+                      log_text: `[${timeStr}] CAMPAIGN COMPLETED || Total Sent: ${campaign.total_emails || 0} || Inbox: ${campaign.inbox_count || 0}`,
+                    },
+                  },
+                );
+              }
+
               if (finalLog) {
                 processedEmails.add(dedupeKey); // Mark as done only after successful write
                 socketService.emitLog(campaignId, finalLog, campaign);
