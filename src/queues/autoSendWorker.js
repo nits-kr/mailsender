@@ -375,10 +375,28 @@ const sendBulkBatch = async (campaign, emailChunk, ip, smtpCfg) => {
 // ─── Data file helpers ─────────────────────────────────────────────────────────
 
 const readDataFile = (filename) => {
-  const filePath = path.isAbsolute(filename)
+  const { DATA_PATH, BUFFER_PATH } = require("../config/paths");
+  const primaryPath = path.isAbsolute(filename)
     ? filename
-    : path.join(DATA_DIR, filename);
-  if (!fs.existsSync(filePath)) return null;
+    : path.join(DATA_PATH, filename);
+  const bufferFallbackPath = path.join(BUFFER_PATH, path.basename(filename));
+
+  const primaryExists = fs.existsSync(primaryPath);
+  const bufferExists = fs.existsSync(bufferFallbackPath);
+
+  let filePath = null;
+  if (primaryExists && bufferExists) {
+    const primarySize = fs.statSync(primaryPath).size;
+    const bufferSize = fs.statSync(bufferFallbackPath).size;
+    filePath =
+      primarySize === 0 && bufferSize > 0 ? bufferFallbackPath : primaryPath;
+  } else if (primaryExists) {
+    filePath = primaryPath;
+  } else if (bufferExists) {
+    filePath = bufferFallbackPath;
+  }
+
+  if (!filePath || !fs.existsSync(filePath)) return null;
   return fs.readFileSync(filePath, "utf8").split("\n").filter(Boolean);
 };
 

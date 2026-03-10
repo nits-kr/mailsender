@@ -281,10 +281,21 @@ const sendEmail = async (req, res) => {
         nodePath.basename(df),
       );
 
+      const primaryExists = fs.existsSync(primaryPath);
+      const bufferExists = fs.existsSync(bufferFallbackPath);
+
       let finalPath = null;
-      if (fs.existsSync(primaryPath)) {
+      if (primaryExists && bufferExists) {
+        const primarySize = fs.statSync(primaryPath).size;
+        const bufferSize = fs.statSync(bufferFallbackPath).size;
+        // Prefer non-empty file
+        finalPath =
+          primarySize === 0 && bufferSize > 0
+            ? bufferFallbackPath
+            : primaryPath;
+      } else if (primaryExists) {
         finalPath = primaryPath;
-      } else if (fs.existsSync(bufferFallbackPath)) {
+      } else if (bufferExists) {
         finalPath = bufferFallbackPath;
       }
 
