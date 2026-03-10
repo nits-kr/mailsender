@@ -159,7 +159,7 @@ const DataCount = () => {
                   <b>{file.time}</b>
                 </td>
                 <td align="center">
-                  <b>{file.file}</b>
+                  <b>{file.filename}</b>
                 </td>
                 <td align="center">
                   <b>{file.count}</b>
