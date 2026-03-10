@@ -96,15 +96,28 @@ const getDataCount = async (req, res) => {
 
     exec(countCommand, (cError, cStdout) => {
       processed++;
-      if (!cError) {
-        results.push({
-          date,
-          time,
-          filename: basename,
-          display_name: dbRecord?.display_name || basename,
-          count: parseInt(cStdout.trim()) || 0,
-        });
+      let count = 0;
+      if (!cError && cStdout) {
+        count = parseInt(cStdout.trim()) || 0;
+      } else {
+        // Fallback for non-linux or errors
+        try {
+          const stats = fs.statSync(file);
+          if (stats.size < 50 * 1024 * 1024) {
+            // Only read if < 50MB
+            const content = fs.readFileSync(file, "utf8");
+            count = content.split("\n").filter((l) => l.trim()).length;
+          }
+        } catch (_) {}
       }
+
+      results.push({
+        date,
+        time,
+        filename: basename,
+        display_name: dbRecord?.display_name || basename,
+        count,
+      });
 
       if (processed === fsFiles.length) {
         res.json([...results, ...extraDbFiles]);
@@ -527,12 +540,22 @@ const getFileInfo = async (req, res) => {
     const countCommand = `wc -l "${filePath}" | awk '{print $1}'`;
     exec(countCommand, (error, stdout) => {
       let count = 0;
-      if (!error) {
+      if (!error && stdout) {
         count = parseInt(stdout.trim()) || 0;
       } else {
         // Fallback for non-linux or errors
-        const content = fs.readFileSync(filePath, "utf8");
-        count = content.split("\n").filter((l) => l.trim()).length;
+        try {
+          if (stats.size < 100 * 1024 * 1024) {
+            // 100MB limit for info
+            const content = fs.readFileSync(filePath, "utf8");
+            count = content.split("\n").filter((l) => l.trim()).length;
+          }
+        } catch (err) {
+          console.error(
+            `Error in fallback count for ${filename}:`,
+            err.message,
+          );
+        }
       }
 
       res.json({
