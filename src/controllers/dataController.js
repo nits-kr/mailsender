@@ -38,7 +38,7 @@ const getDataCount = async (req, res) => {
   // Scan both dataPath root AND buffer subdir for source files
   // Exclude hex-only filenames (those are extraction outputs, not source data)
   const hexOnlyPattern = /^[a-f0-9]{32}\.txt$/i;
-  const scanDirs = [dataPath, bufferPath].filter((d) => fs.existsSync(d));
+  const scanDirs = [bufferPath, dataPath].filter((d) => fs.existsSync(d));
   const fileCandidates = {}; // basename -> { fullPath, size }
 
   for (const dir of scanDirs) {
@@ -529,8 +529,7 @@ const getFileInfo = async (req, res) => {
     const primarySize = fs.statSync(primaryPath).size;
     const bufferSize = fs.statSync(bufferFallbackPath).size;
     // Prefer non-empty file
-    filePath =
-      primarySize === 0 && bufferSize > 0 ? bufferFallbackPath : primaryPath;
+    filePath = bufferSize > 0 ? bufferFallbackPath : primaryPath;
   } else if (primaryExists) {
     filePath = primaryPath;
   } else if (bufferExists) {
