@@ -251,7 +251,13 @@ const sendFsockSmtp = async (req, res) => {
           const targetEmail = email.trim();
           if (!targetEmail) continue;
 
-          // Helper for tag replacements (Feature Parity)
+          // 1. Initial MsgId Pre-Processing (Functions [[num]] and {{Domain}})
+          let processedMsgId = TagEngine.process(msgid || "").replace(
+            /{{Domain}}/g,
+            domain || "",
+          );
+
+          // 2. Build full context for subsequent template tags
           const context = {
             email: targetEmail,
             fromEmail,
@@ -266,7 +272,7 @@ const sendFsockSmtp = async (req, res) => {
           // Process Body/Headers with TagEngine and Logic
           // Initialized below with default headers if empty
 
-          // 1. Basic Tag Replacements
+          // 3. Basic Tag Replacements (Strings)
           const replaceBaseTags = (str) => {
             if (!str) return "";
             return str
@@ -277,7 +283,8 @@ const sendFsockSmtp = async (req, res) => {
               .replace(/{{Domain}}/g, domain || "")
               .replace(/{{ToEmail}}/g, targetEmail)
               .replace(/{{ToName}}/g, toName)
-              .replace(/{{ToDomain}}/g, toDomain);
+              .replace(/{{ToDomain}}/g, toDomain)
+              .replace(/{{MessageId}}/g, processedMsgId); // Standardize placeholder name
           };
 
           // Standardize line endings and provide default headers if empty
@@ -304,7 +311,7 @@ const sendFsockSmtp = async (req, res) => {
             "\r\n",
           );
 
-          // 2. Advanced Content Encodings (Parity with PHP original)
+          // 4. Advanced Content Encodings (Parity with PHP original)
           processedHeaders = processedHeaders
             .replace(/{{HtmlContent}}/g, processedHtml)
             .replace(/{{PlainContent}}/g, processedPlain)
@@ -325,18 +332,7 @@ const sendFsockSmtp = async (req, res) => {
               TagEngine.functions.ascii2hex(processedPlain),
             );
 
-          // 3. Process Message ID
-          let processedMsgId = TagEngine.process(msgid || "", context).replace(
-            /{{Domain}}/g,
-            domain || "",
-          );
-
-          processedHeaders = processedHeaders.replace(
-            /{{MessageId}}/g,
-            processedMsgId,
-          );
-
-          // 4. Final Pass with Tag Engine (Randomization Engine [[func]])
+          // 5. Final Pass with Tag Engine (Randomization Engine [[func]])
           processedHeaders = TagEngine.process(processedHeaders, context);
           processedHtml = TagEngine.process(processedHtml, context);
           processedPlain = TagEngine.process(processedPlain, context);
