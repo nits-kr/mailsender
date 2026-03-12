@@ -319,7 +319,9 @@ const emailWorker = async (job) => {
       const received =
         (updatedCampaign.inbox_count || 0) +
         Math.max(0, updatedCampaign.spam_count || 0) +
-        Math.max(0, updatedCampaign.promo_count || 0);
+        Math.max(0, updatedCampaign.promo_count || 0) +
+        Math.max(0, updatedCampaign.social_count || 0) +
+        Math.max(0, updatedCampaign.updates_count || 0);
 
       const inboxPercent =
         (updatedCampaign.total_emails || 0) > 0
@@ -336,7 +338,7 @@ const emailWorker = async (job) => {
         // Explicit completion log
         const completionLog = await CampaignLog.create({
           campaign_id,
-          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED || Total Sent: ${updatedCampaign.total_emails || 0} || Inbox: ${updatedCampaign.inbox_count || 0}`,
+          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED || Total Sent: ${updatedCampaign.total_emails || 0} || Inbox: ${updatedCampaign.inbox_count || 0} || Spam: ${updatedCampaign.spam_count || 0} || Promo: ${updatedCampaign.promo_count || 0} || Social: ${updatedCampaign.social_count || 0} || Updates: ${updatedCampaign.updates_count || 0} || Opened: ${updatedCampaign.open_count || 0}`,
           type: "info",
           sent: updatedCampaign.total_emails || 0,
         });
@@ -347,7 +349,7 @@ const emailWorker = async (job) => {
       const ipDisplay = mailing_ip.split("|")[0];
       const newLog = await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} success || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || PROMO : ${updatedCampaign.promo_count || 0} || SOCIAL : ${updatedCampaign.social_count || 0} || UPDATES : ${updatedCampaign.updates_count || 0} || OPENED : ${updatedCampaign.open_count || 0} || MAIL STATUS : ${email} success || Inbox % : ${inboxPercent.toFixed(1)}%`,
         type: "success",
         sent: updatedCampaign.total_emails || 0,
         mail_status: `${email} success`,
@@ -405,7 +407,7 @@ const emailWorker = async (job) => {
         // Explicit completion log
         const completionLog = await CampaignLog.create({
           campaign_id,
-          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED (with errors) || Total Sent: ${updatedCampaign.total_emails || 0} || Inbox: ${updatedCampaign.inbox_count || 0}`,
+          log_text: `[${new Date().toLocaleTimeString()}] CAMPAIGN COMPLETED (with errors) || Total Sent: ${updatedCampaign.total_emails || 0} || Inbox: ${updatedCampaign.inbox_count || 0} || Spam: ${updatedCampaign.spam_count || 0} || Promo: ${updatedCampaign.promo_count || 0} || Social: ${updatedCampaign.social_count || 0} || Updates: ${updatedCampaign.updates_count || 0} || Opened: ${updatedCampaign.open_count || 0}`,
           type: "info",
           sent: updatedCampaign.total_emails || 0,
         });
@@ -415,12 +417,14 @@ const emailWorker = async (job) => {
       const received =
         (updatedCampaign.inbox_count || 0) +
         (updatedCampaign.spam_count || 0) +
-        (updatedCampaign.promo_count || 0);
+        (updatedCampaign.promo_count || 0) +
+        (updatedCampaign.social_count || 0) +
+        (updatedCampaign.updates_count || 0);
 
       const ipDisplay = mailing_ip.split("|")[0];
       const errorLog = await CampaignLog.create({
         campaign_id,
-        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || MAIL STATUS : ${email} error || Inbox Percentage : 0%`,
+        log_text: `Total Mail Sent : ${updatedCampaign.total_emails || 0} || [${ipDisplay}] || Total Mail Received : ${received} || INBOX : ${updatedCampaign.inbox_count || 0} || SPAM : ${updatedCampaign.spam_count || 0} || PROMO : ${updatedCampaign.promo_count || 0} || SOCIAL : ${updatedCampaign.social_count || 0} || UPDATES : ${updatedCampaign.updates_count || 0} || OPENED : ${updatedCampaign.open_count || 0} || MAIL STATUS : ${email} error || Inbox % : 0%`,
         type: "error",
         sent: updatedCampaign.total_emails || 0,
         mail_status: `${email} error`,

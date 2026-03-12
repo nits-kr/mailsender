@@ -14,6 +14,7 @@ const ImapData = require("../models/ImapData");
 
 const determinePlacement = (fName) => {
   const f = (fName || "").toLowerCase();
+  // Spam / junk folders
   if (
     f.includes("spam") ||
     f.includes("junk") ||
@@ -21,14 +22,20 @@ const determinePlacement = (fName) => {
     f.includes("quarantine")
   )
     return "spam";
+  // Social tab (Gmail [Gmail]/Social or Yahoo Social)
+  if (f.includes("social"))
+    return "social";
+  // Updates tab (Gmail [Gmail]/Updates)
+  if (f.includes("update"))
+    return "updates";
+  // Promotions / Advertising / Forums tab
   if (
     f.includes("promo") ||
-    f.includes("social") ||
-    f.includes("update") ||
     f.includes("advertising") ||
     f.includes("forum")
   )
     return "promo";
+  // Everything else is treated as inbox
   return "inbox";
 };
 
@@ -48,7 +55,7 @@ const updateIntelligenceScore = async (campaign, type, value, location) => {
     rep = new ReputationScore({ assetType: type, assetValue: value });
   }
 
-  if (location === "inbox" || location === "promo") {
+  if (location === "inbox" || location === "promo" || location === "social" || location === "updates") {
     rep.inboxCount += 1;
   } else if (location === "spam") {
     rep.spamCount += 1;
@@ -336,13 +343,20 @@ const runScanner = async () => {
           if (processedEmails.has(dedupeKey)) continue;
 
           // Match by mail_status pattern "email@domain.com success"
+          // A log is "unclassified" only if ALL placement fields are still 0
+          const unclassifiedFilter = {
+            inbox: { $in: [0, null] },
+            spam: { $in: [0, null] },
+            promo: { $in: [0, null] },
+            social: { $in: [0, null] },
+            updates: { $in: [0, null] },
+          };
+
           let existingLog = await CampaignLog.findOne({
             campaign_id: { $in: activeCampaignIds },
             type: "success",
             mail_status: `${res.email} success`,
-            inbox: { $in: [0, null] },
-            spam: { $in: [0, null] },
-            promo: { $in: [0, null] },
+            ...unclassifiedFilter,
           }).sort({ created_at: -1 });
 
           // Fallback to fingerprint
@@ -351,25 +365,32 @@ const runScanner = async () => {
               campaign_id: { $in: activeCampaignIds },
               fingerprint: res.fingerprint,
               type: "success",
-              inbox: { $in: [0, null] },
-              spam: { $in: [0, null] },
-              promo: { $in: [0, null] },
+              ...unclassifiedFilter,
             }).sort({ created_at: -1 });
           }
 
-          // Handle Reclassification (e.g. Spam -> Inbox)
+          // Handle Reclassification (e.g. Spam/Promo/Social/Updates -> Inbox)
           if (!existingLog && res.placement === "inbox") {
             const wronglyClassified = await CampaignLog.findOne({
               campaign_id: { $in: activeCampaignIds },
               type: "success",
-              mail_status: { $in: [`${res.email} spam`, `${res.email} promo`] },
+              mail_status: {
+                $in: [
+                  `${res.email} spam`,
+                  `${res.email} promo`,
+                  `${res.email} social`,
+                  `${res.email} updates`,
+                ],
+              },
             }).sort({ created_at: -1 });
 
             if (wronglyClassified) {
-              const oldPlacement =
-                wronglyClassified.spam === 1 ? "spam" : "promo";
-              const oldCountField =
-                oldPlacement === "spam" ? "spam_count" : "promo_count";
+              // Determine what the old (wrong) placement was
+              let oldPlacement = "promo";
+              if (wronglyClassified.spam === 1) oldPlacement = "spam";
+              else if (wronglyClassified.social === 1) oldPlacement = "social";
+              else if (wronglyClassified.updates === 1) oldPlacement = "updates";
+              const oldCountField = `${oldPlacement}_count`;
 
               const correctedCampaign = await Campaign.findByIdAndUpdate(
                 wronglyClassified.campaign_id,
@@ -379,9 +400,11 @@ const runScanner = async () => {
 
               if (correctedCampaign) {
                 const received =
-                  (correctedCampaign.inbox_count || 0) +
-                  (correctedCampaign.spam_count || 0) +
-                  (correctedCampaign.promo_count || 0);
+                (correctedCampaign.inbox_count || 0) +
+                (correctedCampaign.spam_count || 0) +
+                (correctedCampaign.promo_count || 0) +
+                (correctedCampaign.social_count || 0) +
+                (correctedCampaign.updates_count || 0);
                 const totalSent =
                   (correctedCampaign.success_count || 0) +
                   (correctedCampaign.error_count || 0);
@@ -407,7 +430,9 @@ const runScanner = async () => {
                       inbox: 1,
                       spam: 0,
                       promo: 0,
-                      log_text: `Total Mail Sent : ${correctedCampaign.total_emails || 0}${ipBox} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                      social: 0,
+                      updates: 0,
+                      log_text: `Total Mail Sent : ${correctedCampaign.total_emails || 0}${ipBox} || Total Mail Received : ${received} || INBOX : ${correctedCampaign.inbox_count || 0} || SPAM : ${correctedCampaign.spam_count || 0} || PROMO : ${correctedCampaign.promo_count || 0} || SOCIAL : ${correctedCampaign.social_count || 0} || UPDATES : ${correctedCampaign.updates_count || 0} || OPENED : ${correctedCampaign.open_count || 0} || MAIL STATUS : ${res.email} inbox || Inbox % : ${inboxPercent.toFixed(1)}%`,
                       inbox_percent: Number(inboxPercent.toFixed(1)),
                       received,
                     },
@@ -461,11 +486,11 @@ const runScanner = async () => {
           if (existingLog) {
             const campaignId = existingLog.campaign_id;
             const updateField =
-              res.placement === "spam"
-                ? "spam_count"
-                : res.placement === "promo"
-                  ? "promo_count"
-                  : "inbox_count";
+              res.placement === "spam"    ? "spam_count"    :
+              res.placement === "promo"   ? "promo_count"   :
+              res.placement === "social"  ? "social_count"  :
+              res.placement === "updates" ? "updates_count" :
+                                            "inbox_count";
 
             const campaign = await Campaign.findByIdAndUpdate(
               campaignId,
@@ -477,15 +502,20 @@ const runScanner = async () => {
               const received =
                 (campaign.inbox_count || 0) +
                 (campaign.spam_count || 0) +
-                (campaign.promo_count || 0);
+                (campaign.promo_count || 0) +
+                (campaign.social_count || 0) +
+                (campaign.updates_count || 0);
               const totalSent =
                 (campaign.success_count || 0) + (campaign.error_count || 0);
               const inboxPercent =
                 (campaign.total_emails || 0) > 0
                   ? (campaign.inbox_count / campaign.total_emails) * 100
                   : 0;
-              const inboxLine = res.placement === "inbox" ? 1 : 0;
-              const spamLine = res.placement === "spam" ? 1 : 0;
+              const inboxLine   = res.placement === "inbox"   ? 1 : 0;
+              const spamLine    = res.placement === "spam"    ? 1 : 0;
+              const promoLine   = res.placement === "promo"   ? 1 : 0;
+              const socialLine  = res.placement === "social"  ? 1 : 0;
+              const updatesLine = res.placement === "updates" ? 1 : 0;
 
               // Fix: use existingLog variables (not reclassification-scope vars)
               const ipDisplay2 =
@@ -497,8 +527,12 @@ const runScanner = async () => {
                 existingLog._id,
                 {
                   $set: {
-                    [res.placement]: 1,
-                    log_text: `Total Mail Sent : ${campaign.total_emails || 0}${ipBox2} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox Percentage : ${inboxPercent.toFixed(1)}%`,
+                    inbox:   inboxLine,
+                    spam:    spamLine,
+                    promo:   promoLine,
+                    social:  socialLine,
+                    updates: updatesLine,
+                    log_text: `Total Mail Sent : ${campaign.total_emails || 0}${ipBox2} || Total Mail Received : ${received} || INBOX : ${campaign.inbox_count || 0} || SPAM : ${campaign.spam_count || 0} || PROMO : ${campaign.promo_count || 0} || SOCIAL : ${campaign.social_count || 0} || UPDATES : ${campaign.updates_count || 0} || OPENED : ${campaign.open_count || 0} || MAIL STATUS : ${res.email} ${res.placement} || Inbox % : ${inboxPercent.toFixed(1)}%`,
                     received,
                     inbox_percent: Number(inboxPercent.toFixed(1)),
                   },
@@ -567,7 +601,8 @@ const runScanner = async () => {
                 await IntelligenceLog.create({
                   campaignId,
                   provider: res.email.split("@")[1]?.split(".")[0] || "other",
-                  location: res.placement === "promo" ? "inbox" : res.placement,
+                  // Treat promo/social/updates as non-spam inbox-adjacent for intelligence scoring
+                  location: (res.placement === "promo" || res.placement === "social" || res.placement === "updates") ? "inbox" : res.placement,
                   testEmail: res.email,
                   subject: existingLog.subject || "IMAP Scan",
                 });

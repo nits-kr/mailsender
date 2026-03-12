@@ -13,8 +13,10 @@ const campaignLogSchema = mongoose.Schema({
   sent: { type: Number, default: 0 }, // total sent so far at time of this log
   inbox: { type: Number, default: 0 }, // IMAP inbox count
   spam: { type: Number, default: 0 }, // IMAP spam count
-  promo: { type: Number, default: 0 }, // IMAP promo/promotions count
-  received: { type: Number, default: 0 }, // IMAP received count
+  promo: { type: Number, default: 0 }, // IMAP promotions tab count
+  social: { type: Number, default: 0 }, // IMAP social tab count
+  updates: { type: Number, default: 0 }, // IMAP updates tab count
+  received: { type: Number, default: 0 }, // IMAP total received count
   mail_status: { type: String, default: "" }, // e.g. "email@x.com success"
   inbox_percent: { type: Number, default: 0 },
   fingerprint: { type: String, default: "" }, // unique per sent message for IMAP reconciliation
@@ -29,6 +31,8 @@ campaignLogSchema.index({
   inbox: 1,
   spam: 1,
   promo: 1,
+  social: 1,
+  updates: 1,
 });
 campaignLogSchema.index({
   campaign_id: 1,
@@ -37,6 +41,9 @@ campaignLogSchema.index({
   inbox: 1,
   spam: 1,
   promo: 1,
+  social: 1,
+  updates: 1,
 });
 
 module.exports = mongoose.model("CampaignLog", campaignLogSchema);
+

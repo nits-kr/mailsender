@@ -176,8 +176,11 @@ const ScreenLogPage = () => {
       `Total Mail Received : ${received} || ` +
       `INBOX : ${inbox} || ` +
       `SPAM : ${spam} || ` +
+      `PROMO : ${log.promo || 0} || ` +
+      `SOCIAL : ${log.social || 0} || ` +
+      `UPDATES : ${log.updates || 0} || ` +
       `MAIL STATUS : ${status} || ` +
-      `Inbox Percentage : ${inboxPct}%`
+      `Inbox % : ${inboxPct}%`
     );
   };
 
@@ -326,6 +329,20 @@ const ScreenLogPage = () => {
           <span className="slp-stat-label">PROMO</span>
           <span className="slp-stat-value slp-orange">
             {localStats?.promo_count ?? 0}
+          </span>
+        </span>
+        <span className="slp-stat-sep">|</span>
+        <span className="slp-stat">
+          <span className="slp-stat-label">SOCIAL</span>
+          <span className="slp-stat-value slp-blue">
+            {localStats?.social_count ?? 0}
+          </span>
+        </span>
+        <span className="slp-stat-sep">|</span>
+        <span className="slp-stat">
+          <span className="slp-stat-label">UPDATES</span>
+          <span className="slp-stat-value slp-purple">
+            {localStats?.updates_count ?? 0}
           </span>
         </span>
         {total > 0 && (
