@@ -1,6 +1,8 @@
 const Link = require("../models/Link");
 const Tracking = require("../models/Tracking");
 const Campaign = require("../models/Campaign");
+const CampaignLog = require("../models/CampaignLog");
+const socketService = require("../services/socketService");
 
 // @desc    Handle public click tracking and redirect
 // @route   GET /t/:pattern
@@ -77,11 +79,25 @@ const handleOpenPixel = async (req, res) => {
     // We do NOT block duplicates here, because the user may legitimately receive multiple emails
     // to the same address in the same campaign (especially during testing), and open all of them.
     // The timestamp cache-buster prevents image caching, so each open is a real request.
-    const camp = await Campaign.findByIdAndUpdate(cid, {
-      $inc: { open_count: 1 },
-    });
+    const camp = await Campaign.findByIdAndUpdate(
+      cid,
+      { $inc: { open_count: 1 } },
+      { new: true } // Need the updated counts
+    );
+
     if (!camp) {
       console.log(`[Tracking] Open pixel warned: Campaign ${cid} not found`);
+    } else {
+      // Emit a live log event to the dashboard
+      const timeStr = new Date().toLocaleTimeString();
+      const ip = req.ip || req.headers["x-forwarded-for"] || "Unknown IP";
+      const openLog = await CampaignLog.create({
+        campaign_id: cid,
+        log_text: `[${timeStr}] 👁️ EMAIL OPEN DETECTED || ${e || "Unknown Contact"} opened your email. Total Opens: ${camp.open_count}`,
+        type: "info",
+        mail_status: `${e} opened`
+      });
+      socketService.emitLog(cid, openLog, camp);
     }
 
     await Tracking.create({
