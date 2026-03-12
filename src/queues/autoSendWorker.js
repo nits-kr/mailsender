@@ -318,16 +318,34 @@ const matchInboxPercentage = async (campaign, sentMap, retrigerCount) => {
 
           if (row.status === "INBOX") inboxCount++;
           else if (row.status === "SPAM") spamCount++;
+
+          // ── Per-email MAIL STATUS log ──────────────────────────────────────
+          const runningPct =
+            totalSent > 0
+              ? ((inboxCount / totalSent) * 100).toFixed(1)
+              : 0;
+          const statusLabel = (row.status || "UNKNOWN").toLowerCase();
+          emitLog(
+            campaign._id,
+            `Total Sent: ${totalSent} || Received: ${totalReceived} || INBOX: ${inboxCount} || SPAM: ${spamCount} || MAIL STATUS: ${email} ${statusLabel} || Inbox%: ${runningPct}%`,
+            row.status === "INBOX"
+              ? "success"
+              : row.status === "SPAM"
+                ? "warn"
+                : "info",
+          );
         }
       }
     }
 
-    const fetchedPct =
-      totalSent > 0 ? ((inboxCount / totalSent) * 100).toFixed(1) : 0;
-    emitLog(
-      campaign._id,
-      `Total Sent: ${totalSent} | Received: ${totalReceived} | INBOX: ${inboxCount} | SPAM: ${spamCount} | Inbox%: ${fetchedPct}%`,
-    );
+    // Show waiting log only while no results have come in yet
+    if (totalReceived === 0) {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      emitLog(
+        campaign._id,
+        `⏳ Waiting for IMAP result... (${elapsed}s elapsed)`,
+      );
+    }
 
     if (totalReceived < totalSent) await sleep(IMAP_POLL_INTERVAL_MS);
   }
