@@ -557,7 +557,7 @@ const FsockAutoSend = () => {
                           <div style={{ position: "relative" }}>
                             <textarea
                               className={`fsock-textarea-standard !min-h-[60px] ${errors.emails ? "invalid-input" : ""}`}
-                              placeholder="test1@domain.com (Max 4)"
+                              placeholder={`test1@gmail.com\ntest2@yahoo.com\n(Enter 2–4 emails. 2 are randomly picked per test cycle. Max 4)`}
                               {...register("emails")}
                               style={{ paddingRight: "35px" }}
                             />

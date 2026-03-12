@@ -34,14 +34,19 @@ const MAX_RETRIGGERS = 3;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const emitLog = (campaignId, message, type = "info") => {
+const emitLog = (campaignId, message, type = "info", campaignStatus = null) => {
   const log = {
     _id: Date.now().toString(),
     log_text: `[${new Date().toLocaleTimeString()}] ${message}`,
     type,
     createdAt: new Date(),
   };
-  socketService.emitLog(campaignId, log);
+  // Pass campaignStatus so the frontend badge updates immediately on terminal events
+  socketService.emitLog(
+    campaignId,
+    log,
+    campaignStatus ? { status: campaignStatus } : null,
+  );
   console.log(`[AutoSend/${campaignId}] ${message}`);
 };
 
@@ -690,7 +695,7 @@ const autoSendWorkerProcessor = async (job) => {
 
     // ── Campaign Done ─────────────────────────────────────────────────────────
     const finalMsg = `Campaign Completed! Total Sent: ${totalSuccessSent}`;
-    emitLog(campaignId, finalMsg, "success");
+    emitLog(campaignId, finalMsg, "success", "Completed");
     await FsockAutoCampaign.findByIdAndUpdate(campaignId, {
       status: "Completed",
       completed_at: new Date(),
