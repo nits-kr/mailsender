@@ -955,7 +955,7 @@ const Interface = () => {
                             value: liveStatus.bounce_count || 0,
                             color: "#ef4444",
                           },
-                          {
+                          /* {
                             label: "Promo",
                             value: liveStatus.promo_count || 0,
                             color: "#eab308",
@@ -969,12 +969,12 @@ const Interface = () => {
                             label: "Updates",
                             value: liveStatus.updates_count || 0,
                             color: "#8b5cf6",
-                          },
-                          {
+                          }, */
+                          /* {
                             label: "Opened",
                             value: liveStatus.open_count || 0,
                             color: "#ec4899",
-                          },
+                          }, */
                         ]
                       : []),
                   ].map((stat, i) => (

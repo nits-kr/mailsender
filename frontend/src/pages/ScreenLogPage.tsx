@@ -153,35 +153,42 @@ const ScreenLogPage = () => {
   };
 
   const formatLogLine = (log: any) => {
-    // The backend already completely formats the log string with accurate aggregate mathematics.
-    // If it exists, use it directly.
-    if (log.log_text) return log.log_text;
+    let text = log.log_text || "";
 
-    // Fallback for very old unformatted logs
-    const sentTotal = log.sent ?? 0;
-    const inbox = log.inbox ?? 0;
-    const spam = log.spam ?? 0;
-    const received = log.received ?? 0;
-    const inboxPct =
-      log.inbox_percent != null
-        ? log.inbox_percent
-        : sentTotal > 0
-          ? ((inbox / sentTotal) * 100).toFixed(2)
-          : "0";
-    const status =
-      log.mail_status || (log.type === "success" ? "success" : "error");
+    if (!text) {
+      // Fallback for very old unformatted logs
+      const sentTotal = log.sent ?? 0;
+      const inbox = log.inbox ?? 0;
+      const spam = log.spam ?? 0;
+      const received = log.received ?? 0;
+      const inboxPct =
+        log.inbox_percent != null
+          ? log.inbox_percent
+          : sentTotal > 0
+            ? ((inbox / sentTotal) * 100).toFixed(2)
+            : "0";
+      const status =
+        log.mail_status || (log.type === "success" ? "success" : "error");
 
-    return (
-      `Total Mail Sent : ${sentTotal} || ` +
-      `Total Mail Received : ${received} || ` +
-      `INBOX : ${inbox} || ` +
-      `SPAM : ${spam} || ` +
-      `PROMO : ${log.promo || 0} || ` +
-      `SOCIAL : ${log.social || 0} || ` +
-      `UPDATES : ${log.updates || 0} || ` +
-      `MAIL STATUS : ${status} || ` +
-      `Inbox % : ${inboxPct}%`
-    );
+      text =
+        `Total Mail Sent : ${sentTotal} || ` +
+        `Total Mail Received : ${received} || ` +
+        `INBOX : ${inbox} || ` +
+        `SPAM : ${spam} || ` +
+        /* `PROMO : ${log.promo || 0} || ` +
+        `SOCIAL : ${log.social || 0} || ` +
+        `UPDATES : ${log.updates || 0} || ` + */
+        `MAIL STATUS : ${status} || ` +
+        `Inbox % : ${inboxPct}%`;
+    }
+
+    // Dynamically strip out Promo, Social, and Updates from the backend string for the UI
+    text = text.replace(/\s*\|\|\s*(PROMO|Promo)\s*:\s*\d+/g, "");
+    text = text.replace(/\s*\|\|\s*(SOCIAL|Social)\s*:\s*\d+/g, "");
+    text = text.replace(/\s*\|\|\s*(UPDATES|Updates)\s*:\s*\d+/g, "");
+    text = text.replace(/\s*\|\|\s*(OPENED|Opened)\s*:\s*\d+/g, "");
+
+    return text;
   };
 
   const lineClass = (type: string) => {
@@ -310,13 +317,13 @@ const ScreenLogPage = () => {
             {localStats?.inbox_count ?? 0}
           </span>
         </span>
-        <span className="slp-stat-sep">|</span>
+        {/* <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">OPENS</span>
           <span className="slp-stat-value" style={{ color: "#a855f7" }}>
             {localStats?.open_count ?? 0}
           </span>
-        </span>
+        </span> */}
         <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">SPAM</span>
@@ -324,7 +331,7 @@ const ScreenLogPage = () => {
             {Math.max(0, localStats?.spam_count ?? 0)}
           </span>
         </span>
-        <span className="slp-stat-sep">|</span>
+        {/* <span className="slp-stat-sep">|</span>
         <span className="slp-stat">
           <span className="slp-stat-label">PROMO</span>
           <span className="slp-stat-value slp-orange">
@@ -344,7 +351,7 @@ const ScreenLogPage = () => {
           <span className="slp-stat-value slp-purple">
             {localStats?.updates_count ?? 0}
           </span>
-        </span>
+        </span> */}
         {total > 0 && (
           <>
             <span className="slp-stat-sep">|</span>
