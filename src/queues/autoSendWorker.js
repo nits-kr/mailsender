@@ -28,7 +28,7 @@ const { sendCampaignNotification } = require("../services/telegramService");
 const { applyPlaceholders, encodeHeader } = require("../services/fsockHelpers");
 const { getNodemailerDkimOptions } = require("../services/dkimService");
 
-const IMAP_POLL_INTERVAL_MS = 5000; // 5 s between polls
+const IMAP_POLL_INTERVAL_MS = 3000; // 3 s between polls
 const MAX_WAIT_MS = 20 * 60 * 1000; // 20 min
 const MAX_RETRIGGERS = 3;
 

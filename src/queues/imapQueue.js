@@ -30,7 +30,7 @@ const startImapScannerJob = async () => {
     {},
     {
       repeat: {
-        every: 15000,
+        every: 10000,
       },
       removeOnComplete: true,
       removeOnFail: true,
